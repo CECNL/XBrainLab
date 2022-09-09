@@ -73,17 +73,17 @@ class LoadTemplate(TopWindow):
 
         # ==== status table ==== 
         # channels, events
-        stat_frame = ttk.LabelFrame(self, text="Current Status")
-        stat_frame.grid(row=0, column=2, rowspan=2)
+        self.stat_frame = ttk.LabelFrame(self, text="Current Status")
+        self.stat_frame.grid(row=0, column=2, rowspan=2)
         self.attr_len = tk.IntVar()
-        tk.Label(stat_frame, text="Dataset loaded: ").grid(row=0, column=0)
-        tk.Label(stat_frame, textvariable=self.attr_len).grid(row=0, column=1)
-        tk.Label(stat_frame, text="Loaded type: ").grid(row=1, column=0)
-        tk.Label(stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1)
+        tk.Label(self.stat_frame, text="Dataset loaded: ").grid(row=0, column=0)
+        tk.Label(self.stat_frame, textvariable=self.attr_len).grid(row=0, column=1)
+        tk.Label(self.stat_frame, text="Loaded type: ").grid(row=1, column=0)
+        tk.Label(self.stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1)
 
         # -------- subclass differences --------
-        #tk.Button(self, text="Add", command=lambda:self._load_set()).grid(row=2, column=0, ipadx=3, sticky='w')
-        #tk.Button(self, text="Confirm", command=lambda:self._confirm_set()).grid(row=2, column=1, ipadx=3, sticky='w')
+        #tk.Button(self, text="Add", command=lambda:self._load()).grid(row=2, column=0, ipadx=3, sticky='w')
+        #tk.Button(self, text="Confirm", command=lambda:self._confirm()).grid(row=2, column=1, ipadx=3, sticky='w')
 
     def _init_row(self):
         new_row = OrderedDict()
@@ -113,20 +113,42 @@ class LoadTemplate(TopWindow):
             self.attr_list.pop(selected_row['text'])
             self.data_list.pop(selected_row['text'])
             self.attr_len.set(len(self.attr_list))
+        if len(self.attr_list) == 0:
+            self.type_raw.config(state="active")
+            self.type_epoch.config(state="active")
         
         for k,v in self.attr_list.items():
             v_val = tuple([vv.get() for vv in v.values()])
             self.data_attr.insert('', index="end" ,text=k, values=v_val[1:])
+    def _load(self):
+        # for overriding
+        pass
+    def _confirm(self):
+        # check channel number
+        check_chs = set(self.data_attr.item(at_row)['values'][3] for at_row in self.data_attr.get_children())
+        assert len(check_chs)==1, 'Dataset channel numbers inconsistent.'
+        
+        ret_attr = {}
+        ret_data = {}
+        for at_row in self.data_attr.get_children():
+            at_val = self.data_attr.item(at_row)['values']
+            ret_attr[at_val[0]] = [at_val[1], at_val[1]]
+            ret_data[at_val[0]] = self.data_list[at_val[0]]
+        if self.type_ctrl.get() == 'raw':
+            self.ret_val = Raw(ret_attr, ret_data)
+        else:
+            self.ret_val = Epochs(ret_attr, ret_data)
+        self.destroy()
     def _get_result(self):
         return self.ret_val
 
 class LoadSet(LoadTemplate):
     def __init__(self, parent, title):
         super(LoadSet, self).__init__(parent, title)
-        tk.Button(self, text="Add", command=lambda:self._load_set()).grid(row=2, column=0, ipadx=3, sticky='w')
-        tk.Button(self, text="Confirm", command=lambda:self._confirm_set()).grid(row=2, column=1, ipadx=3, sticky='w')
+        tk.Button(self, text="Add", command=lambda:self._load()).grid(row=2, column=0, ipadx=3, sticky='w')
+        tk.Button(self, text="Confirm", command=lambda:self._confirm()).grid(row=2, column=1, ipadx=3, sticky='w')
     
-    def _load_set(self):
+    def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
             filetypes = (('eeg file', '*.set'),)
@@ -156,23 +178,6 @@ class LoadSet(LoadTemplate):
         if len(self.attr_list) != 0:
             self.type_raw.config(state="disabled")
             self.type_epoch.config(state="disabled")
-
-    def _confirm_set(self):
-        # check channel number
-        check_chs = set(self.data_attr.item(at_row)['values'][3] for at_row in self.data_attr.get_children())
-        assert len(check_chs)==1, 'Dataset channel numbers inconsistent.'
-        
-        ret_attr = {}
-        ret_data = {}
-        for at_row in self.data_attr.get_children():
-            at_val = self.data_attr.item(at_row)['values']
-            ret_attr[at_val[0]] = [at_val[1], at_val[1]]
-            ret_data[at_val[0]] = self.data_list[at_val[0]]
-        if self.type_ctrl.get() == 'raw':
-            self.ret_val = Raw(ret_attr, ret_data)
-        else:
-            self.ret_val = Epochs(ret_attr, ret_data)
-        self.destroy()
 
 class _loadmat(TopWindow):
     # TODO: spinbox default (if cleaner method is possible)
@@ -263,14 +268,44 @@ class _loadmat(TopWindow):
         return self.ret_key
 
 class LoadMat(LoadTemplate):
+    # TODO: reset common settings
+
     def __init__(self, parent, title):
         super(LoadMat, self).__init__(parent, title)
-        self.attr_info = {}
+        self.attr_info = {'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}
 
-        tk.Button(self, text="Add", command=lambda:self._load_mat()).grid(row=2, column=0, ipadx=3, sticky='w')
-        tk.Button(self, text="Confirm", command=lambda:self._confirm_mat()).grid(row=2, column=1, ipadx=3, sticky='w')
+        # ==== status table ====
+        self.nch = tk.IntVar()
+        self.nch.set(0)
+        self.srate = tk.IntVar()
+        self.srate.set(0)
+        tk.Label(self.stat_frame, text="Channels: ").grid(row=2, column=0)
+        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=2, column=1)
+        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=3, column=0)
+        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=3, column=1)
 
-    def _load_mat(self):
+        tk.Button(self, text="Add", command=lambda:self._load()).grid(row=2, column=0, ipadx=3, sticky='w')
+        tk.Button(self, text="Confirm", command=lambda:self._confirm()).grid(row=2, column=1, ipadx=3, sticky='w')
+    def _edit_row(self, event):
+        selected_row = self.data_attr.focus()
+        selected_row = self.data_attr.item(selected_row)
+        del_row = _editrow(self, "Edit data attribute", self.attr_header, self.attr_list[selected_row['text']]).get_result()
+        self.data_attr.delete(*self.data_attr.get_children())
+        if del_row:
+            self.attr_list.pop(selected_row['text'])
+            self.data_list.pop(selected_row['text'])
+            self.attr_len.set(len(self.attr_list))
+        if len(self.attr_list) == 0:
+            self.attr_info = {'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}
+            self.nch.set(self.attr_info['nchan'])
+            self.srate.set(self.attr_info['sampling rate'])
+            self.type_raw.config(state="active")
+            self.type_epoch.config(state="active")
+        
+        for k,v in self.attr_list.items():
+            v_val = tuple([vv.get() for vv in v.values()])
+            self.data_attr.insert('', index="end" ,text=k, values=v_val[1:])
+    def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
             filetypes = (('eeg file', '*.mat'),)
@@ -281,9 +316,9 @@ class LoadMat(LoadTemplate):
         for fn in selected_tuple:            
             if fn.split('/')[-1] not in self.attr_list.keys():
                 selected_data = scipy.io.loadmat(fn)
-                attr_info_tmp = {}
+                attr_info_tmp = {'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}
 
-                if len(self.data_list) ==0 and self.attr_info=={}:
+                if len(self.data_list) ==0 and self.attr_info=={'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}:
                     attr_info_tmp = _loadmat(self, "Select Field", fn, selected_data).get_result()
                 else:
                     attr_info_tmp = self.attr_info
@@ -310,8 +345,11 @@ class LoadMat(LoadTemplate):
                 self.attr_list[k] = v
                 self.data_list[k] = data_list_tmp[k]
         self.attr_len.set(len(self.attr_list))
-        if self.attr_info == {}:
+        if self.attr_info =={'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}:
             self.attr_info = attr_info_tmp
+            self.nch.set(self.attr_info['nchan'])
+            self.srate.set(self.attr_info['sampling rate'])
+        
         if len(self.attr_list) != 0:
             self.type_raw.config(state="disabled")
             self.type_epoch.config(state="disabled")
@@ -329,30 +367,40 @@ class LoadMat(LoadTemplate):
             return np.transpose(target, (3-dim_ch-dim_time, dim_ch, dim_time))
         else:
             return np.transpose(target, (dim_ch, dim_time))
+
+class LoadEdf(LoadTemplate):
+    def __init__(self, parent, title):
+        super(LoadEdf, self).__init__(parent, title)
+        self.type_raw.config(state="disabled")# only supporting raw
+        self.type_epoch.config(state="disabled")
+
+        tk.Button(self, text="Add", command=lambda:self._load()).grid(row=2, column=0, ipadx=3, sticky='w')
+        tk.Button(self, text="Confirm", command=lambda:self._confirm()).grid(row=2, column=1, ipadx=3, sticky='w')
+
+    def _load(self):
+        selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
+            parent = self,
+            filetypes = (('eeg file', '*.edf'),)
+        )
+        attr_list_tmp = {}
+        data_list_tmp = {}
+
+        for fn in selected_tuple:
+            if fn.split('/')[-1] not in self.attr_list.keys(): 
+                selected_data = mne.io.read_raw_edf(fn, preload=True)
+                new_row = self._make_row(fn, selected_data)
+                attr_list_tmp[fn.split('/')[-1]] = new_row
+                data_list_tmp[fn.split('/')[-1]] = selected_data
+        
+        # update attr table
+        for k,v in attr_list_tmp.items():
+            if k not in self.attr_list.keys():
+                v_val = tuple([vv.get() for vv in v.values()])
+                self.data_attr.insert('', index="end" ,text=k, values=v_val[1:])
+                self.attr_list[k] = v
+                self.data_list[k] = data_list_tmp[k]
+        self.attr_len.set(len(self.attr_list))
     
-    def _confirm_mat(self):
-        # check channel number
-        check_chs = set(self.data_attr.item(at_row)['values'][3] for at_row in self.data_attr.get_children())
-        assert len(check_chs)==1, 'Dataset channel numbers inconsistent.'
-        
-        ret_attr = {}
-        ret_data = {}
-        for at_row in self.data_attr.get_children():
-            at_val = self.data_attr.item(at_row)['values']
-            ret_attr[at_val[0]] = [at_val[1], at_val[1]]
-            ret_data[at_val[0]] = self.data_list[at_val[0]]
-        if self.type_ctrl.get() == 'raw':
-            self.ret_val = Raw(ret_attr, ret_data)
-        else:
-            self.ret_val = Epochs(ret_attr, ret_data)
-        self.destroy()
-
-
-        
-
-
-
-
         
 
 

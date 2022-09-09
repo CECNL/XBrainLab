@@ -23,9 +23,9 @@ class DashBoard(TopWindow):
 
         file_type_menu = tk.Menu(self.nav_bar, tearoff=0)
         file_type_menu.add_command(label="Import SET file (EEGLAB toolbox)", command=lambda:self._import_data('set'))
-        file_type_menu.add_command(label="Import EDF/EDF+ file (BIOSIG toolbox)")
+        file_type_menu.add_command(label="Import EDF/EDF+ file (BIOSIG toolbox)", command=lambda:self._import_data('edf'))
         file_type_menu.add_command(label="Import CNT file (Neuroscan)")
-        file_type_menu.add_command(label="Import MAT file (Matlab array)",  command=lambda:self._import_data('mat'))
+        file_type_menu.add_command(label="Import MAT file (Matlab array)", command=lambda:self._import_data('mat'))
         file_type_menu.add_command(label="Import NPY/NPZ file (Numpy array)")
 
 
@@ -49,7 +49,8 @@ class DashBoard(TopWindow):
         load_title = "Load .{} file".format(type_key)
         load_map = {
             'set': lambda s, lt:LoadSet(s, lt).get_result(),
-            'mat': lambda s, lt:LoadMat(s, lt).get_result()
+            'mat': lambda s, lt:LoadMat(s, lt).get_result(),
+            'edf': lambda s, lt:LoadEdf(s, lt).get_result()
         }
         win = load_map[type_key](self, load_title)
         win.inspect()
