@@ -101,7 +101,6 @@ class Epochs:
             self.data.append(epoch_data[fn])
 
     def inspect(self):
-        print('test')
         for k,v in self.id_map.items():
             print(k, self.subject[v], self.session[v])
             print(self.data[v])
