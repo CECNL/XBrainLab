@@ -1,3 +1,4 @@
+import readline
 from tkinter import CENTER, DISABLED
 from turtle import heading, width
 from Template import *
@@ -8,8 +9,9 @@ from Template import *
 #       layout
 
 class _loadevent(TopWindow):
-    # TODO:load file & make event from data[event_key]
+    # TODO:
     #      consistent event_id dict between files
+    #      event file saved format & encoding
 
     def __init__(self, parent, title, fn):
         # ==== init
@@ -20,10 +22,10 @@ class _loadevent(TopWindow):
         # ==== view event loaded
         event_src = 0
         event_src_msg = ['Load event file.', 'Event parsed from stimulus channel.', 'Event parsed from annotation.', 'View events']
-        event_num = tk.StringVar()
-        event_num.set('None')
-        event_id_dict = tk.StringVar()
-        event_id_dict.set('None')
+        self.event_num = tk.StringVar()
+        self.event_num.set('None')
+        self.event_id_dict = tk.StringVar()
+        self.event_id_dict.set('None')
 
         # ==== try parse from data (stimulus channel & annotation)
         if self.parent.parent.type_ctrl.get() == 'epochs':
@@ -40,25 +42,48 @@ class _loadevent(TopWindow):
                 except (ValueError,TypeError) as err:
                     #print(err)
                     pass
-        
+        if self.ret_event[1]=={'1':1} and self.parent.parent.type_ctrl.get() == 'epochs':
+            event_src = 0
         # ==== view
         srcframe = tk.LabelFrame(self, text=event_src_msg[event_src])
         srcframe.grid(row=0, column=0)
         if event_src == 0:
-            tk.Button(srcframe, text="Load file", command=lambda:self._load_event_file()).grid(row=0, column=0)
+            tk.Button(srcframe, text="Load file", command=lambda:self._load_event_file(fn)).grid(row=0, column=0)
         else:
-            tk.Button(srcframe, text="Load file", command=lambda:self._load_event_file(), state=DISABLED).grid(row=0, column=0)
+            tk.Button(srcframe, text="Load file", command=lambda:self._load_event_file(fn), state=DISABLED).grid(row=0, column=0)
             self.ret_event_loaded = True
-            event_num.set(str(self.ret_event[0].shape[0]))
-            event_id_dict.set(str(self.ret_event[1]))
+            self.event_num.set(str(self.ret_event[0].shape[0]))
+            self.event_id_dict.set(str(self.ret_event[1]))
         
-        tk.Label(srcframe, text="Event numbers: "+event_num.get()).grid(row=1, column=0, sticky='w')
-        tk.Label(srcframe, text="Event id: "+event_id_dict.get()).grid(row=2, column=0, sticky='w')
+        tk.Label(srcframe, text="Event numbers: ").grid(row=1, column=0, sticky='w')
+        tk.Label(srcframe, textvariable=self.event_num).grid(row=1, column=1, sticky='w')
+        tk.Label(srcframe, text="Event id: ").grid(row=2, column=0, sticky='w')
+        tk.Label(srcframe, textvariable=self.event_id_dict).grid(row=2, column=1, sticky='w')
         tk.Button(self, text="Confirm", command=lambda:self._confirm(fn)).grid(row=1, column=0)
     
-    def _load_event_file(self):
-        pass
-
+    def _load_event_file(self, fn):
+        selected_file = filedialog.askopenfilename(
+            parent = self,
+            filetypes = (
+                ('text file', '*.txt'),
+                #('mat file', '*mat'),
+                #('text file', '*.lst'),
+                #('text file', '*.eve'),
+                #('binary file', '*.fif')
+            )
+        )
+        label_list = []
+        with open(selected_file, encoding='utf-8') as fp:
+            for line in fp.readlines():
+                label_list.append(int(line.rstrip()))
+            fp.close()
+        self.parent.parent.data_list[fn].events[:,2] = label_list
+        event_id_dict = {str(i): list(set(label_list))[i] for i in range(len(list(set(label_list))))}
+        self.parent.parent.data_list[fn].event_id = event_id_dict
+        self.parent.parent.event_list[fn] = (self.parent.parent.data_list[fn].events[:,2], self.parent.parent.data_list[fn].event_id)
+        self.ret_event = (self.parent.parent.data_list[fn].events, self.parent.parent.data_list[fn].event_id)
+        self.event_num.set(str(self.ret_event[0].shape[0]))
+        self.event_id_dict.set(str(self.ret_event[1]))
     def _confirm(self,fn):
         self.parent.parent.event_list[fn] = self.ret_event
         self.destroy()
@@ -254,8 +279,9 @@ class LoadTemplate(TopWindow):
         ret_data = {}
         for at_row in self.data_attr.get_children():
             at_val = self.data_attr.item(at_row)['values']
-            ret_attr[at_val[0]] = [at_val[1], at_val[1]]
-            ret_data[at_val[0]] = self.data_list[at_val[0]]
+            ret_attr[at_val[0]] = [at_val[1], at_val[2]] # subject, session
+            ret_data[at_val[0]] = self.data_list[at_val[0]] # mne
+            
         if self.type_ctrl.get() == 'raw':
             self.ret_val = Raw(ret_attr, ret_data)
         else:
@@ -412,6 +438,7 @@ class LoadMat(LoadTemplate):
         )
         attr_list_tmp = {}
         data_list_tmp = {}
+        event_list_tmp = {}
         attr_info_tmp = self.attr_info
 
         for fn in selected_tuple:            
@@ -430,7 +457,16 @@ class LoadMat(LoadTemplate):
                     selected_data = mne.io.RawArray(data_array, data_info)
                 else:
                     assert len(data_array.shape) == 3, 'Data dimension invalid.'
-                    selected_data = mne.EpochsArray(data_array, data_info)
+                    selected_data_tmp = mne.EpochsArray(data_array, data_info)
+                    if attr_info_tmp['event key'] not in  ["None", ""]:
+                        event_label = selected_data[attr_info_tmp['event key']]
+                        print(event_label[:].shape, event_label[:,].shape,np.squeeze(event_label).shape)
+                        selected_data_tmp.events[:,2] = np.squeeze(event_label)
+                        event_label = list(set(event_label.flatten()))
+                        selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
+                    selected_data = selected_data_tmp
+                    event_list_tmp[fn.split('/')[-1]] = (selected_data.events[:,2], selected_data.event_id)
+                        
                 new_row = self._make_row(fn, selected_data)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
@@ -521,7 +557,6 @@ class _loadnpy(TopWindow):
     def _get_result(self):
         return self.ret_key
 
-
 class LoadNp(LoadTemplate):
     # npy: single array
     # npz: multiple arrays
@@ -547,6 +582,7 @@ class LoadNp(LoadTemplate):
         )
         attr_list_tmp = {}
         data_list_tmp = {}
+        event_list_tmp = {}
         attr_info_tmp = self.attr_info
 
         for fn in selected_tuple:
@@ -573,14 +609,21 @@ class LoadNp(LoadTemplate):
                     selected_data = mne.io.RawArray(data_array, data_info)
                 else:
                     assert len(data_array.shape) == 3, 'Data dimension invalid.'
-                    selected_data = mne.EpochsArray(data_array, data_info)
+                    selected_data_tmp = mne.EpochsArray(data_array, data_info)
+                    if attr_info_tmp['event key'] not in  ["None", ""]:
+                        event_label = selected_data['event key']
+                        selected_data_tmp.events[:,2] = event_label
+                        event_label = list(set(event_label))
+                        selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
+                    selected_data = selected_data
+                    event_list_tmp[fn.split('/')[-1]] = (selected_data.events[:,2], selected_data.event_id)
                 new_row = self._make_row(fn, selected_data)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
         
         self._list_update(attr_list_tmp, data_list_tmp)
-        if self.attr_info =={'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}:
-            self.attr_info = attr_info_tmp
-            self.nch.set(self.attr_info['nchan'])
-            self.srate.set(self.attr_info['sampling rate'])
+        
+        self.attr_info = attr_info_tmp
+        self.nch.set(self.attr_info['nchan'])
+        self.srate.set(self.attr_info['sampling rate'])
         

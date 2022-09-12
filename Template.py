@@ -58,7 +58,7 @@ class RequireInput(TopWindow):
 # todo: get attr funcs for mne structures?
 
 class Raw:
-    def __init__(self, raw_attr, raw_data):
+    def __init__(self, raw_attr, raw_data, event_data={}):
         self.id_map = {}
 
         self.subject = []
@@ -66,23 +66,31 @@ class Raw:
         self.label = []
         self.data = []
 
-        self._init_attr(raw_attr=raw_attr, raw_data=raw_data)
+        self.event_id = {}
+
+        self._init_attr(raw_attr=raw_attr, raw_data=raw_data, event_data=event_data)
     
-    def _init_attr(self, raw_attr, raw_data):
+    def _init_attr(self, raw_attr, raw_data, event_data):
         i = 0
         for fn in raw_attr.keys():
             self.id_map[fn] = i
             self.subject.append(raw_attr[fn][0])
             self.session.append(raw_attr[fn][1])
             self.data.append(raw_data[fn])
+            if fn in event_data.keys():
+                if event_data[fn] != ():
+                    self.label.append(event_data[fn][0])
+                    self.event_id = event_data[fn][1]
 
     def inspect(self):
         for k,v in self.id_map.items():
-            print(k, self.subject[v], self.session[v])
+            #print(k, self.subject[v], self.session[v])
             print(self.data[v])
+            print(len(self.label[v]))
+            print(self.event_id)
     
 class Epochs:
-    def __init__(self, epoch_attr, epoch_data):
+    def __init__(self, epoch_attr, epoch_data, event_data={}):
         self.id_map = {}
 
         self.subject = []
@@ -90,21 +98,27 @@ class Epochs:
         self.label = []
         self.data = []
 
-        self._init_attr(epoch_attr=epoch_attr, epoch_data=epoch_data)
+        self.event_id = {}
+
+        self._init_attr(epoch_attr=epoch_attr, epoch_data=epoch_data, event_data=event_data)
     
-    def _init_attr(self, epoch_attr, epoch_data):
+    def _init_attr(self, epoch_attr, epoch_data, event_data):
         i = 0
         for fn in epoch_attr.keys():
             self.id_map[fn] = i
             self.subject.append(epoch_attr[fn][0])
             self.session.append(epoch_attr[fn][1])
             self.data.append(epoch_data[fn])
+            if fn in event_data.keys():
+                if event_data[fn] != ():
+                    self.label.append(event_data[fn][0])
+                    self.event_id = event_data[fn][1]
 
     def inspect(self):
         for k,v in self.id_map.items():
-            print(k, self.subject[v], self.session[v])
+            #print(k, self.subject[v], self.session[v])
             print(self.data[v])
-
+            print(self.event_id)
 
 
         
