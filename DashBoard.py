@@ -1,9 +1,6 @@
-from select import select
-from tabnanny import verbose
 from Template import *
 from ImportData import *
 
-# layout 等東西都加完再喬 ?
 
 class DashBoard(TopWindow):
     def __init__(self, parent):

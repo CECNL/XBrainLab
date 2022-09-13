@@ -1,22 +1,24 @@
-import readline
 from tkinter import CENTER, DISABLED
-from turtle import heading, width
 from Template import *
 
-# TODO: consistency of multiple files
+# TODO: consistency of multiple files (time samples?)
 #       code cleanup?
-#       event
 #       layout
 
 class _loadevent(TopWindow):
     # TODO:
     #      consistent event_id dict between files
-    #      event file saved format & encoding
+    #      event file saved format & encoding & file type(lacking test data)
+    """
+    parameter: parent, title
+               fn: filename
+    return: boolean of events were successfully loaded
+    """
 
     def __init__(self, parent, title, fn):
         # ==== init
         super(_loadevent, self).__init__(parent, title)
-        self.ret_event = ()
+        self.loaded_event = () # get returned events from mne functions
         self.ret_event_loaded = False
 
         # ==== view event loaded
@@ -29,20 +31,20 @@ class _loadevent(TopWindow):
 
         # ==== try parse from data (stimulus channel & annotation)
         if self.parent.parent.type_ctrl.get() == 'epochs':
-            self.ret_event = (self.parent.parent.data_list[fn].events, self.parent.parent.data_list[fn].event_id)
+            self.loaded_event = (self.parent.parent.data_list[fn].events, self.parent.parent.data_list[fn].event_id)
             event_src = 3
         else:
             try:
-                self.ret_event = mne.find_events(self.parent.parent.data_list[fn])
+                self.loaded_event = mne.find_events(self.parent.parent.data_list[fn])
                 event_src = 1
             except:
                 try:
-                    self.ret_event = mne.events_from_annotations(self.parent.parent.data_list[fn])
-                    event_src = 2
+                    self.loaded_event = mne.events_from_annotations(self.parent.parent.data_list[fn])
+                    if self.loaded_event[1]!={}: # edf could generate empty events
+                        event_src = 2
                 except (ValueError,TypeError) as err:
-                    #print(err)
                     pass
-        if self.ret_event[1]=={'1':1} and self.parent.parent.type_ctrl.get() == 'epochs':
+        if self.loaded_event[1]=={'1':1} and self.parent.parent.type_ctrl.get() == 'epochs':
             event_src = 0
         # ==== view
         srcframe = tk.LabelFrame(self, text=event_src_msg[event_src])
@@ -52,13 +54,16 @@ class _loadevent(TopWindow):
         else:
             tk.Button(srcframe, text="Load file", command=lambda:self._load_event_file(fn), state=DISABLED).grid(row=0, column=0)
             self.ret_event_loaded = True
-            self.event_num.set(str(self.ret_event[0].shape[0]))
-            self.event_id_dict.set(str(self.ret_event[1]))
+            self.event_num.set(str(self.loaded_event[0].shape[0]))
+            self.event_id_dict.set(str(self.loaded_event[1]))
+            if self.parent.parent.type_ctrl.get() == 'raw':
+                self.parent.parent.raw_events[fn] = [self.loaded_event[0][:,2], self.loaded_event[1]]
         
         tk.Label(srcframe, text="Event numbers: ").grid(row=1, column=0, sticky='w')
         tk.Label(srcframe, textvariable=self.event_num).grid(row=1, column=1, sticky='w')
         tk.Label(srcframe, text="Event id: ").grid(row=2, column=0, sticky='w')
         tk.Label(srcframe, textvariable=self.event_id_dict).grid(row=2, column=1, sticky='w')
+        
         tk.Button(self, text="Confirm", command=lambda:self._confirm(fn)).grid(row=1, column=0)
     
     def _load_event_file(self, fn):
@@ -73,26 +78,39 @@ class _loadevent(TopWindow):
             )
         )
         label_list = []
-        with open(selected_file, encoding='utf-8') as fp:
+        with open(selected_file, encoding='utf-8', mode='r') as fp:
             for line in fp.readlines():
-                label_list.append(int(line.rstrip()))
+                label_list += [int(l.rstrip()) for l in line.split(' ')] # for both (n,1) and (1,n) of labels
             fp.close()
-        self.parent.parent.data_list[fn].events[:,2] = label_list
-        event_id_dict = {str(i): list(set(label_list))[i] for i in range(len(list(set(label_list))))}
-        self.parent.parent.data_list[fn].event_id = event_id_dict
-        self.parent.parent.event_list[fn] = (self.parent.parent.data_list[fn].events[:,2], self.parent.parent.data_list[fn].event_id)
-        self.ret_event = (self.parent.parent.data_list[fn].events, self.parent.parent.data_list[fn].event_id)
-        self.event_num.set(str(self.ret_event[0].shape[0]))
-        self.event_id_dict.set(str(self.ret_event[1]))
+        
+        event_id_dict = {str(i): list(set(label_list))[i] for i in range(len(list(set(label_list))))} # make event id dict with label named with index
+        
+        self.loaded_event = ()
+        if self.parent.parent.type_ctrl.get() == 'raw': # mne raw has no event & event_id attributes
+            self.parent.parent.raw_events[fn] = [label_list, event_id_dict]
+        else: # set mne epochs event data
+            self.parent.parent.data_list[fn].events[:,2] = label_list
+            self.parent.parent.data_list[fn].event_id = event_id_dict
+
+        # set load event window display
+        self.event_num.set(str(len(label_list)))
+        self.event_id_dict.set(str(event_id_dict))
+        self.parent.parent.event_ids.set(str(event_id_dict))
+    
     def _confirm(self,fn):
-        self.parent.parent.event_list[fn] = self.ret_event
         self.destroy()
 
     def _get_result(self):
         return self.ret_event_loaded
 
 class _editrow(TopWindow):
-    # TODO: load event function
+    # TODO:
+    """
+    parameter: parent, title
+               header: attr value fields (table header + 'Filepath')
+               target: attr dict (see init_row)
+    return: boolean of whether current row is to be deleted
+    """
     def __init__(self, parent, title, header, target):
         super(_editrow, self).__init__(parent, title)
         self.delete_row = False
@@ -129,16 +147,20 @@ class _editrow(TopWindow):
         return self.delete_row
 
 class LoadTemplate(TopWindow):
+    # TODO: 
+    #       hover cursor shows full filepath msg (optional)
+    """
+    parameter: parent, title
+    return: Raw or Epochs class object defined in Template.py
+    """
     def __init__(self, parent, title):
-        # TODO: hover cursor shows full filepath msg (optional)
-
         # ==== initialize ==== 
         super(LoadTemplate, self).__init__(parent, title)
         self.attr_list = OrderedDict() # fn: attr_row
         self.data_list = OrderedDict() # fn: mne struct
-        self.event_list = OrderedDict() # fn: tuple(array of (n_event, 3), event_id dict)
 
         self.ret_val = None # Raw or Epoch
+        self.raw_events = {} # if events of raw structure were loaded, fn: [label of (n_event,1), event_ids dict] 
         self.attr_row_template = self._init_row()
 
         self.attr_info = {'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0} # used for .mat & .npy/npz
@@ -170,10 +192,15 @@ class LoadTemplate(TopWindow):
         self.stat_frame = ttk.LabelFrame(self, text="Current Status")
         self.stat_frame.grid(row=0, column=2, rowspan=2)
         self.attr_len = tk.IntVar()
+        self.attr_len.set(0)
+        self.event_ids = tk.StringVar()
+        self.event_ids.set('None')
         tk.Label(self.stat_frame, text="Dataset loaded: ").grid(row=0, column=0)
         tk.Label(self.stat_frame, textvariable=self.attr_len).grid(row=0, column=1)
         tk.Label(self.stat_frame, text="Loaded type: ").grid(row=1, column=0)
         tk.Label(self.stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1)
+        tk.Label(self.stat_frame, text="Event id: ").grid(row=2, column=0)
+        tk.Label(self.stat_frame, textvariable=self.event_ids).grid(row=2, column=1)
 
         # ==== functional buttons ====
         self.add_btn = tk.Button(self, text="Add", command=lambda:self._load()).grid(row=2, column=0, ipadx=3, sticky='w')
@@ -248,10 +275,11 @@ class LoadTemplate(TopWindow):
                 self.data_attr.insert('', index="end" ,text=k, values=v_val[1:])
                 self.attr_list[k] = v
                 self.data_list[k] = data_list_tmp[k]
-                if self.type_ctrl.get() == 'epochs':
-                    self.event_list[k] = (data_list_tmp[k].events, data_list_tmp[k].event_id)
+            if self.type_ctrl.get()=='epochs':
+                if self.event_ids.get() == 'None':
+                    self.event_ids.set(str(data_list_tmp[k].event_id))
                 else:
-                    self.event_list[k] = ()
+                    assert str(data_list_tmp[k].event_id)==self.event_ids.get(), 'Event ids inconsistent.'
         self.attr_len.set(len(self.attr_list))
 
         if len(self.attr_list) != 0:
@@ -274,7 +302,7 @@ class LoadTemplate(TopWindow):
         # check channel number
         check_chs = set(self.data_attr.item(at_row)['values'][3] for at_row in self.data_attr.get_children())
         assert len(check_chs)==1, 'Dataset channel numbers inconsistent.'
-        
+
         ret_attr = {}
         ret_data = {}
         for at_row in self.data_attr.get_children():
@@ -283,7 +311,7 @@ class LoadTemplate(TopWindow):
             ret_data[at_val[0]] = self.data_list[at_val[0]] # mne
             
         if self.type_ctrl.get() == 'raw':
-            self.ret_val = Raw(ret_attr, ret_data)
+            self.ret_val = Raw(ret_attr, ret_data, self.raw_events)
         else:
             self.ret_val = Epochs(ret_attr, ret_data)
         self.destroy()
@@ -318,8 +346,14 @@ class LoadSet(LoadTemplate):
 
 class _loadmat(TopWindow):
     # TODO: spinbox default (if cleaner method is possible)
-
-    def __init__(self, parent, title, fp,attr_info_tmp, loaded_mat):
+    """
+    parameter: parent, title
+               fp: filepath
+               attr_info_tmp: current attr dict of load window
+               loaded_mat: mat file content (in dict)
+    return: attr dict with selected key (from spinbox) and nchan/srate/ntime (input or already exist)
+    """
+    def __init__(self, parent, title, fp, attr_info_tmp, loaded_mat):
         # ==== inits
         super(_loadmat, self).__init__(parent, title)
         
@@ -426,10 +460,10 @@ class LoadMat(LoadTemplate):
         self.nch.set(0)
         self.srate = tk.IntVar()
         self.srate.set(0)
-        tk.Label(self.stat_frame, text="Channels: ").grid(row=2, column=0)
-        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=2, column=1)
-        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=3, column=0)
-        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=3, column=1)
+        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0)
+        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1)
+        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0)
+        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1)
 
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
@@ -438,7 +472,7 @@ class LoadMat(LoadTemplate):
         )
         attr_list_tmp = {}
         data_list_tmp = {}
-        event_list_tmp = {}
+
         attr_info_tmp = self.attr_info
 
         for fn in selected_tuple:            
@@ -460,12 +494,10 @@ class LoadMat(LoadTemplate):
                     selected_data_tmp = mne.EpochsArray(data_array, data_info)
                     if attr_info_tmp['event key'] not in  ["None", ""]:
                         event_label = selected_data[attr_info_tmp['event key']]
-                        print(event_label[:].shape, event_label[:,].shape,np.squeeze(event_label).shape)
                         selected_data_tmp.events[:,2] = np.squeeze(event_label)
                         event_label = list(set(event_label.flatten()))
                         selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
                     selected_data = selected_data_tmp
-                    event_list_tmp[fn.split('/')[-1]] = (selected_data.events[:,2], selected_data.event_id)
                         
                 new_row = self._make_row(fn, selected_data)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
@@ -484,7 +516,6 @@ class LoadEdf(LoadTemplate):
         self.type_raw.config(state="disabled")# only supporting raw
         self.type_epoch.config(state="disabled")
 
- 
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
@@ -530,6 +561,13 @@ class LoadCnt(LoadTemplate):
         self._list_update(attr_list_tmp, data_list_tmp)
 
 class _loadnpy(TopWindow):
+    """
+    parameter: parent, title
+               fp: filepath
+               attr_info: current attr dict of load window
+               loaded_array: np file content (in np array)
+    return: attr dict with selected key (None) and nchan/srate/ntime (input)
+    """
     def __init__(self, parent, title, fp, attr_info, loaded_array):
         super(_loadnpy, self).__init__(parent, title)
         self.loaded_array = loaded_array
@@ -570,10 +608,10 @@ class LoadNp(LoadTemplate):
         self.nch.set(0)
         self.srate = tk.IntVar()
         self.srate.set(0)
-        tk.Label(self.stat_frame, text="Channels: ").grid(row=2, column=0)
-        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=2, column=1)
-        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=3, column=0)
-        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=3, column=1)
+        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0)
+        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1)
+        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0)
+        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1)
     
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
@@ -582,7 +620,6 @@ class LoadNp(LoadTemplate):
         )
         attr_list_tmp = {}
         data_list_tmp = {}
-        event_list_tmp = {}
         attr_info_tmp = self.attr_info
 
         for fn in selected_tuple:
@@ -616,7 +653,7 @@ class LoadNp(LoadTemplate):
                         event_label = list(set(event_label))
                         selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
                     selected_data = selected_data
-                    event_list_tmp[fn.split('/')[-1]] = (selected_data.events[:,2], selected_data.event_id)
+
                 new_row = self._make_row(fn, selected_data)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
