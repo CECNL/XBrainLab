@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox
-from base.top_window import TopWindow
+from ..base.top_window import TopWindow
 from .data_holder import DataSet
 from enum import Enum
 import numpy as np
