@@ -132,6 +132,7 @@ class _editrow(TopWindow):
         w = _loadevent(self,"Load events", fn).get_result()
         if w == True:
             target['Events'].set('yes')
+            self.parent.event_ids.set(str(self.parent.raw_events[fn][1]))
         
     def _delete_row(self):
         self.delete_row = True

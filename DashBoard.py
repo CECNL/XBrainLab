@@ -93,6 +93,23 @@ class DashBoard(TopWindow):
         self.loaded_data.inspect()
     def _edit_event_id(self):
         new_event = _editevent(self, "Edit event", self.loaded_data.event_id).get_result()
+        
+        # event id update
+        old_event = self.loaded_data.event_id
+        event_map = {k:v for k,v in zip(old_event.values(), new_event.values())}
         self.loaded_data.event_id = new_event
+
+        # label update
+        if isinstance(self.loaded_data, Raw):
+            for i in range(len(self.loaded_data.label)):
+                for j in range(self.loaded_data.label[i].shape[0]):
+                    self.loaded_data.label[i][j] = event_map[self.loaded_data.label[i][j]]
+        else:
+            for fn in self.loaded_data.id_map.keys():
+                self.loaded_data.data[self.loaded_data.id_map[fn]].event_id = new_event
+                old_label = self.loaded_data.data[self.loaded_data.id_map[fn]].events[:,2]
+                new_label = np.copy(old_label)
+                for k,v in event_map.items(): new_label[old_label==k] = v
+                self.loaded_data.data[self.loaded_data.id_map[fn]].events[:,2] = new_label
 
         

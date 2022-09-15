@@ -55,7 +55,7 @@ class Raw:
             self.data.append(raw_data[fn])
             if fn in raw_event.keys():
                 self.event_id_map[fn] = i
-                self.label=raw_event[fn][0]
+                self.label.append(raw_event[fn][0])
                 if self.event_id == {}:
                     self.event_id = raw_event[fn][1]
                 else:
@@ -68,7 +68,9 @@ class Raw:
             #print(k, self.subject[v], self.session[v])
             print(self.data[v])
             #print(len(self.label[v]))
-            print(self.event_id)
+        print(self.event_id)
+        #print(self.label)
+        #print(self.event_id_map)
     
 class Epochs:
     """
