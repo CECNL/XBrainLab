@@ -1,6 +1,7 @@
 from Template import *
 from ImportData import *
-
+from Epoch import *
+from Preprocess import *
 class _editevent(TopWindow):
     # TODO: layout
     def __init__(self, parent, title, old_event):
@@ -64,6 +65,18 @@ class DashBoard(TopWindow):
         self.data_menu.entryconfig("Edit event id", state="disabled")
         self.nav_bar.add_cascade(label="Dataset",menu = self.data_menu)
 
+        data_menu = tk.Menu(self.nav_bar, tearoff=0)
+        data_menu.add_command(label="Channel", command=lambda: self._preprocess_channel())
+        data_menu.add_command(label="Filtering", command=lambda: self._preprocess_filtering())
+        data_menu.add_command(label="Resample", command=lambda: self._preprocess_resample())
+        self.nav_bar.add_cascade(label="Preprocess", menu=data_menu)
+
+        data_menu = tk.Menu(self.nav_bar, tearoff=0)
+        data_menu.add_command(label="Time", command=lambda: self._epoching_time())
+        data_menu.add_command(label="Window", command=lambda: self._epoching_window())
+        data_menu.add_command(label="Baseline Removal", command=lambda: self._epoching_baselineRemoval())
+        self.nav_bar.add_cascade(label="Epoching", menu=data_menu)
+
         model_menu = tk.Menu(self.nav_bar,tearoff=0)
         self.nav_bar.add_cascade(label="Model",menu = model_menu)
 
@@ -112,4 +125,27 @@ class DashBoard(TopWindow):
                 for k,v in event_map.items(): new_label[old_label==k] = v
                 self.loaded_data.data[self.loaded_data.id_map[fn]].events[:,2] = new_label
 
+    def _preprocess_channel(self):
+        self.loaded_data = Channel(self, "Channel").get_result()
+        self.loaded_data.inspect()
+
+    def _preprocess_filtering(self):
+        self.loaded_data = Filtering(self, "Filtering").get_result()
+        self.loaded_data.inspect()
+
+    def _preprocess_resample(self):
+        self.loaded_data = Resample(self, "Resample").get_result()
+        self.loaded_data.inspect()
+
+    def _epoching_time(self):
+        self.loaded_data = TimeEpoch(self, "Time").get_result()
+        self.loaded_data.inspect()
+
+    def _epoching_window(self):
+        self.loaded_data = WindowEpoch(self, "Window").get_result()
+        self.loaded_data.inspect()
+
+    def _epoching_baselineRemoval(self):
+        self.loaded_data = BaselineRemoval(self, "Baseline Removal").get_result()
+        self.loaded_data.inspect()
         
