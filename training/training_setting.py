@@ -8,7 +8,7 @@ from ..base.top_window import TopWindow
 from ..widget import EditableTreeView
 from .. import model_base
 from .training_holder import ModelHolder, parse_device_name, TrainingOption
-
+from .trainer import TRAINING_EVALUATION
 import torch
 
 
@@ -128,6 +128,8 @@ class TrainingSettingWindow(TopWindow):
         tk.Label(self, text='device').grid(row=4, column=0)
         tk.Label(self, text='Output Directory').grid(row=5, column=0)
         tk.Label(self, text='CheckPoint epoch').grid(row=6, column=0)
+        tk.Label(self, text='Evaluation').grid(row=7, column=0)
+        tk.Label(self, text='Repeat Number').grid(row=8, column=0)
 
         epoch_entry = tk.Entry(self)
         bs_entry = tk.Entry(self)
@@ -140,6 +142,12 @@ class TrainingSettingWindow(TopWindow):
         tk.Button(self, text='set', command=self.set_output_dir).grid(row=5,column=2)
         checkpoint_entry = tk.Entry(self)
 
+        evaluation_var = tk.StringVar(self)
+        evaluation_list = [i.value for i in TRAINING_EVALUATION]
+        evaluation_var.set(evaluation_list[0])
+        evaluation_option = tk.OptionMenu(self, evaluation_var, *evaluation_list)
+        repeat_entry = tk.Entry(self)
+
         epoch_entry.grid(row=0, column=1)
         bs_entry.grid(row=1, column=1)
         lr_entry.grid(row=2, column=1)
@@ -147,7 +155,9 @@ class TrainingSettingWindow(TopWindow):
         dev_label.grid(row=4, column=1, sticky='EW')
         output_dir_label.grid(row=5, column=1, sticky='EW')
         checkpoint_entry.grid(row=6, column=1)
-        tk.Button(self, text='Confirm', command=self.confirm).grid(row=7, column=0, columnspan=3)
+        evaluation_option.grid(row=7, column=1)
+        repeat_entry.grid(row=8, column=1)
+        tk.Button(self, text='Confirm', command=self.confirm).grid(row=9, column=0, columnspan=3)
 
         self.output_dir_label = output_dir_label
         self.epoch_entry = epoch_entry
@@ -156,6 +166,8 @@ class TrainingSettingWindow(TopWindow):
         self.checkpoint_entry = checkpoint_entry
         self.dev_label = dev_label
         self.opt_label = opt_label
+        self.evaluation_var = evaluation_var
+        self.repeat_entry = repeat_entry
 
         if False: # test code
             epoch_entry.insert(0, '1000')
@@ -212,6 +224,14 @@ class TrainingSettingWindow(TopWindow):
             reason = 'Invalid learning rate'
         if check_num(self.checkpoint_entry.get()):
             reason = 'Invalid checkpoint epoch'
+        if check_num(self.repeat_entry.get()) or int(self.repeat_entry.get()) <= 0:
+            reason = 'Invalid repeat number'
+        
+        evaluation_option = None
+        for i in TRAINING_EVALUATION:
+            if i.value == self.evaluation_var.get():
+                evaluation_option = i
+        
         if reason:
             tk.messagebox.showerror('Error',  f"{reason}", parent=self)
             return None
@@ -221,8 +241,9 @@ class TrainingSettingWindow(TopWindow):
                                 int(self.epoch_entry.get()), 
                                 int(self.bs_entry.get()), 
                                 float(self.lr_entry.get()), 
-                                int(self.checkpoint_entry.get())
-                            )
+                                int(self.checkpoint_entry.get()),
+                                evaluation_option,
+                                int(self.repeat_entry.get()))
         self.destroy()
     
     def _get_result(self):

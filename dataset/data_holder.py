@@ -6,8 +6,9 @@ class SplitUnit(Enum):
     NUMBER = 'Number'
     KFOLD = 'K Fold'
 
-class Epochs():
+class Epochs:
     def __init__(self):
+        self.sfreq = None
         self.subject_map = {}
         self.session_map = {}
         self.label_map = {}
@@ -18,6 +19,12 @@ class Epochs():
         self.idx = []
 
         self.data = []
+
+    def get_args(self):
+        return  {'n_classes': max(np.unique(self.label)) + 1,
+                 'channels' : self.data.shape[-2],
+                 'samples'  : self.data.shape[-1],
+                 'sfreq'    : self.sfreq }
     
     def get_data_length(self):
         return len(self.data)
@@ -234,6 +241,24 @@ class DataSet():
 
     def discard(self, mask):
         self.remaining &= np.logical_not(mask)
+
+    def get_args(self):
+        return self.data_holder.get_args()
+
+    def get_training_data(self):
+        X = self.data_holder.data[self.train]
+        y = self.data_holder.label[self.train]
+        return X, y
+    
+    def get_val_data(self):
+        X = self.data_holder.data[self.val]
+        y = self.data_holder.label[self.val]
+        return X, y
+
+    def get_test_data(self):
+        X = self.data_holder.data[self.test]
+        y = self.data_holder.label[self.test]
+        return X, y
 
     def preview(self):
         for idx, d in enumerate([self.train, self.val]):
