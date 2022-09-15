@@ -1,4 +1,11 @@
 import numpy as np
+from enum import Enum
+
+class SplitUnit(Enum):
+    RATIO = 'Ratio'
+    NUMBER = 'Number'
+    KFOLD = 'K Fold'
+
 class Epochs():
     def __init__(self):
         self.subject_map = {}
@@ -42,12 +49,21 @@ class Epochs():
         
         return ret, mask
 
-    def pick_subject(self, mask, num, skip, is_ratio, ref_exclude=None):
+    def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):
         # return self.pick(self.subject, self.subject_map, mask, num, skip, is_ratio, ref_exclude)
         target_type = self.subject
         target_type_map = self.subject_map
         ret = mask & False
-        if is_ratio:
+        if split_type == SplitUnit.KFOLD:
+            if ref_exclude is None:
+                target = len( np.unique( target_type[mask]) )
+            else:
+                target = len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
+            inc = target % num
+            num = target // num
+            if inc > group_idx:
+                num += 1
+        elif split_type == SplitUnit.RATIO:
             if ref_exclude is None:
                 num *= len(np.unique( target_type[mask]) )
             else:
@@ -72,12 +88,21 @@ class Epochs():
         
         return ret, mask
     
-    def pick_session(self, mask, num, skip, is_ratio, ref_exclude=None):
+    def pick_session(self, mask, num, split_type, ref_exclude=None, group_idx=None):
         # return self.pick(self.session, self.session_map, mask, num, skip, is_ratio, ref_exclude)
         target_type = self.session
         target_type_map = self.session_map
         ret = mask & False
-        if is_ratio:
+        if split_type == SplitUnit.KFOLD:
+            if ref_exclude is None:
+                target = len( np.unique( target_type[mask]) )
+            else:
+                target = len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
+            inc = target % num
+            num = target // num
+            if inc > group_idx:
+                num += 1
+        elif split_type == SplitUnit.RATIO:
             if ref_exclude is None:
                 num *= len(np.unique( target_type[mask]) )
             else:
@@ -102,20 +127,29 @@ class Epochs():
         
         return ret, mask
     
-    def pick_trail(self, mask, num, skip, is_ratio, ref_exclude=None):
+    def pick_trail(self, mask, num, split_type, ref_exclude=None, group_idx=None):
         ret = mask & False
         if not mask.any():
             return ret, mask
-        if is_ratio:
+        if split_type == SplitUnit.KFOLD:
+            if ref_exclude is None:
+                target = sum(mask)
+            else:
+                target = sum(mask) + sum(ref_exclude)
+            inc = target % num
+            num = target // num
+            if inc > group_idx:
+                num += 1
+        elif split_type == SplitUnit.RATIO:
             if ref_exclude is None:
                 num *= sum(mask)
             else:
                 num *= (sum(mask) + sum(ref_exclude))
         num = int(num)
         while num > 0:
-            for subject in list(self.subject_map.keys())[::-1]:
+            for label in list(self.label_map.keys())[::-1]:
                 for session in list(self.session_map.keys())[::-1]:
-                    for label in list(self.label_map.keys())[::-1]:
+                    for subject in list(self.subject_map.keys())[::-1]:
                         if num == 0:
                             break
                         if not mask.any():
@@ -157,14 +191,14 @@ class DataSet():
     def set_name(self, name):
         self.name = name
         
-    def pick_subject(self, mask, num, skip, is_ratio, ref_exclude=None):
-        return self.data_holder.pick_subject(mask, num, skip, is_ratio, ref_exclude)
+    def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):
+        return self.data_holder.pick_subject(mask, num, split_type, ref_exclude, group_idx)
     
-    def pick_session(self, mask, num, skip, is_ratio, ref_exclude=None):
-        return self.data_holder.pick_session(mask, num, skip, is_ratio, ref_exclude)
+    def pick_session(self, mask, num, split_type, ref_exclude=None, group_idx=None):
+        return self.data_holder.pick_session(mask, num, split_type, ref_exclude, group_idx)
     
-    def pick_trail(self, mask, num, skip, is_ratio, ref_exclude=None):
-        return self.data_holder.pick_trail(mask, num, skip, is_ratio, ref_exclude)
+    def pick_trail(self, mask, num, split_type, ref_exclude=None, group_idx=None):
+        return self.data_holder.pick_trail(mask, num, split_type, ref_exclude, group_idx)
     
     def pick_subject_by_idx(self, idx):
         self.remaining = self.data_holder.pick_subject_by_idx(idx)

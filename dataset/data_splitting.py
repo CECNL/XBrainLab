@@ -2,7 +2,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox
 from ..base.top_window import TopWindow
-from .data_holder import DataSet
+from .data_holder import DataSet, SplitUnit
 from enum import Enum
 import numpy as np
 import time
@@ -451,7 +451,7 @@ class DataSplittingWindow(TopWindow):
                             return
                         # session
                         if test_splitter.option == SplitByType.SESSION or test_splitter.option == SplitByType.SESSION_IND:
-                            mask, exclude = dataset.pick_session(mask, num=test_splitter.get_value(), skip=0, is_ratio=test_splitter.is_ratio(), ref_exclude=ref_exclude if (idx == 0) else None)
+                            mask, exclude = dataset.pick_session(mask, num=test_splitter.get_value(), group_idx=group_idx, split_type=test_splitter.get_split_type(), ref_exclude=ref_exclude if (idx == 0) else None)
                             if idx == 0:
                                 ref_mask = exclude.copy()
                                 exclude |= ref_exclude
@@ -465,7 +465,7 @@ class DataSplittingWindow(TopWindow):
                                 dataset.kept_training_session(mask)
                         # label
                         elif test_splitter.option == SplitByType.TRAIL or test_splitter.option == SplitByType.TRAIL_IND:
-                            mask, exclude = dataset.pick_trail(mask, num=test_splitter.get_value(), skip=0, is_ratio=test_splitter.is_ratio(), ref_exclude=ref_exclude if (idx == 0) else None)
+                            mask, exclude = dataset.pick_trail(mask, num=test_splitter.get_value(), group_idx=group_idx, split_type=test_splitter.get_split_type(), ref_exclude=ref_exclude if (idx == 0) else None)
                             if idx == 0:
                                 ref_mask = exclude.copy()
                                 exclude |= ref_exclude
@@ -477,7 +477,7 @@ class DataSplittingWindow(TopWindow):
                                 dataset.discard(exclude)
                         # subject
                         elif test_splitter.option == SplitByType.SUBJECT or test_splitter.option == SplitByType.SUBJECT_IND:
-                            mask, exclude = dataset.pick_subject(mask, num=test_splitter.get_value(), skip=0, is_ratio=test_splitter.is_ratio(), ref_exclude=ref_exclude if (idx == 0) else None)
+                            mask, exclude = dataset.pick_subject(mask, num=test_splitter.get_value(), group_idx=group_idx, split_type=test_splitter.get_split_type(), ref_exclude=ref_exclude if (idx == 0) else None)
                             if idx == 0:
                                 ref_mask = exclude.copy()
                                 exclude |= ref_exclude
@@ -508,13 +508,13 @@ class DataSplittingWindow(TopWindow):
                             return
                         # session
                         if val_splitter.option == ValSplitByType.SESSION:
-                            mask, exclude = dataset.pick_session(mask, num=val_splitter.get_value(), skip=0, is_ratio=val_splitter.is_ratio())
+                            mask, exclude = dataset.pick_session(mask, num=val_splitter.get_value(), split_type=val_splitter.get_split_type())
                         # label
                         elif val_splitter.option == ValSplitByType.TRAIL:
-                            mask, exclude = dataset.pick_trail(mask, num=val_splitter.get_value(), skip=0, is_ratio=val_splitter.is_ratio())
+                            mask, exclude = dataset.pick_trail(mask, num=val_splitter.get_value(), split_type=val_splitter.get_split_type())
                         # subject
                         elif val_splitter.option == ValSplitByType.SUBJECT:
-                            mask, exclude = dataset.pick_subject(mask, num=val_splitter.get_value(), skip=0, is_ratio=val_splitter.is_ratio())
+                            mask, exclude = dataset.pick_subject(mask, num=val_splitter.get_value(), split_type=val_splitter.get_split_type())
                         idx += 1
                 if idx > 0:
                     dataset.set_val(mask)
@@ -790,8 +790,7 @@ class DataSplittingOption():
 
         self.is_valid_var = False
         self.value_var = None
-        self.is_ratio_var = None
-        self.is_KFold_var = None
+        self.split_type = None
     
     def _is_valid(self):
         if self.entry_var is None:
@@ -804,10 +803,13 @@ class DataSplittingOption():
                 if 0 <= val <= 1:
                     return True
             except ValueError:
-                return False
-            
+                return False   
         elif self.split_var.get() == SplitUnit.NUMBER.value:
             return self.entry_var.get().isdigit()
+        elif self.split_var.get() == SplitUnit.KFOLD.value:
+            val = self.entry_var.get()
+            if val.isdigit():
+                return 0 < int(val)
         return False
 
     def _get_value(self):
@@ -815,21 +817,17 @@ class DataSplittingOption():
             return 0
         return float(self.entry_var.get())
 
-    def _is_ratio(self):
+    def _get_split_type(self):
         if self.split_var is None:
-            return False
-        return self.split_var.get() == SplitUnit.RATIO.value
-
-    def _is_KFold(self):
-        if self.split_var is None:
-            return False
-        return self.split_var.get() == SplitUnit.KFOLD.value
-
+            return None
+        for i in SplitUnit:
+            if i.value == self.split_var.get():
+                return i
+        
     def to_thread(self):
         self.is_valid_var = self._is_valid()
         self.value_var = self._get_value()
-        self.is_ratio_var = self._is_ratio()
-        self.is_KFold_var = self._is_KFold()
+        self.split_type = self._get_split_type()
 
     def is_valid(self):
         return self.is_valid_var
@@ -837,11 +835,8 @@ class DataSplittingOption():
     def get_value(self):
         return self.value_var
         
-    def is_ratio(self):
-        return self.is_ratio_var
-    
-    def is_KFold(self):
-        return self.is_KFold_var
+    def get_split_type(self):
+        return self.split_type
 
     def set_split_var(self, root, val, callback):
         self.split_var = tk.StringVar(root)
@@ -873,12 +868,7 @@ class DataSplittingConfig():
             test.append(DataSplittingOption(is_option, text, option=t))
 
         return val, test
-    
-###
-class SplitUnit(Enum):
-    RATIO = 'Ratio'
-    NUMBER = 'Number'
-    KFOLD = 'K Fold'
+
 ###
 
 if __name__ == '__main__':
