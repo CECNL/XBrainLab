@@ -11,12 +11,10 @@ class Raw:
     def __init__(self, raw_attr, raw_data, raw_event):
         self.id_map = {} # {fn: subject/session/data list position id}
         self.event_id_map = {} # {fn: label list position id}
-
         self.subject = []
         self.session = []
         self.label = []
         self.data = []
-
         self.event_id = {}
         self._init_attr(raw_attr=raw_attr, raw_data=raw_data, raw_event=raw_event)
     
@@ -35,7 +33,16 @@ class Raw:
                 else:
                     assert self.event_id == raw_event[fn][1], 'Event id inconsistent.'
             i += 1
-
+    def copy(self):
+        newRaw = Raw()
+        newRaw.id_map = self.id_map.copy()
+        newRaw.event_id_map = self.event_id_map.copy()
+        newRaw.subject = self.subject.copy()
+        newRaw.session = self.session.copy()
+        newRaw.label = self.label.copy()
+        newRaw.data = [r.copy() for r in self.data]
+        newRaw.event_id = self.event_id.copy()
+        return newRaw
             
     def inspect(self):
         for k,v in self.id_map.items():
@@ -71,14 +78,11 @@ class Epochs:
         i = 0
         for fn in epoch_attr.keys():
             epoch_len = len(epoch_data[fn])
-
             self.subject = np.concatenate((self.subject, np.array([epoch_attr[fn][0]] * epoch_len)))
             self.session = np.concatenate((self.session, np.array([epoch_attr[fn][1]] * epoch_len)))
             self.label   = np.concatenate((self.label,   epoch_data[fn].events[:,2]))
             self.idx     = np.concatenate((self.idx,     range(epoch_len))) # epoch len
-
             self.data.append(epoch_data[fn])
-            
             if self.event_id=={}:
                 self.event_id = epoch_data[fn].event_id
             else: 
@@ -88,13 +92,30 @@ class Epochs:
         self.label_map   = {i:i for i in np.unique(self.label)}
         self.session_map = {i:i for i in np.unique(self.session)}
         self.subject_map = {i:f"S{i+1}" for i in np.unique(self.subject)}
+    
+    def copy(self):
+        newEpochs = Epochs()
+        newEpochs.sfreq = self.sfreq
+        newEpochs.subject_map = self.subject_map.copy()
+        newEpochs.session_map = self.session_map.copy()
+        newEpochs.label_map = self.label_map.copy()
+        newEpochs.subject = self.subject.copy()
+        newEpochs.session = self.session.copy()
+        newEpochs.label = self.label.copy()
+        newEpochs.idx = self.idx.copy()
+        newEpochs.data = [e.copy() for e in self.data]
+        newEpochs.event_id = self.event_id.copy()
+        return newEpochs
+
+
+
     def get_args(self):
-        return  {'n_classes': max(np.unique(self.label)) + 1,
-                 'channels' : self.data.shape[-2],
-                 'samples'  : self.data.shape[-1],
+        return  {'n_classes': len(self.event_id), # max(np.unique(self.label)) + 1,
+                 'channels' : self.data[-1].info['nchan'], #self.data[-1].shape[-2],
+                 'samples'  : self.data[-1].get_data().shape[-1], #self.data[-1].shape[-1],
                  'sfreq'    : self.sfreq }
     def get_data_length(self):
-        return len(self.data)
+        return len(self.data[-1])
 
     def pick(self, target_type, target_type_map, mask, num, skip, is_ratio, ref_exclude):
         ret = mask & False
