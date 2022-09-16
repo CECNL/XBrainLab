@@ -3,21 +3,20 @@ from ..dataset.data_holder import Raw, Epochs
 import tkinter as tk
 import tkinter.ttk as ttk
 
-# ======================================================================= Channel
 class Channel(TopWindow):
-    def __init__(self, parent, title):
-        super(Channel, self).__init__(parent, title)
-
+    command_label = "Channel"
+    def __init__(self, parent, preprocessed_data):
+        super().__init__(parent, "Select Channel")
+        self.preprocessed_data = preprocessed_data
         data_field = [ "ch_num"]
         self.field_var = {key: tk.StringVar() for key in data_field}
 
         tk.Label(self, text="Channel: ").grid(row=6, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['ch_num'], bg="White").grid(row=6, column=1, sticky="w")
-
         tk.Button(self, text="Confirm", command=lambda: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
 
     def _data_preprocess(self):
-        for data in self.parent.loaded_data.data:
+        for data in self.parent.loaded_data.ret_val.data:
             if self.field_var['ch_num'].get() != "":
                 select_ch = []
                 for ch in self.field_var['ch_num'].get().replace(" ", "").split(','):
@@ -27,19 +26,16 @@ class Channel(TopWindow):
                     else:
                         select_ch.extend([data.info['ch_names'][int(nums[0]) - 1]])
                 data.pick_channels(select_ch)
-
         self.destroy()
 
     def _get_result(self):
+        return self.preprocessed_data
 
-        return self.parent.loaded_data
-
-
-# ======================================================================= Filtering
 class Filtering(TopWindow):
-    def __init__(self, parent, title):
-        super(Filtering, self).__init__(parent, title)
-
+    command_label = "Filtering"
+    def __init__(self, parent, preprocessed_data):
+        super().__init__(parent, "Filtering")
+        self.preprocessed_data = preprocessed_data
         data_field = ["l_freq", "h_freq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
 
@@ -47,48 +43,39 @@ class Filtering(TopWindow):
         tk.Entry(self, textvariable=self.field_var['l_freq'], bg="White").grid(row=2, column=1, sticky="w")
         tk.Label(self, text="Upper pass-band edge: ").grid(row=3, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['h_freq'], bg="White").grid(row=3, column=1, sticky="w")
-
         tk.Button(self, text="Confirm", command=lambda: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
 
     def _data_preprocess(self):
-        for data in self.parent.loaded_data.data:
+        for data in self.parent.loaded_data.ret_val.data:
             l_freq = float(self.field_var['l_freq'].get()) if self.field_var['l_freq'].get() != "" else None
             h_freq = float(self.field_var['h_freq'].get()) if self.field_var['h_freq'].get() != "" else None
             data.filter(l_freq=l_freq, h_freq=h_freq)
-
         self.destroy()
 
     def _get_result(self):
+        return self.preprocessed_data
 
-        return self.parent.loaded_data
-
-# ======================================================================= Resample
 class Resample(TopWindow):
-    def __init__(self, parent, title):
-        super(Resample, self).__init__(parent, title)
+    command_label = "Resample"
+    def __init__(self, parent, preprocessed_data):
+        super().__init__(parent, "Resample")
+        self.preprocessed_data = preprocessed_data
         data_field = [ "sfreq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
 
         tk.Label(self, text="Sampling Rate: ").grid(row=6, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['sfreq'], bg="White").grid(row=6, column=1, sticky="w")
-
         tk.Button(self, text="Confirm", command=lambda: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
 
     def _data_preprocess(self):
-        for data in self.parent.loaded_data.data:
+        for data in self.parent.loaded_data.ret_val.data:
             if self.field_var['sfreq'].get() != "":
                 data.resample(sfreq=float(self.field_var['sfreq'].get()))
-
         self.destroy()
 
     def _get_result(self):
+        return self.preprocessed_data
 
-        return self.parent.loaded_data
-
-class TimeEpoch:
-    pass
-class WindowEpoch:
-    pass
 # ======================= 
 class EditEvent(TopWindow):
     # TODO: layout, menu state disable
