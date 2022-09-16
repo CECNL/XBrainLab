@@ -2,6 +2,7 @@ import tkinter as tk
 class TopWindow(tk.Toplevel):
     def __init__(self, parent, title):
         super().__init__()
+        self.parent = parent
         self.title(title)
         
     def _get_result(self):

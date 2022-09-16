@@ -5,27 +5,97 @@ class SplitUnit(Enum):
     RATIO = 'Ratio'
     NUMBER = 'Number'
     KFOLD = 'K Fold'
-
-class Epochs:
-    def __init__(self):
-        self.sfreq = None
-        self.subject_map = {}
-        self.session_map = {}
-        self.label_map = {}
+class Raw:
+    """
+    raw_attr: {fn: [subject, session]}
+    raw_data: {fn: mne.io.Raw}
+    raw_event: {fn: [labels, event_ids]}
+    """
+    def __init__(self, raw_attr, raw_data, raw_event):
+        self.id_map = {} # {fn: subject/session/data list position id}
+        self.event_id_map = {} # {fn: label list position id}
 
         self.subject = []
         self.session = []
         self.label = []
-        self.idx = []
-
         self.data = []
 
+        self.event_id = {}
+        self._init_attr(raw_attr=raw_attr, raw_data=raw_data, raw_event=raw_event)
+    
+    def _init_attr(self, raw_attr, raw_data, raw_event):
+        i = 0
+        for fn in raw_attr.keys():
+            self.id_map[fn] = i
+            self.subject.append(raw_attr[fn][0])
+            self.session.append(raw_attr[fn][1])
+            self.data.append(raw_data[fn])
+            if fn in raw_event.keys():
+                self.event_id_map[fn] = i
+                self.label.append(raw_event[fn][0])
+                if self.event_id == {}:
+                    self.event_id = raw_event[fn][1]
+                else:
+                    assert self.event_id == raw_event[fn][1], 'Event id inconsistent.'
+            i += 1
+
+            
+    def inspect(self):
+        for k,v in self.id_map.items():
+            #print(k, self.subject[v], self.session[v])
+            print(self.data[v])
+            #print(len(self.label[v]))
+        print(self.event_id)
+        #print(self.label)
+        #print(self.event_id_map)
+
+class Epochs:
+    def __init__(self, epoch_attr={}, epoch_data={}):
+        self.sfreq = None
+        self.subject_map = {} # index: S{subject idx}
+        self.session_map = {} # index: unique session num
+        self.label_map = {} # index: event idx
+
+        # shape(n_data_loaded * len_epoch)
+        self.subject = np.array([]) # ([subject] * len(epochs) for n data)
+        self.session = np.array([]) # ([session] * len(epochs) for n data)
+        self.label = np.array([]) # (len(event_label) for n data)
+        self.idx = np.array([]) # range(len(epochs)) for n data
+
+        self.data = [] # mne structure
+
+        self.event_id = {} # difference with label map: keys are event name string
+
+        # ===== ? initialize somewhere else?
+        if epoch_attr != {} and epoch_data !={}:
+            self._init_epochs(epoch_attr=epoch_attr, epoch_data=epoch_data)
+
+    def _init_epochs(self, epoch_attr, epoch_data):
+        i = 0
+        for fn in epoch_attr.keys():
+            epoch_len = len(epoch_data[fn])
+
+            self.subject = np.concatenate((self.subject, np.array([epoch_attr[fn][0]] * epoch_len)))
+            self.session = np.concatenate((self.session, np.array([epoch_attr[fn][1]] * epoch_len)))
+            self.label   = np.concatenate((self.label,   epoch_data[fn].events[:,2]))
+            self.idx     = np.concatenate((self.idx,     range(epoch_len))) # epoch len
+
+            self.data.append(epoch_data[fn])
+            
+            if self.event_id=={}:
+                self.event_id = epoch_data[fn].event_id
+            else: 
+                assert epoch_data[fn].event_id == self.event_id, 'Event Id inconsistent.'
+            i += 1
+        self.sfreq = self.data[0].info['sfreq']
+        self.label_map   = {i:i for i in np.unique(self.label)}
+        self.session_map = {i:i for i in np.unique(self.session)}
+        self.subject_map = {i:f"S{i+1}" for i in np.unique(self.subject)}
     def get_args(self):
         return  {'n_classes': max(np.unique(self.label)) + 1,
                  'channels' : self.data.shape[-2],
                  'samples'  : self.data.shape[-1],
                  'sfreq'    : self.sfreq }
-    
     def get_data_length(self):
         return len(self.data)
 
@@ -173,6 +243,9 @@ class Epochs:
 
     def pick_subject_by_idx(self, idx):
         return self.subject == idx
+    def inspect(self):
+        print(self.data[0].events[:,2])
+        print(self.event_id)
     
 class DataSet():
     def __init__(self, data_holder):
