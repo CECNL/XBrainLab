@@ -5,11 +5,6 @@ import torch.utils.data as Data
 import time
 from copy import deepcopy
 
-class TRAINING_EVALUATION(Enum):
-    VAL_LOSS = 'Best validation loss'
-    TEST_ACC = 'Best testing performance'
-    LAST_EPOCH = 'Last Epoch'
-
 class TrainRecord:
     def __init__(self, model, optim, repeat):
         self.model = model

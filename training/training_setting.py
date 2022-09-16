@@ -2,115 +2,52 @@ import tkinter as tk
 import tkinter.filedialog
 import tkinter.messagebox
 import inspect
-import os
 
-from ..base.top_window import TopWindow
+from ..base import TopWindow
 from ..widget import EditableTreeView
 from .. import model_base
-from .training_holder import ModelHolder, parse_device_name, TrainingOption
-from .trainer import TRAINING_EVALUATION
 import torch
 
+class TRAINING_EVALUATION(Enum):
+    VAL_LOSS = 'Best validation loss'
+    TEST_ACC = 'Best testing performance'
+    LAST_EPOCH = 'Last Epoch'
 
-ARG_DICT_SKIP_SET = set(['self', 'n_classes', 'channels', 'samples', 'sfreq'])
+def parse_device_name(use_cpu, gpu_idx):
+    if use_cpu:
+        return 'cpu'
+    if gpu_idx is not None:
+        return f'{gpu_idx} - {torch.cuda.get_device_name(gpu_idx)}'
+    return ''
 
-class ModelSelectionWindow(TopWindow):
-    def __init__(self, parent):
-        super().__init__(parent, 'Model Selection')
-        self.pretrained_weight_path = None
-        self.model_holder = None
-
-        ## fetch model list from db
-        model_map = inspect.getmembers(model_base, inspect.isclass)
-        model_map = {m[0]: m[1] for m in model_map}
-        model_list = list(model_map.keys())
-
-        ## model option menu
-        model_opt_label = tk.Label(self, text='model: ')
-        selected_model_name = tk.StringVar(self)
-        selected_model_name.trace('w', self.on_model_select) # callback
-        model_opt = tk.OptionMenu(self, selected_model_name, *model_list)
-        
-        ## model parms
-        parms_frame = tk.LabelFrame(self, text='model parmeters')
-        columns = ('parm', 'value')
-        parms_tree = EditableTreeView(parms_frame, editableCols=['#2'], columns=columns, show='headings')
-        parms_tree.pack(fill=tk.BOTH, expand=True)
-
-        ## pretrained weight
-        pretrained_weight_label = tk.Label(self, text='Pretrained weight: ')
-        pretrained_weight_disp_label = tk.Label(self)
-        pretrained_weight_btn = tk.Button(self, text='load', command=self.load_pretrained_weight)
-        
-        model_opt_label.grid(row=1, column=0)
-        model_opt.grid(row=1, column=1)
-        parms_frame.grid(row=2, column=0, columnspan=3, sticky='NEWS')
-        pretrained_weight_label.grid(row=3, column=0)
-        pretrained_weight_disp_label.grid(row=3, column=1)
-        pretrained_weight_btn.grid(row=3, column=2)
-        tk.Button(self, text='Confirm', command=self.confirm).grid(row=4, column=2)
-        
-
-        self.model_map = model_map
-        self.selected_model_name = selected_model_name
-        self.parms_tree = parms_tree
-        self.parms_frame = parms_frame
-        self.pretrained_weight_disp_label = pretrained_weight_disp_label
-        self.pretrained_weight_btn = pretrained_weight_btn
-
-        selected_model_name.set(model_list[0])
-
-    def on_model_select(self, *args):
-        """Update model params when model is selected"""
-        target = self.model_map[self.selected_model_name.get()]
-        self.parms_tree.delete(*self.parms_tree.get_children()) # clear table
-        contain = False
-        if target:
-            sigs = inspect.signature(target.__init__)
-            parms = sigs.parameters
-            for parm in parms:
-                if parm in ARG_DICT_SKIP_SET:
-                    continue
-                value = value = '' if parms[parm].default == inspect._empty else parms[parm].default
-                self.parms_tree.insert('', index='end', values=(parm, value))
-                contain = True
-        if contain:
-            self.parms_frame.grid()
-        else:
-            self.parms_frame.grid_remove()
+class TrainingOption:
+    def __init__(self, output_dir, optim, optim_parms, use_cpu, gpu_idx, epoch, bs, lr, checkpoint_epoch, evaluation_option, repeat_num):
+        self.output_dir = output_dir
+        self.optim = optim
+        self.optim_parms = optim_parms
+        self.use_cpu = use_cpu
+        self.gpu_idx = gpu_idx
+        self.epoch = epoch
+        self.bs = bs
+        self.lr = lr
+        self.checkpoint_epoch = checkpoint_epoch
+        self.evaluation_option = evaluation_option
+        self.repeat_num = repeat_num
     
-    def load_pretrained_weight(self):
-        if self.pretrained_weight_path:
-            # perform clear if already set
-            self.pretrained_weight_path = None
-            # update display
-            self.pretrained_weight_disp_label.config(text='')
-            self.pretrained_weight_btn.config(text='load')
-            return
-        
-        filepath = tk.filedialog.askopenfilename(parent=self, filetypes=(("model/weights", "*"),))
-        if filepath:
-            self.pretrained_weight_path = filepath
-            filename = os.path.basename(filepath)
-            self.pretrained_weight_disp_label.config(text=filename)
-            self.pretrained_weight_btn.config(text='clear')
+    def get_optim(self, model):
+        return self.optim(params=model.parameters(), lr=self.lr, **self.optim_parms)
 
-    def confirm(self):
-        self.parms_tree.submitEntry() # close editing tables
-        reason = None    
-        
-        target_model = self.model_map[self.selected_model_name.get()]
-        model_parms_map = {}
-        for item in self.parms_tree.get_children():
-            parm, value = self.parms_tree.item(item)['values']
-            model_parms_map[parm] = value
-        
-        self.model_holder = ModelHolder(target_model, model_parms_map, self.pretrained_weight_path )
-        self.destroy()
+    def get_optim_name(self):
+        return self.optim.__name__
 
-    def _get_result(self):
-        return self.model_holder
-#
+    def get_device_name(self):
+        return parse_device_name(self.use_cpu, self.gpu_idx)
+    
+    def get_device(self):
+        if self.use_cpu:
+            return 'cpu'
+        return f"cuda:{self.gpu_idx}"
+
 class TrainingSettingWindow(TopWindow):
     def __init__(self, parent):
         super().__init__(parent, 'Training Setting')
@@ -369,7 +306,6 @@ if __name__ == '__main__':
     import tkinter as tk
     root = tk.Tk()
     root.withdraw()
-    window = ModelSelectionWindow(root)
     window = TrainingSettingWindow(root)
 
     print (window.get_result())

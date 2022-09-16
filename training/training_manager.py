@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.messagebox
 from ..widget import EditableTreeView
-from ..base.top_window import TopWindow
+from ..base import TopWindow
 from .training_plot import TrainingPlotWindow, TrainingPlotType
 
 import threading
@@ -30,7 +30,6 @@ class TrainingManagerJob():
 
     def is_finished(self):
         return self.finished
-    
 ##
 class TrainingManagerWindow(TopWindow):
     task = None
