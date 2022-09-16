@@ -5,8 +5,8 @@ import inspect
 
 from ..base import TopWindow
 from ..widget import EditableTreeView
-from .. import model_base
 import torch
+from enum import Enum
 
 class TRAINING_EVALUATION(Enum):
     VAL_LOSS = 'Best validation loss'

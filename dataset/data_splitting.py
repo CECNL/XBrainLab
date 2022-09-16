@@ -261,7 +261,7 @@ class DataSplittingWindow(TopWindow):
                 counter += 1
                 idx = len(self.tree.get_children())
                 dataset = self.datasets[idx]
-                self.tree.insert("", 'end', iid=idx, values=('O', dataset.name, sum(dataset.train), sum(dataset.val), sum(dataset.test)))
+                self.tree.insert("", 'end', iid=idx, values=('O', dataset.get_name(), sum(dataset.train), sum(dataset.val), sum(dataset.test)))
         self.after(500, self.update_table)
 
     def show_info(self):
@@ -276,7 +276,7 @@ class DataSplittingWindow(TopWindow):
         if len(self.datasets) > idx:
             target = self.datasets[idx]
             if self.winfo_exists():
-                self.tree.item(idx, values=('O' if target.is_selected else 'X', target.name, sum(target.train), sum(target.val), sum(target.test)))
+                self.tree.item(idx, values=('O' if target.is_selected else 'X', target.get_name(), sum(target.train), sum(target.val), sum(target.test)))
 
     def confirm(self):
         # check if dataset is empty
@@ -295,6 +295,17 @@ class DataSplittingWindow(TopWindow):
         if self.worker.is_alive():
             self.after(1000, self.confirm)
             return
+        # remove unselected plan
+        while True:
+            skip = True
+            for i in range(len(self.datasets)):
+                if not self.datasets[i].is_selected:
+                    del self.datasets[i]
+                    skip = False
+                    break
+            if skip:
+                break
+
         self.return_datasets = self.datasets
         self.destroy()
 

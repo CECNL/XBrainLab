@@ -1,8 +1,11 @@
 import tkinter as tk
+import tkinter.messagebox
 from ..base import TopWindow
-from data_splitting import DataSplittingWindow
+from .data_splitting import DataSplittingWindow
 from .option import TrainingType, SplitByType, ValSplitByType, SplitUnit
+from .data_holder import Epochs
 import numpy as np
+from enum import Enum
 
 VAL_SPLIT_OPTION_NUM = 1
 TEST_SPLIT_OPTION_NUM = 3
@@ -11,12 +14,14 @@ class DataSplittingSettingWindow(TopWindow):
     def __init__(self, parent, data_holder):
         super().__init__(parent, 'Data splitting')
         self.data_holder = data_holder
+        if not self.check_data():
+            return
         # start of options
         ## training type
         training_type_label = tk.Label(self, text='Training Type')
 
         training_type_list = [i.value for i in TrainingType]
-        training_type_var = tk.StringVar(name='train')
+        training_type_var = tk.StringVar(self)
         training_type_var.set(training_type_list[0])
         training_type_option = tk.OptionMenu(self, training_type_var, *training_type_list)
 
@@ -40,7 +45,7 @@ class DataSplittingSettingWindow(TopWindow):
                                 [VAL_SPLIT_OPTION_NUM,      TEST_SPLIT_OPTION_NUM]
                             ):
             for i in range(opt_num):
-                var = tk.StringVar(name=f'{name}_{i}')
+                var = tk.StringVar(self)
                 var.set(split_by_list[0])
                 option = tk.OptionMenu(self, var, *split_by_list)
                 var_list.append(var)
@@ -111,6 +116,14 @@ class DataSplittingSettingWindow(TopWindow):
         ## init func
         self.option_menu_callback(None,None,None)
         self.draw_preview()
+
+    def check_data(self):
+        if type(self.data_holder) != Epochs:
+            self.withdraw()
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid epoch data is generated')
+            self.destroy()
+            return False
+        return True
 
     def option_menu_callback(self, var, index, mode):
         # check disable visibility

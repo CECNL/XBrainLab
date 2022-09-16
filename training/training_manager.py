@@ -36,7 +36,8 @@ class TrainingManagerWindow(TopWindow):
     def __init__(self, parent, training_plan_holders):
         super().__init__(parent, 'Training Manager')
         self.training_plan_holders = training_plan_holders
-
+        if not self.check_data():
+            return
         columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc', 'val_loss', 'val_acc')
         plan_tree = EditableTreeView(self, columns=columns)
 
@@ -60,6 +61,14 @@ class TrainingManagerWindow(TopWindow):
         
         if TrainingManagerWindow.task:
             self.start_training()
+
+    def check_data(self):
+        if type(self.training_plan_holders) != list:
+            self.withdraw()
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid training plan is generated')
+            self.destroy()
+            return False
+        return True
 
     def config_menu(self):
         menu = tk.Menu(self, tearoff=0)

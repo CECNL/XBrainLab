@@ -1,5 +1,6 @@
 import numpy as np
 from enum import Enum
+from .option import SplitUnit
 
 class Raw:
     """
@@ -247,6 +248,8 @@ class DataSet:
     SEQ = 0
     def __init__(self, data_holder):
         self.name = ''
+        self.dataset_id = SEQ
+        SEQ += 1
         self.data_holder = data_holder
 
         data_length = data_holder.get_data_length()
@@ -266,8 +269,11 @@ class DataSet:
         return self.remaining.copy()
     
     def set_name(self, name):
-        self.name = f"{DataSet.SEQ}-name"
-        DataSet.SEQ += 1
+        self.name = name
+    
+    def get_name(self):
+        return self.dataset_id + '-' + self.name
+
         
     def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):
         return self.data_holder.pick_subject(mask, num, split_type, ref_exclude, group_idx)

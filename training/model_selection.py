@@ -1,11 +1,12 @@
 import tkinter as tk
+from .. import model_base
 from ..base import TopWindow
+from ..widget import EditableTreeView
 import tkinter.filedialog
 import inspect
 import os
 
 ARG_DICT_SKIP_SET = set(['self', 'n_classes', 'channels', 'samples', 'sfreq'])
-
 
 class ModelHolder:
     def __init__(self, target_model, model_parms_map, pretrained_weight_path):

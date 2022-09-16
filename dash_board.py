@@ -13,6 +13,7 @@ class DashBoard(tk.Tk):
         # raw data
         self.loaded_data = None
         self.preprocessed_data = None
+        self.preprocess_history = []
         # datasets
         self.datasets = None
         # training
@@ -55,43 +56,75 @@ class DashBoard(tk.Tk):
 
         self.config(menu=menu)
 
+    def warn_flow_cleaning():
+        if tk.messagebox.askokcancel(parent=self, title='Warning', message='This step has already done, all following data will be removed if you reset this step.\nDo you want to proceed?'):
+            return True
+        return False
 
     def import_data(self, import_data_type):
-        # TODO warning resetting flow
-        loaded_data = import_data_type(self)
+        if len(self.preprocess_history) > 0 or self.datasets:
+            if not self.warn_flow_cleaning():
+                return
+        loaded_data = import_data_type(self).get_result()
         if loaded_data:
             self.loaded_data = loaded_data
-            self.preprocessed_data = loaded_data
+            self.preprocessed_data = loaded_data.copy()
+            # TODO clear working flow
 
     def preprocess(self, preprocess_type):
-        # TODO check if data is loaded
-        # TODO warning resetting flow
-        loaded_data = preprocess_type(self, self.preprocessed_data)
-        if loaded_data:
-            self.preprocessed_data = loaded_data
+        if self.datasets:
+            if not self.warn_flow_cleaning():
+                return
+        preprocessed_data, log = preprocess_type(self, self.preprocessed_data).get_result()
+        if preprocessed_data and log:
+            self.preprocessed_data = preprocessed_data
+            self.preprocess_history.append(log)
+            # TODO clear working flow
 
     def reset_preprocess(self):
-        # TODO warning resetting flow
-        pass
+        if self.datasets:
+            if not self.warn_flow_cleaning():
+                return
+        if self.loaded_data:
+            self.preprocessed_data = self.loaded_data.copy()
+            tk.messagebox.showinfo(parent=self, title='Success', message='OK')
+        else:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid data is loaded')
+        # TODO clear working flow
 
     def split_data(self):
-        # TODO check preprocessed_data is epoched
+        if self.training_plan_holders:
+            if not self.warn_flow_cleaning():
+                return
         datasets = DataSplittingSettingWindow(self, self.preprocessed_data).get_result()
         if datasets:
             self.datasets = datasets
+        # TODO clear working flow
 
     def select_model(self):
-        # TODO warning resetting flow
+        if self.training_plan_holders:
+            if not self.warn_flow_cleaning():
+                return
         model_holder = ModelSelectionWindow(self).get_result()
         if model_holder:
             self.model_holder = model_holder
+        # TODO clear working flow
 
     def training_setting(self):
-        # TODO warning resetting flow
+        if self.training_plan_holders:
+            if not self.warn_flow_cleaning():
+                return
         training_option = TrainingSettingWindow(self).get_result()
         if training_option:
             self.training_option = training_option
+        # TODO clear working flow
+
+    def generate_plan(self):
+        if self.training_plan_holders:
+            if not self.warn_flow_cleaning():
+                return
+        # TODO
+        # TODO clear working flow
 
     def open_training_manager(self):
-        # TODO check training_plan_holders is ready
         TrainingManagerWindow(self, self.training_plan_holders)

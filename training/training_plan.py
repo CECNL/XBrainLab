@@ -12,7 +12,7 @@ class TrainingPlan:
 
     # get info
     def get_name(self):
-        return self.dataset.name
+        return self.dataset.get_name()
     
     def get_training_status(self):
         if self.trainer is None:
