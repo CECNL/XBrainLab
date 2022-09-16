@@ -282,7 +282,7 @@ class DataSplittingWindow(TopWindow):
         # check if dataset is empty
         if self.winfo_ismapped():
             if len(self.datasets) == 0:
-                tk.messagebox.showerror(parent=self, title='Error', message='No valid datasets exist')
+                tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
                 return
             # check if data is empty
             for dataset in self.datasets:

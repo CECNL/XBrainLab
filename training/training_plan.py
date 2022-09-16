@@ -6,7 +6,7 @@ class TrainingPlan:
         self.option = option
         self.model_holder = model_holder
         self.dataset = dataset
-        self.trainer = None
+        self.trainer = Trainer(self.model_holder, self.dataset, self.option)
         self.job = None
         self.error = None
 
@@ -26,6 +26,8 @@ class TrainingPlan:
             return 'Finished'
         if not self.job:
             return 'Pending'
+        elif self.trainer.get_training_epoch() == 0:
+            return f'Initializing repeat {self.trainer.get_training_repeat()}'
         else:
             return f'Training repeat {self.trainer.get_training_repeat()}'
 
@@ -49,14 +51,9 @@ class TrainingPlan:
         if self.trainer:
             self.trainer.set_interrupt()
 
-    def generate_trainer(self):
-        self.trainer = Trainer(self.model_holder, self.dataset, self.option)
-
     def train(self, job):
         self.job = job
         try:
-            if self.trainer is None:
-                self.generate_trainer()
             self.trainer.train()
             self.job = None
         except Exception as e:
@@ -64,6 +61,9 @@ class TrainingPlan:
             traceback.print_exc()
             self.error = str(e)
             self.job = None
+    
+    def is_running(self):
+        return self.job is not None
 
     def get_plans(self):
         if self.trainer is None:

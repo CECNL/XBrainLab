@@ -248,8 +248,8 @@ class DataSet:
     SEQ = 0
     def __init__(self, data_holder):
         self.name = ''
-        self.dataset_id = SEQ
-        SEQ += 1
+        self.dataset_id = DataSet.SEQ
+        DataSet.SEQ += 1
         self.data_holder = data_holder
 
         data_length = data_holder.get_data_length()
@@ -272,7 +272,7 @@ class DataSet:
         self.name = name
     
     def get_name(self):
-        return self.dataset_id + '-' + self.name
+        return str(self.dataset_id) + '-' + self.name
 
         
     def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):

@@ -2,7 +2,8 @@ import tkinter as tk
 from .load_data import LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp
 from .preprocess import Channel, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent
 from .dataset import DataSplittingSettingWindow
-from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow 
+from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow , TrainingPlan
+from .evaluation import ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow
 
 class DashBoard(tk.Tk):
     def __init__(self):
@@ -38,29 +39,33 @@ class DashBoard(tk.Tk):
         import_data_menu = tk.Menu(menu, tearoff=0)
         import_data_type_list = [LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp]
         for import_data_type in import_data_type_list:
-            import_data_menu.add_command(label=import_data_type.command_label, command=lambda:self.import_data(import_data_type))
+            import_data_menu.add_command(label=import_data_type.command_label, command=lambda var=import_data_type:self.import_data(var))
         file_menu.add_cascade(label="Import data", menu=import_data_menu)
         
         # preprocess/epoching
         preprocess_type_list = [Channel, Filtering, Resample, EditEvent, TimeEpoch, WindowEpoch]
         for preprocess_type in preprocess_type_list:
-            preprocess_menu.add_command(label=preprocess_type.command_label, command=lambda:self.preprocess(preprocess_type))
+            preprocess_menu.add_command(label=preprocess_type.command_label, command=lambda var=preprocess_type:self.preprocess(var))
         preprocess_menu.add_command(label='Reset', command=self.reset_preprocess)
         
         # training
         training_menu.add_command(label='Dataset Splitting', command=self.split_data)
         training_menu.add_command(label='Model Selection', command=self.select_model)
-        training_menu.add_command(label='Training setting', command=self.training_setting)
+        training_menu.add_command(label='Training Setting', command=self.training_setting)
+        training_menu.add_command(label='Generate Training Plan', command=self.generate_plan)
         training_menu.add_command(label='Training Manager', command=self.open_training_manager)
         # evaluation
-
+        evaluation_type_list = [ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow]
+        for evaluate_type in evaluation_type_list:
+            evaluation_menu.add_command(label=evaluate_type.command_label, command=lambda var=evaluate_type:self.evaluate(var))
+        
         self.config(menu=menu)
 
-    def warn_flow_cleaning():
-        if tk.messagebox.askokcancel(parent=self, title='Warning', message='This step has already done, all following data will be removed if you reset this step.\nDo you want to proceed?'):
+    def warn_flow_cleaning(self):
+        if tk.messagebox.askokcancel(parent=self, title='Warning', message='This step has already been done, all following data will be removed if you reset this step.\nDo you want to proceed?'):
             return True
         return False
-
+    # data
     def import_data(self, import_data_type):
         if len(self.preprocess_history) > 0 or self.datasets:
             if not self.warn_flow_cleaning():
@@ -91,7 +96,7 @@ class DashBoard(tk.Tk):
         else:
             tk.messagebox.showerror(parent=self, title='Error', message='No valid data is loaded')
         # TODO clear working flow
-
+    # train
     def split_data(self):
         if self.training_plan_holders:
             if not self.warn_flow_cleaning():
@@ -123,8 +128,50 @@ class DashBoard(tk.Tk):
         if self.training_plan_holders:
             if not self.warn_flow_cleaning():
                 return
-        # TODO
+        if not self.datasets:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
+            return
+        if not self.training_option:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid training option is generated')
+            return
+        if not self.model_holder:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid model is selected')
+            return
+
+        training_plan_holders = []
+        option = self.training_option
+        model_holder = self.model_holder
+        datasets = self.datasets
+        for dataset in datasets:
+            training_plan_holders.append(TrainingPlan(option, model_holder, dataset))
+        self.training_plan_holders = training_plan_holders
+        self.open_training_manager()
         # TODO clear working flow
 
     def open_training_manager(self):
         TrainingManagerWindow(self, self.training_plan_holders)
+
+    # eval
+    def evaluate(self, evaluation_type):
+        evaluation_type(self, self.training_plan_holders)
+
+    # destroy
+    def check_training(self):
+        from .training.training_manager import TrainingManagerWindow
+        if TrainingManagerWindow.task:
+            if tk.messagebox.askokcancel(parent=self, title='Warning', message='Training is in progress.\nDo you want to exit?'):
+                TrainingManagerWindow.task.set_interrupt()
+                return True
+            else:
+                return False
+        return True
+
+    def destroy(self):
+        if not self.check_training():
+            return
+        super().destroy()
+        from matplotlib import pyplot as plt
+        plt.close('all')
+
+    # clean work flow
+

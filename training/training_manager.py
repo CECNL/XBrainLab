@@ -24,6 +24,8 @@ class TrainingManagerJob():
                 break
             plan_holder.train(job=self)
         self.finished = True
+        TrainingManagerWindow.task = None
+
 
     def run(self):
         threading.Thread(target=self.job).start()
@@ -39,7 +41,7 @@ class TrainingManagerWindow(TopWindow):
         if not self.check_data():
             return
         columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc', 'val_loss', 'val_acc')
-        plan_tree = EditableTreeView(self, columns=columns)
+        plan_tree = EditableTreeView(self, columns=columns, show='headings')
 
         status_bar = tk.Label(self, text='IDLE')
 
@@ -114,10 +116,15 @@ class TrainingManagerWindow(TopWindow):
         self.start_btn.config(state=tk.NORMAL)
         self.status_bar.config(text='IDLE')
         self.update_table()
+        if not self.winfo_exists():
+            return
         tk.messagebox.showinfo('Success', 'Training has stopped', parent=self)
 
     def training_loop(self):
         if self.winfo_exists() == 0:
+            return
+        if not TrainingManagerWindow.task:
+            self.finish_training()
             return
         if TrainingManagerWindow.task.is_finished():
             self.finish_training()

@@ -12,6 +12,9 @@ class TrainingPlotType(Enum):
 class TrainingPlotWindow(SinglePlotWindow):
     def __init__(self, parent, training_plan_holders, plot_type, figsize=None):
         super().__init__(parent, figsize)
+        self.training_plan_holders = training_plan_holders
+        if not self.check_data():
+            return
         self.plot_type = plot_type
         self.plan_to_plot = None
         self.current_plot = None
@@ -51,6 +54,14 @@ class TrainingPlotWindow(SinglePlotWindow):
 
         self.drawCounter = 0
         self.update_loop()
+
+    def check_data(self):
+        if type(self.training_plan_holders) != list:
+            self.withdraw()
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid training plan is generated')
+            self.destroy()
+            return False
+        return True
 
     def on_plan_select(self, var_name, *args):
         self.set_selection(False)
