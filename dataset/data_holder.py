@@ -1,10 +1,6 @@
 import numpy as np
 from enum import Enum
 
-class SplitUnit(Enum):
-    RATIO = 'Ratio'
-    NUMBER = 'Number'
-    KFOLD = 'K Fold'
 class Raw:
     """
     raw_attr: {fn: [subject, session]}
@@ -246,8 +242,9 @@ class Epochs:
     def inspect(self):
         print(self.data[0].events[:,2])
         print(self.event_id)
-    
-class DataSet():
+
+class DataSet:
+    SEQ = 0
     def __init__(self, data_holder):
         self.name = ''
         self.data_holder = data_holder
@@ -269,7 +266,8 @@ class DataSet():
         return self.remaining.copy()
     
     def set_name(self, name):
-        self.name = name
+        self.name = f"{DataSet.SEQ}-name"
+        DataSet.SEQ += 1
         
     def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):
         return self.data_holder.pick_subject(mask, num, split_type, ref_exclude, group_idx)

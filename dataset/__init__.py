@@ -1,1 +1,1 @@
-from .data_splitting import DataSplittingSettingWindow
+from .data_splitting_setting import DataSplittingSettingWindow

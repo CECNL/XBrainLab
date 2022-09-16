@@ -1,4 +1,4 @@
-from ..base.top_window import TopWindow
+from ..base import TopWindow
 import tkinter as tk
 import matplotlib
 matplotlib.use('TkAgg')
