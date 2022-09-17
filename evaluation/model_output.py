@@ -77,12 +77,13 @@ class ModelOutputWindow(TopWindow):
         if not record:
             tk.messagebox.showerror(parent=self, title='Error', message='No evaluation record for this training plan')
             return
-        filepath = tk.filedialog.askdirectory(parent=self)
-        if filepath:
+        plan_name = self.training_plan_map[self.selected_plan_name.get()].get_name()
+        plan_name += '-'+real_plan.get_name()+'.csv'
+        filename = tk.filedialog.asksaveasfilename(parent=self, initialfile=plan_name, filetypes = (("csv files","*.csv"),))
+        if filename:
             data = np.c_[record.output, record.label, record.output.argmax(axis=1)]
             try:
-                plan_name = self.training_plan_map[self.selected_plan_name.get()].get_name()
-                np.savetxt(os.path.join(filepath, plan_name+'-'+real_plan.get_name()+'.csv'), data, delimiter=',', newline='\n', header=f'{",".join([str(i) for i in range(record.output.shape[1])])},ground_truth,predict', comments='')
+                np.savetxt(filename, data, delimiter=',', newline='\n', header=f'{",".join([str(i) for i in range(record.output.shape[1])])},ground_truth,predict', comments='')
                 tk.messagebox.showinfo(parent=self, title='Success', message='Done')
             except Exception as e:
                 tk.messagebox.showerror(parent=self, title='Error', message=str(e))
