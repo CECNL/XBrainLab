@@ -169,7 +169,7 @@ def testModel(model, dataLoader, criterion, return_output=False):
     model.eval()
     output_list = []
     label_list = []
-    gradient_list = []
+    gradient_list = None
     running_loss = 0.0
     total_count = 0
     correct = 0
@@ -181,17 +181,24 @@ def testModel(model, dataLoader, criterion, return_output=False):
         correct += (outputs.argmax(axis=1) == labels).float().sum().item()
         total_count += len(labels)
         running_loss += loss.item()
-        loss.backward()
-
 
         output_list.append(outputs.detach().cpu().numpy())
         label_list.append(labels.detach().cpu().numpy())
-        gradient_list.append(inputs.grad.detach().cpu().numpy())
+        if return_output:
+            if gradient_list is None:
+                gradient_list = {i: [] for i in range(outputs.shape[-1])}
+            for i in gradient_list:
+                inputs.grad = None
+                for output in outputs:
+                    output[i].backward(retain_graph=True)
+                gradient_list[i].append(inputs.grad.detach().cpu().numpy())
 
     running_loss /= len(dataLoader)
     acc = correct / total_count * 100
     if return_output:
-        return EvalRecord(np.concatenate(label_list), np.concatenate(output_list), np.concatenate(gradient_list))
+        for i in gradient_list:
+            gradient_list[i] = np.concatenate(gradient_list[i])
+        return EvalRecord(np.concatenate(label_list), np.concatenate(output_list), gradient_list)
     return acc, running_loss
 
 def to_holder(X, y, dev, bs, shuffle=False):

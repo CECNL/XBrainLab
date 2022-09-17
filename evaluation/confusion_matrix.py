@@ -1,7 +1,7 @@
 import tkinter as tk
-from ..training.training_plot import TrainingPlotWindow, TrainingPlotType
+from ..widget import PlotFigureWindow, PlotType
 
-class ConfusionMatrixWindow(TrainingPlotWindow):
+class ConfusionMatrixWindow(PlotFigureWindow):
     command_label = 'Confusion matrix'
     def __init__(self, parent, training_plan_holders):
-        super().__init__(parent, training_plan_holders, plot_type=TrainingPlotType.CONFUSION)
+        super().__init__(parent, training_plan_holders, plot_type=PlotType.CONFUSION)

@@ -12,21 +12,19 @@ from matplotlib.backends.backend_tkagg import (
 
 class SinglePlotWindow(TopWindow):
     PLOT_COUNTER = 0
-    def __init__(self, parent, figsize=None, dpi=None):
-        super().__init__(parent, 'Plot')
+    def __init__(self, parent, figsize=None, dpi=None, title='Plot'):
+        super().__init__(parent, title)
         if figsize is None:
             figsize = (6.4, 4.8)
         if dpi is None:
             dpi = 100
-        
+        self.figsize = figsize
+        self.dpi = dpi
+
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
 
-        self.plot_number = f'SinglePlotWindow-{SinglePlotWindow.PLOT_COUNTER}'
-        SinglePlotWindow.PLOT_COUNTER += 1
-        # create dummy figure
-        figure = plt.figure(num=self.plot_number, figsize=figsize, dpi=dpi)
-        self.set_figure(figure, figsize, dpi)
+        self.init_figure()
 
         # resize to figure size
         self.update_idletasks()
@@ -40,16 +38,31 @@ class SinglePlotWindow(TopWindow):
     def active_figure(self):
         plt.figure(self.plot_number)
 
+    def init_figure(self):
+        self.plot_number = f'SinglePlotWindow-{SinglePlotWindow.PLOT_COUNTER}'
+        SinglePlotWindow.PLOT_COUNTER += 1
+        # create dummy figure
+        figure = plt.figure(num=self.plot_number, figsize=self.figsize, dpi=self.dpi)
+        self.set_figure(figure, self.figsize, self.dpi)
+        self.active_figure()
+
+
     def get_figure_parms(self):
         return self.fig_parm
     
     def clear_figure(self):
         plt.clf()
         self.redraw()
+    
+    def show_drawing(self):
+        self.clear_figure()
+        plt.text(.5, .5, 'Drawing.', ha='center', va='center')
+        self.redraw()
 
     def empty_data_figure(self):
         self.clear_figure()
         plt.text(.5, .5, 'No data is available.', ha='center', va='center')
+        self.redraw()
 
     def set_figure(self, figure, figsize, dpi):
         fig_frame = tk.Frame(self)

@@ -1,9 +1,12 @@
 import tkinter as tk
+import tkinter.messagebox
 from .load_data import LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp
 from .preprocess import Channel, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent
 from .dataset import DataSplittingSettingWindow
 from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow , TrainingPlan
 from .evaluation import ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow
+from .visualization import PickMontageWindow, SaliencyMapWindow, SaliencyTopographicMapWindow
+from .dataset.data_holder import Epochs
 
 class DashBoard(tk.Tk):
     def __init__(self):
@@ -31,11 +34,13 @@ class DashBoard(tk.Tk):
         preprocess_menu = tk.Menu(menu, tearoff=0)
         training_menu = tk.Menu(menu, tearoff=0)
         evaluation_menu = tk.Menu(menu, tearoff=0)
+        visualization_menu = tk.Menu(menu, tearoff=0)
 
         menu.add_cascade(label="File", menu=file_menu)
         menu.add_cascade(label="Preprocess", menu=preprocess_menu)
         menu.add_cascade(label="Training", menu=training_menu)
         menu.add_cascade(label="Evaluation", menu=evaluation_menu)
+        menu.add_cascade(label="Visualization", menu=visualization_menu)
         
         # file_menu
         import_data_menu = tk.Menu(menu, tearoff=0)
@@ -61,6 +66,14 @@ class DashBoard(tk.Tk):
         for evaluate_type in evaluation_type_list:
             evaluation_menu.add_command(label=evaluate_type.command_label, command=lambda var=evaluate_type:self.evaluate(var))
         
+        # visualization
+        
+        visualization_menu.add_command(label='Set Montage', command=lambda:self.set_montage())
+        visualization_type_list = [SaliencyMapWindow, SaliencyTopographicMapWindow]
+        for visualization_type in visualization_type_list:
+            visualization_menu.add_command(label=visualization_type.command_label, command=lambda var=visualization_type:self.visualize(var))
+        
+
         self.config(menu=menu)
     
     def warn_flow_cleaning(self):
@@ -157,6 +170,18 @@ class DashBoard(tk.Tk):
     def evaluate(self, evaluation_type):
         evaluation_type(self, self.training_plan_holders)
     
+    # visualize
+    def set_montage(self):
+        if type(self.preprocessed_data) != Epochs:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid epoch data is generated')
+            return
+        chs, positions = PickMontageWindow(self, self.preprocessed_data.get_channel_names()).get_result()
+        if chs is not None and positions is not None:
+            self.preprocessed_data.set_channels(chs, positions)
+
+    def visualize(self, visualize_type):
+        visualize_type(self, self.training_plan_holders)
+
     # destroy
     def append_child_window(self, child):
         self.child_list.append(child)

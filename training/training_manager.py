@@ -1,8 +1,7 @@
 import tkinter as tk
 import tkinter.messagebox
-from ..widget import EditableTreeView
+from ..widget import EditableTreeView, PlotFigureWindow, PlotType
 from ..base import TopWindow
-from .training_plot import TrainingPlotWindow, TrainingPlotType
 
 import threading
 class TrainingManagerJob():
@@ -84,13 +83,13 @@ class TrainingManagerWindow(TopWindow):
         menu.add_cascade(label='Plot', menu=plot_menu)
 
     def plot_loss(self):
-        TrainingPlotWindow(self, self.training_plan_holders, TrainingPlotType.LOSS)
+        PlotFigureWindow(self, self.training_plan_holders, PlotType.LOSS)
 
     def plot_acc(self):
-        TrainingPlotWindow(self, self.training_plan_holders, TrainingPlotType.ACCURACY)
+        PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
 
     def plot_lr(self):
-        TrainingPlotWindow(self, self.training_plan_holders, TrainingPlotType.LR)
+        PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)
 
     def start_training(self):
         self.start_btn.config(state=tk.DISABLED)

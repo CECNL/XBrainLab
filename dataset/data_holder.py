@@ -52,6 +52,8 @@ class Epochs:
         self.subject_map = {} # index: S{subject idx}
         self.session_map = {} # index: unique session num
         self.label_map = {} # index: event idx
+        self.channel_map = []
+        self.channel_position = None
 
         # shape(n_data_loaded * len_epoch)
         self.subject = np.array([]) # ([subject] * len(epochs) for n data)
@@ -88,13 +90,28 @@ class Epochs:
         self.label_map   = {i:i for i in np.unique(self.label)}
         self.session_map = {i:i for i in np.unique(self.session)}
         self.subject_map = {i:f"S{i+1}" for i in np.unique(self.subject)}
+    
     def get_args(self):
         return  {'n_classes': max(np.unique(self.label)) + 1,
                  'channels' : self.data.shape[-2],
                  'samples'  : self.data.shape[-1],
                  'sfreq'    : self.sfreq }
+    
     def get_data_length(self):
         return len(self.data)
+
+    def get_label_number(self):
+        return len(self.label_map)
+
+    def get_channel_names(self):
+        return self.channel_map
+    
+    def set_channels(self, chs, channel_position):
+        self.channel_map = chs
+        self.channel_position = channel_position
+
+    def get_montage_position(self):
+        return self.channel_position
 
     def pick(self, target_type, target_type_map, mask, num, skip, is_ratio, ref_exclude):
         ret = mask & False
@@ -261,6 +278,9 @@ class DataSet:
         self.val = np.zeros(data_length, dtype=bool)
         self.test = np.zeros(data_length, dtype=bool)
         self.is_selected = True
+
+    def get_data_holder(self):
+        return self.data_holder
 
     def set_selection(self, select):
         self.is_selected = select
