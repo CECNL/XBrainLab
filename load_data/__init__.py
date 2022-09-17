@@ -1,1 +1,1 @@
-from .import_data import LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp
+from .import_data import LoadSet, LoadMat, LoadEdf, LoadCnt, LoadNp

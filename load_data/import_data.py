@@ -9,13 +9,9 @@ import numpy as np
 import scipy.io
 import mne
 
-# TODO: consistency of multiple files (time samples?)
-#       code cleanup?
-#       layout
 
 class _loadevent(TopWindow):
     # TODO:
-    #      consistent event_id dict between files
     #      event file saved format & encoding & file type(lacking test data)
     """
     parameter: parent, title
@@ -92,9 +88,6 @@ class _loadevent(TopWindow):
                 self.label_list += [int(l.rstrip()) for l in line.split(' ')] # for both (n,1) and (1,n) of labels
             fp.close()
         
-        
-        
-    
     def _confirm(self,fn):
         event_id_dict = {str(i): list(set(self.label_list))[i] for i in range(len(list(set(self.label_list))))} # make event id dict with label named with index
         
@@ -108,14 +101,12 @@ class _loadevent(TopWindow):
         # set load event window display
         self.event_num.set(str(len(self.label_list)))
         self.event_id_dict.set(str(event_id_dict))
-        self.parent.parent.event_ids.set(str(event_id_dict))
         self.destroy()
 
     def _get_result(self):
         return self.ret_event_loaded
 
 class _editrow(TopWindow):
-    # TODO:
     """
     parameter: parent, title
                header: attr value fields (table header + 'Filepath')
@@ -125,34 +116,36 @@ class _editrow(TopWindow):
     def __init__(self, parent, title, header, target):
         super().__init__(parent, title)
         self.delete_row = False
+        self.event_loaded = True
         
         i = 0
         for h in header:
             if h in ["Filepath", "Filename", "Channels", "Sampling Rate", "Epochs", "Events"]:
-                tk.Label(self, text=h+": ").grid(row=i, column=0)
-                tk.Label(self, textvariable=target[h]).grid(row=i, column=1)
+                tk.Label(self, text=h+": ").grid(row=i, column=0, sticky='w')
+                tk.Label(self, textvariable=target[h]).grid(row=i, column=1, sticky='w')
             else:
-                tk.Label(self, text=h+": ").grid(row=i, column=0)
-                tk.Entry(self, text=target[h]).grid(row=i, column=1)
+                tk.Label(self, text=h+": ").grid(row=i, column=0, sticky='w')
+                tk.Entry(self, text=target[h]).grid(row=i, column=1, sticky='w')
             i += 1
         tk.Button(self, text="Delete", command=lambda:self._delete_row()).grid(row=i, column=0)
         tk.Button(self, text="Load Events", command=lambda:self._load_events(target['Filename'].get(), target)).grid(row=i, column=1)
         tk.Button(self, text="Confirm", command=lambda:self._confirm_val(target)).grid(row=i, column=2)
     
     def _load_events(self, fn, target):
-        w = _loadevent(self,"Load events", fn).get_result()
-        if w == True:
+        self.event_loaded = _loadevent(self,"Load events", fn).get_result()
+        if self.event_loaded == True:
             target['Events'].set('yes')
-            if self.parent.type_ctrl.get() == 'raw' and self.parent.event_ids.get()=='None':
-                self.parent.event_ids.set(str(self.parent.raw_events[fn][1]))
-            elif self.parent.event_ids.get()=='None':
-                self.parent.event_ids.set(str(self.parent.data[fn][1]))
         
     def _delete_row(self):
         self.delete_row = True
         self.destroy()
     
     def _confirm_val(self, target):
+        if self.event_loaded == True:
+            if self.parent.type_ctrl.get() == 'raw' and self.parent.event_ids.get() == 'None':
+                self.parent.event_ids.set(str(self.parent.raw_events[target['Filename'].get()][1]))
+            elif self.parent.event_ids.get()=='None':
+                self.parent.event_ids.set(str(self.parent.data[target['Filename'].get()][1]))
         for h in target.keys():
             target[h].set(target[h].get())
         self.result = target.copy()
@@ -210,12 +203,12 @@ class LoadTemplate(TopWindow):
         self.attr_len.set(0)
         self.event_ids = tk.StringVar()
         self.event_ids.set('None')
-        tk.Label(self.stat_frame, text="Dataset loaded: ").grid(row=0, column=0)
-        tk.Label(self.stat_frame, textvariable=self.attr_len).grid(row=0, column=1)
-        tk.Label(self.stat_frame, text="Loaded type: ").grid(row=1, column=0)
-        tk.Label(self.stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1)
-        tk.Label(self.stat_frame, text="Event id: ").grid(row=2, column=0)
-        tk.Label(self.stat_frame, textvariable=self.event_ids).grid(row=2, column=1)
+        tk.Label(self.stat_frame, text="Dataset loaded: ").grid(row=0, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.attr_len).grid(row=0, column=1, sticky='w')
+        tk.Label(self.stat_frame, text="Loaded type: ").grid(row=1, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1, sticky='w')
+        tk.Label(self.stat_frame, text="Event id: ").grid(row=2, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.event_ids).grid(row=2, column=1, sticky='w')
 
         # ==== functional buttons ====
         self.add_btn = tk.Button(self, text="Add", command=lambda:self._load()).grid(row=2, column=0, ipadx=3, sticky='e')
@@ -229,7 +222,7 @@ class LoadTemplate(TopWindow):
         new_row['Events'].set('no')
         return new_row
 
-    def _make_row(self, selected_path, selected_data):
+    def _make_row(self, selected_path, selected_data, raw_event_bool=0):
         new_row = self._init_row()
         new_row['Filepath'].set(selected_path)
         new_row['Filename'].set(selected_path.split('/')[-1])
@@ -238,6 +231,8 @@ class LoadTemplate(TopWindow):
         if self.type_ctrl.get() == 'raw':
             if(len(selected_data.info['events'])) == 0:
                 new_row['Epochs'].set(1) # raw: only 1 epoch
+            if not raw_event_bool:
+                new_row['Events'].set('yes')
         else:
             new_row['Epochs'].set(len(selected_data.events))
             new_row['Events'].set('yes')
@@ -283,23 +278,51 @@ class LoadTemplate(TopWindow):
     def _load(self):
         # for overriding
         pass
-    def _list_update(self, attr_list_tmp, data_list_tmp):
+    def _list_update(self, attr_list_tmp, data_list_tmp, raw_event_tmp={}):
         for k,v in attr_list_tmp.items():
             if k not in self.attr_list.keys():
                 v_val = tuple([vv.get() for vv in v.values()])
                 self.data_attr_treeview.insert('', index="end" ,text=k, values=v_val[1:])
                 self.attr_list[k] = v
                 self.data_list[k] = data_list_tmp[k]
+            # events
             if self.type_ctrl.get()=='epochs':
                 if self.event_ids.get() == 'None':
                     self.event_ids.set(str(data_list_tmp[k].event_id))
                 else:
                     assert str(data_list_tmp[k].event_id)==self.event_ids.get(), 'Event ids inconsistent.'
+            elif k in raw_event_tmp.keys():
+                if self.event_ids.get() == 'None':
+                    self.event_ids.set(str(raw_event_tmp[k][1]))
+                else:
+                    assert str(raw_event_tmp[k][1])==self.event_ids.get(), 'Event ids inconsistent.'
+        self.raw_events.update(raw_event_tmp)
         self.attr_len.set(len(self.attr_list))
 
         if len(self.attr_list) != 0:
             self.type_raw.config(state="disabled")
             self.type_epoch.config(state="disabled")
+
+    def _data_from_array(self, data_array, data_info, attr_info_tmp, selected_data):
+        if self.type_ctrl.get() == 'raw':
+            assert len(data_array.shape) == 2, 'Data dimension invalid.'
+            selected_data = mne.io.RawArray(data_array, data_info)
+            if attr_info_tmp['event key'] not in  ["None", ""]:
+                event_label = selected_data[attr_info_tmp['event key']]
+                event_label = list(set(event_label.flatten()))
+                event_id = {str(i): event_label[i] for i in range(len(event_label))}
+                return selected_data, (event_label, event_id)
+        else:
+            assert len(data_array.shape) == 3, 'Data dimension invalid.'
+            selected_data_tmp = mne.EpochsArray(data_array, data_info)
+            if attr_info_tmp['event key'] not in  ["None", ""]:
+                event_label = selected_data[attr_info_tmp['event key']]
+                selected_data_tmp.events[:,2] = np.squeeze(event_label)
+                event_label = list(set(event_label.flatten()))
+                selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
+            selected_data = selected_data_tmp
+        return selected_data, None
+            
 
     def _reshape_array(self, target, attr_info_tmp): # used for .mat & .npy/npz
         # shape for feeding raw constructor: (channel, timepoint)
@@ -312,6 +335,9 @@ class LoadTemplate(TopWindow):
             return np.transpose(target, (3-dim_ch-dim_time, dim_ch, dim_time))
         else:
             return np.transpose(target, (dim_ch, dim_time))
+    def _clear_key(self):
+        self.attr_info['data key'] = ''
+        self.attr_info['event key'] = ''
     
     def _confirm(self):
         # check channel number
@@ -429,14 +455,14 @@ class _loadmat(TopWindow):
         tk.Label(self, text="Sampling Rate: ").grid(row=4, column=0, sticky='w')
         tk.Label(self, text="Channel: ").grid(row=5, column=0, sticky='w')
         tk.Label(self, text="Time samples: ").grid(row=6, column=0, sticky='w')
+
+        sr_ch_time = [self.srate, self.nch, self.ntime]
         if attr_info_tmp['nchan'] == 0:
-            tk.Entry(self, textvariable=self.srate).grid(row=4, column=1)
-            tk.Entry(self, textvariable=self.nch).grid(row=5, column=1)
-            tk.Entry(self, textvariable=self.ntime).grid(row=6, column=1)
+            for tv in sr_ch_time:
+                tk.Entry(self, textvariable=tv).grid(row=4+sr_ch_time.index(tv), column=1, sticky='w')
         else:
-            tk.Label(self, textvariable=self.srate).grid(row=4, column=1)
-            tk.Label(self, textvariable=self.nch).grid(row=5, column=1)
-            tk.Label(self, textvariable=self.ntime).grid(row=6, column=1)
+            for t in sr_ch_time:
+                tk.Label(self, text=t).grid(row=4+sr_ch_time.index(t), column=1, sticky='w')
 
         # ==== confirm
         tk.Button(self, text="Confirm",command=self._key_confirm).grid(row=7, column=0)
@@ -477,10 +503,11 @@ class LoadMat(LoadTemplate):
         self.nch.set(0)
         self.srate = tk.IntVar()
         self.srate.set(0)
-        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0)
-        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1)
-        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0)
-        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1)
+        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1, sticky='w')
+        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1, sticky='w')
+        tk.Button(self.stat_frame, text="Clear selected keys", command=lambda:self._clear_key()).grid(row=5, column=0)
 
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
@@ -489,7 +516,7 @@ class LoadMat(LoadTemplate):
         )
         attr_list_tmp = {}
         data_list_tmp = {}
-
+        raw_event_tmp = {}
         attr_info_tmp = self.attr_info
 
         for fn in selected_tuple:            
@@ -503,25 +530,16 @@ class LoadMat(LoadTemplate):
                 data_array = self._reshape_array(data_array, attr_info_tmp)
                 data_info = mne.create_info(attr_info_tmp['nchan'], attr_info_tmp['sampling rate'], 'eeg')
                 
-                if self.type_ctrl.get() == 'raw':
-                    assert len(data_array.shape) == 2, 'Data dimension invalid.'
-                    selected_data = mne.io.RawArray(data_array, data_info)
-                else:
-                    assert len(data_array.shape) == 3, 'Data dimension invalid.'
-                    selected_data_tmp = mne.EpochsArray(data_array, data_info)
-                    if attr_info_tmp['event key'] not in  ["None", ""]:
-                        event_label = selected_data[attr_info_tmp['event key']]
-                        selected_data_tmp.events[:,2] = np.squeeze(event_label)
-                        event_label = list(set(event_label.flatten()))
-                        selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
-                    selected_data = selected_data_tmp
-                        
-                new_row = self._make_row(fn, selected_data)
+                selected_data, rawevent_tmp = self._data_from_array(data_array, data_info, attr_info_tmp, selected_data)
+                if rawevent_tmp != {}:
+                    raw_event_tmp[fn] = rawevent_tmp
+                      
+                new_row = self._make_row(fn, selected_data, rawevent_tmp==None)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
 
         # update attr table
-        self._list_update(attr_list_tmp, data_list_tmp)
+        self._list_update(attr_list_tmp, data_list_tmp, raw_event_tmp)
         if self.attr_info['nchan']==0:
             self.attr_info = attr_info_tmp
             self.nch.set(self.attr_info['nchan'])
@@ -597,8 +615,8 @@ class _loadnpy(TopWindow):
         tk.Label(self, text="Current shape: "+str(loaded_array.shape)).grid(row=1, column=0, sticky='w')
         i = 2
         for k in self.attr_dict.keys():
-            tk.Label(self, text = k+": ").grid(row=i, column=0)
-            tk.Entry(self, textvariable=self.attr_dict[k]).grid(row=i,column=1)
+            tk.Label(self, text = k+": ").grid(row=i, column=0, sticky='w')
+            tk.Entry(self, textvariable=self.attr_dict[k]).grid(row=i,column=1, sticky='w')
             i += 1
         tk.Button(self,text="Confirm", command=lambda:self._confirm()).grid(row=i, column=0)
 
@@ -628,10 +646,11 @@ class LoadNp(LoadTemplate):
         self.nch.set(0)
         self.srate = tk.IntVar()
         self.srate.set(0)
-        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0)
-        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1)
-        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0)
-        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1)
+        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1, sticky='w')
+        tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0, sticky='w')
+        tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1, sticky='w')
+        tk.Button(self.stat_frame, text="Clear selected keys", command=lambda:self._clear_key()).grid(row=5, column=0)
     
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
@@ -640,6 +659,7 @@ class LoadNp(LoadTemplate):
         )
         attr_list_tmp = {}
         data_list_tmp = {}
+        raw_event_tmp = {}
         attr_info_tmp = self.attr_info
 
         for fn in selected_tuple:
@@ -661,26 +681,17 @@ class LoadNp(LoadTemplate):
                 data_array = self._reshape_array(data_array, attr_info_tmp)
                 data_info = mne.create_info(attr_info_tmp['nchan'], attr_info_tmp['sampling rate'], 'eeg')
                 
-                if self.type_ctrl.get() == 'raw':
-                    assert len(data_array.shape) == 2, 'Data dimension invalid.'
-                    selected_data = mne.io.RawArray(data_array, data_info)
-                else:
-                    assert len(data_array.shape) == 3, 'Data dimension invalid.'
-                    selected_data_tmp = mne.EpochsArray(data_array, data_info)
-                    if attr_info_tmp['event key'] not in  ["None", ""]:
-                        event_label = selected_data['event key']
-                        selected_data_tmp.events[:,2] = event_label
-                        event_label = list(set(event_label))
-                        selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
-                    selected_data = selected_data
-
-                new_row = self._make_row(fn, selected_data)
+                selected_data, rawevent_tmp = self._data_from_array(data_array, data_info, attr_info_tmp, selected_data)
+                if rawevent_tmp != {}:
+                    raw_event_tmp[fn] = rawevent_tmp
+                      
+                new_row = self._make_row(fn, selected_data, rawevent_tmp==None)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
         
-        self._list_update(attr_list_tmp, data_list_tmp)
-        
-        self.attr_info = attr_info_tmp
-        self.nch.set(self.attr_info['nchan'])
-        self.srate.set(self.attr_info['sampling rate'])
+        self._list_update(attr_list_tmp, data_list_tmp, raw_event_tmp)
+        if self.attr_info['nchan']==0:
+            self.attr_info = attr_info_tmp
+            self.nch.set(self.attr_info['nchan'])
+            self.srate.set(self.attr_info['sampling rate'])
         
