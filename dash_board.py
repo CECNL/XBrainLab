@@ -8,6 +8,8 @@ from .evaluation import ConfusionMatrixWindow, EvaluationTableWindow, ModelOutpu
 class DashBoard(tk.Tk):
     def __init__(self):
         super().__init__()
+        # window
+        self.child_list = []
         self.geometry("500x500")
         self.title('Dashboard')
         self.init_menu()
@@ -60,7 +62,7 @@ class DashBoard(tk.Tk):
             evaluation_menu.add_command(label=evaluate_type.command_label, command=lambda var=evaluate_type:self.evaluate(var))
         
         self.config(menu=menu)
-
+    
     def warn_flow_cleaning(self):
         if tk.messagebox.askokcancel(parent=self, title='Warning', message='This step has already been done, all following data will be removed if you reset this step.\nDo you want to proceed?'):
             return True
@@ -154,8 +156,14 @@ class DashBoard(tk.Tk):
     # eval
     def evaluate(self, evaluation_type):
         evaluation_type(self, self.training_plan_holders)
-
+    
     # destroy
+    def append_child_window(self, child):
+        self.child_list.append(child)
+    
+    def remove_child_window(self, child):
+        self.child_list.remove(child)
+       
     def check_training(self):
         from .training.training_manager import TrainingManagerWindow
         if TrainingManagerWindow.task:
@@ -169,9 +177,18 @@ class DashBoard(tk.Tk):
     def destroy(self):
         if not self.check_training():
             return
-        super().destroy()
+        
+        child_list = self.child_list.copy()
+        for child in child_list:
+            if child.destroy():
+                return True
+        
         from matplotlib import pyplot as plt
         plt.close('all')
+        # recycling
+        print('recycling...')
+        self.withdraw()
+        self.after(3000, super().destroy)
 
     # clean work flow
 
