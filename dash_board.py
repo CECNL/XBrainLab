@@ -3,12 +3,12 @@ import tkinter.messagebox
 from .load_data import LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp
 from .preprocess import Channel, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent
 from .dataset import DataSplittingSettingWindow
-from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow , TrainingPlan
+from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow, Trainer
 from .evaluation import ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow
 from .visualization import PickMontageWindow, SaliencyMapWindow, SaliencyTopographicMapWindow
 from .dataset.data_holder import Epochs
 from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel, TrainingSettingPanel, TrainingStatusPanel
-from .base import CustomException
+from .base import InitValidateException
 
 class DashBoard(tk.Tk):
     def __init__(self):
@@ -36,7 +36,7 @@ class DashBoard(tk.Tk):
         # training
         self.model_holder = None
         self.training_option = None
-        self.training_plan_holders = None
+        self.trainers = None
 
         self.update_dashboard()
     
@@ -48,7 +48,7 @@ class DashBoard(tk.Tk):
         self.preprocess_paenl.update_panel(self.preprocessed_data)
         self.training_scheme_paenl.update_panel(self.datasets)
         self.training_setting_paenl.update_panel(self.model_holder, self.training_option)
-        self.trainin_status_paenl.update_panel(self.training_plan_holders)
+        self.trainin_status_paenl.update_panel(self.trainers)
 
         self.after(1000, self.update_dashboard)
 
@@ -136,7 +136,7 @@ class DashBoard(tk.Tk):
     
     # train
     def split_data(self):
-        if self.training_plan_holders:
+        if self.trainers:
             if not self.warn_flow_cleaning():
                 return
         datasets = DataSplittingSettingWindow(self, self.preprocessed_data).get_result()
@@ -145,7 +145,7 @@ class DashBoard(tk.Tk):
         # TODO clear working flow
 
     def select_model(self):
-        if self.training_plan_holders:
+        if self.trainers:
             if not self.warn_flow_cleaning():
                 return
         model_holder = ModelSelectionWindow(self).get_result()
@@ -154,7 +154,7 @@ class DashBoard(tk.Tk):
         # TODO clear working flow
 
     def training_setting(self):
-        if self.training_plan_holders:
+        if self.trainers:
             if not self.warn_flow_cleaning():
                 return
         training_option = TrainingSettingWindow(self).get_result()
@@ -163,35 +163,28 @@ class DashBoard(tk.Tk):
         # TODO clear working flow
 
     def generate_plan(self):
-        if self.training_plan_holders:
+        if self.trainers:
             if not self.warn_flow_cleaning():
                 return
         if not self.datasets:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
-            return
-        if not self.training_option:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid training option is generated')
-            return
-        if not self.model_holder:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid model is selected')
-            return
+            raise InitValidateException('No valid dataset is generated')
 
-        training_plan_holders = []
+        trainers = []
         option = self.training_option
         model_holder = self.model_holder
         datasets = self.datasets
         for dataset in datasets:
-            training_plan_holders.append(TrainingPlan(option, model_holder, dataset))
-        self.training_plan_holders = training_plan_holders
+            trainers.append(Trainer(model_holder, dataset, option))
+        self.trainers = trainers
         self.open_training_manager()
         # TODO clear working flow
 
     def open_training_manager(self):
-        TrainingManagerWindow(self, self.training_plan_holders)
+        TrainingManagerWindow(self, self.trainers)
 
     # eval
     def evaluate(self, evaluation_type):
-        evaluation_type(self, self.training_plan_holders)
+        evaluation_type(self, self.trainers)
     
     # visualize
     def set_montage(self):
@@ -203,7 +196,7 @@ class DashBoard(tk.Tk):
             self.preprocessed_data.set_channels(chs, positions)
 
     def visualize(self, visualize_type):
-        visualize_type(self, self.training_plan_holders)
+        visualize_type(self, self.trainers)
 
     # destroy
     def append_child_window(self, child):

@@ -6,8 +6,8 @@ import mne
 
 class SaliencyTopographicMapWindow(PlotFigureWindow):
     command_label = 'Saliency topographic map'
-    def __init__(self, parent, training_plan_holders):
-        super().__init__(parent, training_plan_holders, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
+    def __init__(self, parent, trainers):
+        super().__init__(parent, trainers, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
         if not self.is_valid():
             return
         if not self.check_dataset():
@@ -18,7 +18,7 @@ class SaliencyTopographicMapWindow(PlotFigureWindow):
                                 var=self.absolute_var).pack()
     
     def check_dataset(self):
-        data_holder = self.training_plan_holders[0].get_dataset().get_data_holder()
+        data_holder = self.trainers[0].get_dataset().get_data_holder()
         positions = data_holder.get_montage_position()
         chs = data_holder.get_channel_names()
 
@@ -40,7 +40,7 @@ class SaliencyTopographicMapWindow(PlotFigureWindow):
         if not eval_record:
             return None
         
-        data_holder = self.plan_holder.get_dataset().get_data_holder()
+        data_holder = self.trainer.get_dataset().get_data_holder()
         label_number = data_holder.get_label_number()
 
         positions = data_holder.get_montage_position()

@@ -18,3 +18,10 @@ class InitWindowValidateException(CustomException):
         if self.window.winfo_exists():
             self.window.destroy()
         tk.messagebox.showerror(parent=self.window.master, title='Error', message=self)
+
+class InitValidateException(CustomException):
+    def __init__(self, message):
+        super().__init__(message)
+        
+    def handle_exception(self):
+        tk.messagebox.showerror(title='Error', message=self)

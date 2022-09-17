@@ -6,15 +6,15 @@ import numpy as np
 
 class ModelOutputWindow(TopWindow):
     command_label = 'Export Model Output (csv)'
-    def __init__(self, parent, training_plan_holders):
+    def __init__(self, parent, trainers):
         super().__init__(parent, self.command_label)
-        self.training_plan_holders = training_plan_holders
+        self.trainers = trainers
         if not self.check_data():
             return
 
         # init data
         ## fetch plan list
-        training_plan_map = {plan_holder.get_name(): plan_holder for plan_holder in training_plan_holders}
+        training_plan_map = {trainer.get_name(): trainer for trainer in trainers}
         training_plan_list = ['Select a plan'] + list(training_plan_map.keys())
         real_plan_list = ['Select repeat']
 
@@ -46,7 +46,7 @@ class ModelOutputWindow(TopWindow):
 
 
     def check_data(self):
-        if type(self.training_plan_holders) != list:
+        if type(self.trainers) != list:
             self.valid = False
             self.withdraw()
             tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
@@ -60,11 +60,11 @@ class ModelOutputWindow(TopWindow):
             self.real_plan_opt['menu'].delete(1, item_count)
         if self.getvar(var_name) not in self.training_plan_map:
             return
-        plan_holder = self.training_plan_map[self.getvar(var_name)]
-        if plan_holder is None:
+        trainer = self.training_plan_map[self.getvar(var_name)]
+        if trainer is None:
             return
         
-        self.real_plan_map = {plan.get_name(): plan for plan in plan_holder.get_plans()}
+        self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
             self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
 

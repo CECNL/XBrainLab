@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch.utils.data as Data
 import time
 from copy import deepcopy
+from ..base import InitValidateException
 from .training_setting import TRAINING_EVALUATION
 import numpy as np
+from enum import Enum
 
 def calculate_confusion(output, label):
     classNum = len(np.unique(label))
@@ -58,6 +60,7 @@ class TrainRecord:
     def is_finished(self):
         return self.finished
     
+    # figure
     def get_loss_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
         from matplotlib import pyplot as plt
         if fig is None:
@@ -152,13 +155,14 @@ class TrainRecord:
 
         return fig
     
+    # get evaluate
     def get_acc(self):
-        if not self.is_finished() or not self.eval_record:
+        if not self.eval_record:
             return None
         return self.eval_record.get_acc()
 
     def get_kappa(self):
-        if not self.is_finished() or not self.eval_record:
+        if not self.eval_record:
             return None
         return self.eval_record.get_kappa()
 
@@ -214,22 +218,51 @@ def to_holder(X, y, dev, bs, shuffle=False):
                               )
     return dataloader
 
+class Status(Enum):
+    DONE = 'Finished'
+    PENDING = 'Pending'
+    INIT = 'Initializing {}'
+    EVAL = 'Evaluating {}'
+    TRAIN = 'Training {}'
+
 class Trainer:
     def __init__(self, model_holder, dataset, option):
         self.model_holder = model_holder
         self.dataset = dataset
         self.option = option
+        self.check_data()
         self.train_record_list = []
         self.interrupt = False
+        self.error = None
+        self.status = Status.PENDING.value
         for i in range(self.option.repeat_num):
-            model = self.model_holder.get_model(self.dataset.get_args())
+            model = self.model_holder.get_model(self.dataset.get_data_holder().get_args())
             optim = self.option.get_optim(model)
             self.train_record_list.append(TrainRecord(model, self.dataset, optim, repeat=i))
+        if len(self.train_record_list) == 0:
+            raise InitValidateException('Invalid training settings.')
+    
+    def check_data(self):
+        if not self.dataset:
+            raise InitValidateException('No valid dataset is generated')
+        if not self.option:
+            raise InitValidateException('No valid training setting is generated')
+        if not self.model_holder:
+            raise InitValidateException('No valid model is selected')
 
+    # interact
     def train(self):
-        for i in range(self.option.repeat_num):
-            self.train_repeat( self.train_record_list[i] )
-
+        try:
+            for i in range(self.option.repeat_num):
+                self.status = Status.INIT.value.format(self.train_record_list[i].get_name())
+                self.train_one_repeat( self.train_record_list[i] )
+            self.status = Status.DONE.value
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.error = str(e)
+            self.status = Status.PENDING.value
+    
     def get_loader(self):
         bs = self.option.bs
         dev = self.option.get_device()
@@ -237,14 +270,32 @@ class Trainer:
         valHolder = to_holder(*self.dataset.get_val_data(), dev, bs)
         testHolder = to_holder(*self.dataset.get_test_data(), dev, bs)
         return trainHolder, valHolder, testHolder
+    
+    def get_eval_pair(self, train_record):
+        target = target_loader = None
+        trainLoader, valLoader, testLoader = self.get_loader()
+        target = self.model_holder.get_model(self.dataset.get_data_holder().get_args()).to(self.option.get_device())
+        if self.option.evaluation_option == TRAINING_EVALUATION.VAL_LOSS:
+            target.load_state_dict(train_record.best_val_loss_model)
+            target_loader = valLoader or testLoader
+        elif self.option.evaluation_option == TRAINING_EVALUATION.TEST_ACC:
+            target.load_state_dict(train_record.best_test_acc_model)
+            target_loader = testLoader or valLoader
+        elif self.option.evaluation_option == TRAINING_EVALUATION.LAST_EPOCH:
+            target = train_record.model
+            target_loader = testLoader or valLoader
+        return target, target_loader
 
-    def train_repeat(self, train_record):
-        if train_record.finished:
+    def train_one_repeat(self, train_record):
+        if train_record.is_finished():
             return
         model = train_record.model.to(self.option.get_device())
         trainLoader, valLoader, testLoader = self.get_loader()
+        if not trainLoader:
+            raise ValueError('No Training Data')
         optimizer = train_record.optim
         criterion = train_record.criterion
+        self.status = Status.TRAIN.value.format(train_record.get_name())
         while train_record.epoch < self.option.epoch:
             if self.interrupt:
                 break
@@ -303,32 +354,33 @@ class Trainer:
             train_record.epoch += 1
         
         if train_record.epoch == self.option.epoch:
+            self.status = Status.EVAL.value.format(train_record.get_name())
             target, target_loader = self.get_eval_pair(train_record)
             if target and target_loader:
                 train_record.eval_record = testModel(target, target_loader, criterion, return_output=True)
 
             train_record.finished = True
-        
-    def get_eval_pair(self, train_record):
-        target = target_loader = None
-        trainLoader, valLoader, testLoader = self.get_loader()
-        target = self.model_holder.get_model(self.dataset.get_args()).to(self.option.get_device())
-        if self.option.evaluation_option == TRAINING_EVALUATION.VAL_LOSS:
-            target.load_state_dict(train_record.best_val_loss_model)
-            target_loader = valLoader or testLoader
-        elif self.option.evaluation_option == TRAINING_EVALUATION.TEST_ACC:
-            target.load_state_dict(train_record.best_test_acc_model)
-            target_loader = testLoader or valLoader
-        elif self.option.evaluation_option == TRAINING_EVALUATION.LAST_EPOCH:
-            target = train_record.model
-            target_loader = testLoader or valLoader
-        return target, target_loader
-
+     
     def set_interrupt(self):
         self.interrupt = True
 
     def clear_interrupt(self):
+        self.error = None
         self.interrupt = False
+
+    # getter
+    def get_name(self):
+        return self.dataset.get_name()
+    
+    def get_dataset(self):
+        return self.dataset
+
+    def get_plans(self):
+        return self.train_record_list
+    
+    # status
+    def get_training_status(self):
+        return self.status
 
     def get_training_repeat(self):
         for i in range(self.option.repeat_num):
@@ -337,18 +389,16 @@ class Trainer:
         return self.option.repeat_num - 1
 
     def get_training_epoch(self):
-        if len(self.train_record_list) == 0:
-            return 0
         return self.train_record_list[self.get_training_repeat()].epoch
 
     def get_training_evaluation(self):
-        if len(self.train_record_list) == 0:
-            return []
         record = self.train_record_list[self.get_training_repeat()]
-        return record.lr[-1] if len(record.lr) > 0 else '-', record.train['loss'][-1] if len(record.train['loss']) > 0 else '-', record.train['acc'][-1] if len(record.train['acc']) > 0 else '-', record.val['loss'][-1] if len(record.val['loss']) > 0 else '-', record.val['acc'][-1] if len(record.val['acc']) > 0 else '-'
+        lr = record.lr[-1] if len(record.lr) > 0 else '-'
+        train_loss = record.train['loss'][-1] if len(record.train['loss']) > 0 else '-'
+        train_acc = record.train['acc'][-1] if len(record.train['acc']) > 0 else '-'
+        val_loss = record.val['loss'][-1] if len(record.val['loss']) > 0 else '-'
+        val_acc = record.val['acc'][-1] if len(record.val['acc']) > 0 else '-'
+        return lr, train_loss, train_acc, val_loss, val_acc
     
     def is_finished(self):
         return self.train_record_list[-1].is_finished()
-
-    def get_plans(self):
-        return self.train_record_list

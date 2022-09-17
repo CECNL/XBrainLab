@@ -1,30 +1,30 @@
 import tkinter as tk
 import tkinter.messagebox
 from ..widget import EditableTreeView, PlotFigureWindow, PlotType
-from ..base import TopWindow
+from ..base import TopWindow, InitWindowValidateException
 
-import threading
+import threading, time
+
 class TrainingManagerJob():
-    def __init__(self, training_plan_holders):
+    def __init__(self, trainers):
         self.finished = False
         self.interrupt = False
         self.progress_text = 'initializing'
-        self.training_plan_holders = training_plan_holders
+        self.trainers = trainers
     
     def set_interrupt(self):
         self.interrupt = True
-        for plan_holder in self.training_plan_holders:
-            plan_holder.set_interrupt()
+        for trainer in self.trainers:
+            trainer.set_interrupt()
 
     def job(self):
-        for plan_holder in self.training_plan_holders:
-            self.progress_text = f'Now training: {plan_holder.get_name()}'
+        for trainer in self.trainers:
+            self.progress_text = f'Now training: {trainer.get_name()}'
             if self.interrupt:
                 break
-            plan_holder.train(job=self)
+            trainer.train()
         self.finished = True
         TrainingManagerWindow.task = None
-
 
     def run(self):
         threading.Thread(target=self.job).start()
@@ -34,11 +34,10 @@ class TrainingManagerJob():
 ##
 class TrainingManagerWindow(TopWindow):
     task = None
-    def __init__(self, parent, training_plan_holders):
+    def __init__(self, parent, trainers):
         super().__init__(parent, 'Training Manager')
-        self.training_plan_holders = training_plan_holders
-        if not self.check_data():
-            return
+        self.trainers = trainers
+        self.check_data()
         columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc', 'val_loss', 'val_acc')
         plan_tree = EditableTreeView(self, columns=columns, show='headings')
 
@@ -64,14 +63,10 @@ class TrainingManagerWindow(TopWindow):
             self.start_training()
 
     def check_data(self):
-        if type(self.training_plan_holders) != list:
-            self.valid = False
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
-            self.destroy()
-            return False
-        return True
+        if type(self.trainers) != list:
+            raise InitWindowValidateException(self, 'No valid training plan is generated')
 
+    # plot
     def config_menu(self):
         menu = tk.Menu(self, tearoff=0)
         self.config(menu=menu)
@@ -84,21 +79,22 @@ class TrainingManagerWindow(TopWindow):
         menu.add_cascade(label='Plot', menu=plot_menu)
 
     def plot_loss(self):
-        PlotFigureWindow(self, self.training_plan_holders, PlotType.LOSS)
+        PlotFigureWindow(self, self.trainers, PlotType.LOSS)
 
     def plot_acc(self):
-        PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
+        PlotFigureWindow(self, self.trainers, PlotType.ACCURACY)
 
     def plot_lr(self):
-        PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)
+        PlotFigureWindow(self, self.trainers, PlotType.LR)
 
+    # train
     def start_training(self):
         self.start_btn.config(state=tk.DISABLED)
         if TrainingManagerWindow.task is None:     # no running task
-            for training_plan_holder in self.training_plan_holders:
-                training_plan_holder.clear_interrupt()
+            for training_trainer in self.trainers:
+                training_trainer.clear_interrupt()
 
-            TrainingManagerWindow.task = TrainingManagerJob(self.training_plan_holders)
+            TrainingManagerWindow.task = TrainingManagerJob(self.trainers)
             TrainingManagerWindow.task.run()
         self.training_loop()
 
@@ -138,11 +134,11 @@ class TrainingManagerWindow(TopWindow):
             return (plan.get_name(), plan.get_training_status(), plan.get_training_epoch(), *plan.get_training_evaluation())
         if len(plan_tree.get_children()) == 0:
             # for initialization
-            for training_plan_holder in self.training_plan_holders:
-                update_node = plan_tree.insert("", index='end', values=get_table_values(training_plan_holder))
+            for training_trainer in self.trainers:
+                update_node = plan_tree.insert("", index='end', values=get_table_values(training_trainer))
         else:
             # for updating
-            for idx, training_plan in enumerate(self.training_plan_holders):
+            for idx, training_plan in enumerate(self.trainers):
                 item = plan_tree.get_children()[idx]
                 plan_tree.item(item, values=get_table_values(training_plan))
 
@@ -152,15 +148,15 @@ class TrainingManagerWindow(TopWindow):
 if __name__ == '__main__':
     root = tk.Tk()
     root.withdraw()
-    training_plan_holders = []
+    trainers = []
     
     option = torch.load('data/data_structure/setting')
     model_holder = torch.load('data/data_structure/model')
     datasets = torch.load('data/data_structure/splitted')
     for dataset in datasets:
-        training_plan_holders.append(TrainingPlan(option, model_holder, dataset))
+        trainers.append(Trainer(option, model_holder, dataset))
 
-    window = TrainingManagerWindow(root, training_plan_holders)
+    window = TrainingManagerWindow(root, trainers)
 
     print (window.get_result())
     root.destroy()

@@ -12,10 +12,10 @@ class PlotType(Enum):
     SALIENCY_MAP = 'get_eval_record'
     
 class PlotFigureWindow(SinglePlotWindow):
-    def __init__(self, parent, training_plan_holders, plot_type, figsize=None, title='Plot'):
+    def __init__(self, parent, trainers, plot_type, figsize=None, title='Plot'):
         super().__init__(parent, figsize, title=title)
-        self.training_plan_holders = training_plan_holders
-        self.plan_holder = None
+        self.trainers = trainers
+        self.trainer = None
         if not self.check_data():
             return
         self.plot_type = plot_type
@@ -25,7 +25,7 @@ class PlotFigureWindow(SinglePlotWindow):
 
         # init data
         ## fetch plan list
-        training_plan_map = {plan_holder.get_name(): plan_holder for plan_holder in training_plan_holders}
+        training_plan_map = {trainer.get_name(): trainer for trainer in trainers}
         training_plan_list = ['Select a plan'] + list(training_plan_map.keys())
         real_plan_list = ['Select repeat']
 
@@ -60,7 +60,7 @@ class PlotFigureWindow(SinglePlotWindow):
         self.update_loop()
 
     def check_data(self):
-        if type(self.training_plan_holders) != list or len(self.training_plan_holders) == 0:
+        if type(self.trainers) != list or len(self.trainers) == 0:
             self.withdraw()
             tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
             self.destroy()
@@ -71,17 +71,17 @@ class PlotFigureWindow(SinglePlotWindow):
     def on_plan_select(self, var_name, *args):
         self.set_selection(False)
         self.plan_to_plot = None
-        self.plan_holder = None
+        self.trainer = None
         item_count = self.real_plan_opt['menu'].index(tk.END)
         if item_count >= 1:
             self.real_plan_opt['menu'].delete(1, item_count)
         if self.getvar(var_name) not in self.training_plan_map:
             return
-        plan_holder = self.training_plan_map[self.getvar(var_name)]
-        if plan_holder is None:
+        trainer = self.training_plan_map[self.getvar(var_name)]
+        if trainer is None:
             return
-        self.plan_holder = plan_holder
-        self.real_plan_map = {plan.get_name(): plan for plan in plan_holder.get_plans()}
+        self.trainer = trainer
+        self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
             self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
 
@@ -129,10 +129,10 @@ class PlotFigureWindow(SinglePlotWindow):
         item_count = self.real_plan_opt['menu'].index(tk.END)
         if self.selected_plan_name.get() not in self.training_plan_map:
             return
-        plan_holder = self.training_plan_map[self.selected_plan_name.get()]
-        while len(plan_holder.get_plans()) > 0 and item_count < len(plan_holder.get_plans()):
-            self.real_plan_map = {plan.get_name(): plan for plan in plan_holder.get_plans()}
-            choice = plan_holder.get_plans()[item_count].get_name()
+        trainer = self.training_plan_map[self.selected_plan_name.get()]
+        while len(trainer.get_plans()) > 0 and item_count < len(trainer.get_plans()):
+            self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
+            choice = trainer.get_plans()[item_count].get_name()
             self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
             item_count += 1
 

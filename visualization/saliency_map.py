@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 
 class SaliencyMapWindow(PlotFigureWindow):
     command_label = 'Saliency map'
-    def __init__(self, parent, training_plan_holders):
-        super().__init__(parent, training_plan_holders, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
+    def __init__(self, parent, trainers):
+        super().__init__(parent, trainers, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
         if not self.is_valid():
             return
         self.absolute_var = tk.BooleanVar(self)
@@ -25,7 +25,7 @@ class SaliencyMapWindow(PlotFigureWindow):
         if not eval_record:
             return None
         
-        data_holder = self.plan_holder.get_dataset().get_data_holder()
+        data_holder = self.trainer.get_dataset().get_data_holder()
         label_number = data_holder.get_label_number()
 
         rows = 2

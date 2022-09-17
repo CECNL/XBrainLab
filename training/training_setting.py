@@ -105,15 +105,6 @@ class TrainingSettingWindow(TopWindow):
         self.opt_label = opt_label
         self.evaluation_var = evaluation_var
         self.repeat_entry = repeat_entry
-
-        if False: # test code
-            epoch_entry.insert(0, '1000')
-            bs_entry.insert(0, '288')
-            lr_entry.insert(0, '1e-3')
-            self.set_optimizer()
-            self.set_device()
-            self.set_output_dir()
-            checkpoint_entry.insert(0, '500') # test code
     
     def set_optimizer(self):
         setter = SetOptimizerWindow(self)
