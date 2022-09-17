@@ -8,8 +8,6 @@ class SaliencyMapWindow(PlotFigureWindow):
     command_label = 'Saliency map'
     def __init__(self, parent, trainers):
         super().__init__(parent, trainers, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
-        if not self.is_valid():
-            return
         self.absolute_var = tk.BooleanVar(self)
         self.absolute_var.trace('w', self.absolute_callback)
         tk.Checkbutton(self.selector_frame, text='absolute value',

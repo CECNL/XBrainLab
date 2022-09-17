@@ -9,8 +9,7 @@ class ModelOutputWindow(TopWindow):
     def __init__(self, parent, trainers):
         super().__init__(parent, self.command_label)
         self.trainers = trainers
-        if not self.check_data():
-            return
+        self.check_data()
 
         # init data
         ## fetch plan list
@@ -46,13 +45,8 @@ class ModelOutputWindow(TopWindow):
 
 
     def check_data(self):
-        if type(self.trainers) != list:
-            self.valid = False
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
-            self.destroy()
-            return False
-        return True
+        if type(self.trainers) != list or len(self.trainers) == 0:
+            raise InitWindowValidateException(self, 'No valid training plan is generated')
 
     def on_plan_select(self, var_name, *args):
         item_count = self.real_plan_opt['menu'].index(tk.END)
@@ -67,7 +61,6 @@ class ModelOutputWindow(TopWindow):
         self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
             self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
-
 
     def export(self):
         if self.selected_real_plan_name.get() not in self.real_plan_map:

@@ -1,6 +1,6 @@
 import tkinter as tk
 import tkinter.messagebox
-from ..base import TopWindow
+from ..base import TopWindow, InitWindowValidateException
 import os
 import numpy as np
 import mne
@@ -9,9 +9,8 @@ class PickMontageWindow(TopWindow):
     command_label = 'Set Montage'
     def __init__(self, parent, channel_names):
         super().__init__(parent, self.command_label)
-        if not self.check_data():
-            return
         self.channel_names = channel_names
+        self.check_data()
         self.chs = None
         self.positions = None
         # init data
@@ -47,12 +46,7 @@ class PickMontageWindow(TopWindow):
     
     def check_data(self):
         if not self.channel_names:
-            self.valid = False
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid channel name is provided')
-            self.destroy()
-            return False
-        return True
+            raise InitWindowValidateException(self, 'No valid channel name is provided')
 
     def add(self):
         selected = self.get_selected()
@@ -81,10 +75,9 @@ class PickMontageWindow(TopWindow):
         self.options = options
         self.option_list.insert(tk.END, *options)
 
-        if self.channel_names:
-            for ch in self.channel_names:
-                if ch in options:
-                    self.seleced_list.insert(tk.END, ch)
+        for ch in self.channel_names:
+            if ch in options:
+                self.seleced_list.insert(tk.END, ch)
         self.selected_label.config(text=f'{self.seleced_list.size()} Selected')
     
     def confirm(self):

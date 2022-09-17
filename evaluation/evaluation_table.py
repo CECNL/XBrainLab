@@ -3,6 +3,7 @@ import tkinter.ttk as ttk
 from ..base import TopWindow
 from enum import Enum
 import numpy as np 
+from ..base import InitWindowValidateException
 
 class Metric(Enum):
     ACC = 'Accuracy (%)'
@@ -13,8 +14,7 @@ class EvaluationTableWindow(TopWindow):
     def __init__(self, parent, trainers):
         super().__init__(parent, self.command_label)
         self.trainers = trainers
-        if not self.check_data():
-            return
+        self.check_data()
         # init data
         metric_list = [i.value for i in Metric]
 
@@ -43,13 +43,8 @@ class EvaluationTableWindow(TopWindow):
         self.update_loop()
 
     def check_data(self):
-        if type(self.trainers) != list:
-            self.valid = False
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
-            self.destroy()
-            return False
-        return True
+        if type(self.trainers) != list or len(self.trainers) == 0:
+            raise InitWindowValidateException(self, 'No valid training plan is generated')
 
     def update_loop(self, loop=True):
         if self.winfo_exists() == 0:
@@ -61,10 +56,12 @@ class EvaluationTableWindow(TopWindow):
                 values = [plan.get_acc() for plan in trainer.get_plans()]
             elif self.selected_metric.get() == Metric.KAPPA.value:
                 values = [plan.get_kappa() for plan in trainer.get_plans()]
-            total_values.append(values)
             values_list = [i for i in values if i is not None]
             if len(values_list) > 0:
                 values = values + [sum(values_list) / len(values_list)]
+            else:
+                values = values + [None]
+            total_values.append(values)
             self.tree.item(trainer.get_name(), values=values)
         # average
         avg_values = []

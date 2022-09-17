@@ -1,4 +1,5 @@
 import tkinter as tk
+from ..base import InitWindowValidateException
 from ..widget import PlotFigureWindow, PlotType
 import numpy as np
 from matplotlib import pyplot as plt
@@ -8,27 +9,18 @@ class SaliencyTopographicMapWindow(PlotFigureWindow):
     command_label = 'Saliency topographic map'
     def __init__(self, parent, trainers):
         super().__init__(parent, trainers, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
-        if not self.is_valid():
-            return
-        if not self.check_dataset():
-            return
+        self.check_dataset()
         self.absolute_var = tk.BooleanVar(self)
         self.absolute_var.trace('w', self.absolute_callback)
         tk.Checkbutton(self.selector_frame, text='absolute value',
                                 var=self.absolute_var).pack()
-    
     def check_dataset(self):
         data_holder = self.trainers[0].get_dataset().get_data_holder()
         positions = data_holder.get_montage_position()
         chs = data_holder.get_channel_names()
 
         if positions is None:
-            self.valid = False
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid montage position is set.')
-            self.destroy()
-            return False
-        return True
+            raise InitWindowValidateException(self, 'No valid montage position is set.')
 
     def absolute_callback(self, *args):
         self.current_plot = True

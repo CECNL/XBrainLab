@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from enum import Enum
 from . import SinglePlotWindow
+from ..base import InitWindowValidateException
 
 class PlotType(Enum):
     LOSS = 'get_loss_figure'
@@ -16,8 +17,7 @@ class PlotFigureWindow(SinglePlotWindow):
         super().__init__(parent, figsize, title=title)
         self.trainers = trainers
         self.trainer = None
-        if not self.check_data():
-            return
+        self.check_data()
         self.plot_type = plot_type
         self.plan_to_plot = None
         self.current_plot = None
@@ -25,8 +25,8 @@ class PlotFigureWindow(SinglePlotWindow):
 
         # init data
         ## fetch plan list
-        training_plan_map = {trainer.get_name(): trainer for trainer in trainers}
-        training_plan_list = ['Select a plan'] + list(training_plan_map.keys())
+        trainer_map = {trainer.get_name(): trainer for trainer in trainers}
+        trainer_list = ['Select a plan'] + list(trainer_map.keys())
         real_plan_list = ['Select repeat']
 
         #+ gui
@@ -34,9 +34,9 @@ class PlotFigureWindow(SinglePlotWindow):
         selector_frame = tk.Frame(self)
         ###+ plan
         selected_plan_name = tk.StringVar(self)
-        selected_plan_name.set(training_plan_list[0])
+        selected_plan_name.set(trainer_list[0])
         selected_plan_name.trace('w', self.on_plan_select) # callback
-        plan_opt = tk.OptionMenu(selector_frame, selected_plan_name, *training_plan_list)
+        plan_opt = tk.OptionMenu(selector_frame, selected_plan_name, *trainer_list)
         ###+ real plan
         selected_real_plan_name = tk.StringVar(self)
         selected_real_plan_name.set(real_plan_list[0])
@@ -51,7 +51,7 @@ class PlotFigureWindow(SinglePlotWindow):
         self.selector_frame = selector_frame
         self.plan_opt = plan_opt
         self.real_plan_opt = real_plan_opt
-        self.training_plan_map = training_plan_map
+        self.trainer_map = trainer_map
         self.real_plan_map = {}
         self.selected_plan_name = selected_plan_name
         self.selected_real_plan_name = selected_real_plan_name
@@ -61,12 +61,7 @@ class PlotFigureWindow(SinglePlotWindow):
 
     def check_data(self):
         if type(self.trainers) != list or len(self.trainers) == 0:
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
-            self.destroy()
-            self.valid = False
-            return False
-        return True
+            raise InitWindowValidateException(self, 'No valid training plan is generated')
 
     def on_plan_select(self, var_name, *args):
         self.set_selection(False)
@@ -75,9 +70,9 @@ class PlotFigureWindow(SinglePlotWindow):
         item_count = self.real_plan_opt['menu'].index(tk.END)
         if item_count >= 1:
             self.real_plan_opt['menu'].delete(1, item_count)
-        if self.getvar(var_name) not in self.training_plan_map:
+        if self.getvar(var_name) not in self.trainer_map:
             return
-        trainer = self.training_plan_map[self.getvar(var_name)]
+        trainer = self.trainer_map[self.getvar(var_name)]
         if trainer is None:
             return
         self.trainer = trainer
@@ -127,9 +122,9 @@ class PlotFigureWindow(SinglePlotWindow):
         self.after(100, self.update_loop)
 
         item_count = self.real_plan_opt['menu'].index(tk.END)
-        if self.selected_plan_name.get() not in self.training_plan_map:
+        if self.selected_plan_name.get() not in self.trainer_map:
             return
-        trainer = self.training_plan_map[self.selected_plan_name.get()]
+        trainer = self.trainer_map[self.selected_plan_name.get()]
         while len(trainer.get_plans()) > 0 and item_count < len(trainer.get_plans()):
             self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
             choice = trainer.get_plans()[item_count].get_name()

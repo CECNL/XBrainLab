@@ -11,6 +11,10 @@ class EEGNet(nn.Module):
         self.n_class = n_classes
         self.half_sf = math.floor(self.sf/2)
         
+        self.F1=F1
+        self.F2=F2
+        self.D=D
+        
         self.conv1 = nn.Sequential(  
         #temporal kernel size(1, floor(sf*0.5)) means 500ms EEG at sf/2
         #padding=(0, floor(sf*0.5)/2) maintain raw data shape 
