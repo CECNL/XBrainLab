@@ -9,6 +9,8 @@ class PickMontageWindow(TopWindow):
     command_label = 'Set Montage'
     def __init__(self, parent, channel_names):
         super().__init__(parent, self.command_label)
+        if not self.check_data():
+            return
         self.channel_names = channel_names
         self.chs = None
         self.positions = None
@@ -44,9 +46,10 @@ class PickMontageWindow(TopWindow):
         selected_montage.set(montage_list[0])
     
     def check_data(self):
-        if type(self.channel_names) != list:
+        if not self.channel_names:
+            self.valid = False
             self.withdraw()
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid channel name is provided')
+            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid channel name is provided')
             self.destroy()
             return False
         return True

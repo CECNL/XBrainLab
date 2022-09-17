@@ -8,6 +8,8 @@ class SaliencyTopographicMapWindow(PlotFigureWindow):
     command_label = 'Saliency topographic map'
     def __init__(self, parent, training_plan_holders):
         super().__init__(parent, training_plan_holders, plot_type=PlotType.SALIENCY_MAP, title=self.command_label)
+        if not self.is_valid():
+            return
         if not self.check_dataset():
             return
         self.absolute_var = tk.BooleanVar(self)
@@ -21,8 +23,9 @@ class SaliencyTopographicMapWindow(PlotFigureWindow):
         chs = data_holder.get_channel_names()
 
         if positions is None:
+            self.valid = False
             self.withdraw()
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid montage position is set.')
+            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid montage position is set.')
             self.destroy()
             return False
         return True

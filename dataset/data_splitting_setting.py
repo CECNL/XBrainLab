@@ -119,8 +119,9 @@ class DataSplittingSettingWindow(TopWindow):
 
     def check_data(self):
         if type(self.data_holder) != Epochs:
+            self.valid = False
             self.withdraw()
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid epoch data is generated')
+            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid epoch data is generated')
             self.destroy()
             return False
         return True

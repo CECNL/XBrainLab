@@ -4,6 +4,7 @@ class TopWindow(tk.Toplevel):
     def __init__(self, parent, title):
         super().__init__()
         self.parent = parent
+        self.valid = True
         self.title(title)
         # recycle
         self.child_list = []
@@ -35,6 +36,9 @@ class TopWindow(tk.Toplevel):
         
         return self._get_result()
     
+    def is_valid(self):
+        return self.valid
+
     def destroy(self):
         child_list = self.child_list.copy()
         for child in child_list:

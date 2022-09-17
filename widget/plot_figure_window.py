@@ -62,8 +62,9 @@ class PlotFigureWindow(SinglePlotWindow):
     def check_data(self):
         if type(self.training_plan_holders) != list or len(self.training_plan_holders) == 0:
             self.withdraw()
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid training plan is generated')
+            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
             self.destroy()
+            self.valid = False
             return False
         return True
 

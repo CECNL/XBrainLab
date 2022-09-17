@@ -65,8 +65,9 @@ class TrainingManagerWindow(TopWindow):
 
     def check_data(self):
         if type(self.training_plan_holders) != list:
+            self.valid = False
             self.withdraw()
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid training plan is generated')
+            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid training plan is generated')
             self.destroy()
             return False
         return True
