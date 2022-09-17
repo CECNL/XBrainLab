@@ -93,7 +93,7 @@ class Epochs:
         self.sfreq = self.data[0].info['sfreq']
         self.label_map   = {i:i for i in np.unique(self.label)}
         self.session_map = {i:i for i in np.unique(self.session)}
-        self.subject_map = {int(i):f"S{int(i+1)}" for i in np.unique(self.subject)}
+        self.subject_map = {int(i):f"S{int(i)}" for i in np.unique(self.subject)}
         # TODO channel_map
         
     def copy(self):
@@ -119,7 +119,17 @@ class Epochs:
                  'samples'  : self.data[-1].get_data().shape[-1], #self.data[-1].shape[-1],
                  'sfreq'    : self.sfreq }
     
-    def get_data_length(self):
+    def get_data(self): # return data array of (n_epochs * n_Epochs, n_channels, n_times)
+        data_array = np.zeros(self.data[-1].get_data().shape)
+        for d in self.data:
+            if np.array_equal(data_array, np.zeros(self.data[-1].get_data().shape)):
+                data_array = d.get_data()
+            else:
+                data_array = np.concatenate((data_array, d.get_data()))
+        return data_array
+
+
+    def get_data_length(self): # return n_epochs * n_Epochs
         return len(self.data[-1])*len(self.data)
 
     def get_label_number(self):
@@ -365,17 +375,23 @@ class DataSet:
         return self.data_holder.get_args()
 
     def get_training_data(self):
+        # from loaded data:
+        # X = self.data_holder.get_data()[self.train,:,:]
         X = self.data_holder.data[self.train]
-        y = self.data_holder.label[self.train]
+        y = self.data_holder.label[self.train]   
         return X, y
     
     def get_val_data(self):
+        # from loaded data:
+        # X = self.data_holder.get_data()[self.val]
         X = self.data_holder.data[self.val]
         y = self.data_holder.label[self.val]
         return X, y
 
     def get_test_data(self):
-        X = self.data_holder.data[self.test]
+        # from loaded data:
+        # X = self.data_holder.get_data()[self.test]
+        X = self.data_holder.data[self.val]
         y = self.data_holder.label[self.test]
         return X, y
 
