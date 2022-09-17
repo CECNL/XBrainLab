@@ -76,8 +76,9 @@ class Resample(TopWindow):
     def _get_result(self):
         return self.preprocessed_data
 
+
 class EditEvent(TopWindow):
-    # TODO: layout, menu state disable
+    #  menu state disable
     command_label = "Edit Event"
     def __init__(self, parent, old_data):
         super().__init__(parent, "Edit Event")
@@ -106,28 +107,28 @@ class EditEvent(TopWindow):
                 assert self.new_event_name[i].get() not in self.new_event.keys(), 'Duplicate event name.'
                 self.new_event[self.new_event_name[i].get()] = self.new_event_id[i].get()
         
-        # update parent event data
-        edited_label_map = {k:v for k,v in zip(self.old_event.values(), self.new_event.values())}
-        self.preprocessed_data.event_id = self.new_event
-        
-        if isinstance(self.preprocessed_data, Raw): # Raw
-            for i in range(len(self.preprocessed_data.label)):
-                for j in range(self.preprocessed_data.label[i].shape[0]):
-                    self.preprocessed_data.label[i][j] = edited_label_map[self.preprocessed_data.label[i][j]]
-        else:
-            # update mne structure
-            for loaded_data_elem in self.preprocessed_data.data:
-                loaded_data_elem.event_id = self.new_event
-                for k,v in edited_label_map.items(): 
-                    loaded_data_elem.events[:,2][loaded_data_elem.events[:,2]==k] = v
+            # update parent event data
+            edited_label_map = {k:v for k,v in zip(self.old_event.values(), self.new_event.values())}
+            self.preprocessed_data.event_id = self.new_event
             
-            # update attr
-            for k,v in self.preprocessed_data.label_map.items():
-                self.preprocessed_data.label_map[k] = edited_label_map[v]
+            if isinstance(self.preprocessed_data, Raw): # Raw
+                for i in range(len(self.preprocessed_data.label)):
+                    for j in range(self.preprocessed_data.label[i].shape[0]):
+                        self.preprocessed_data.label[i][j] = edited_label_map[self.preprocessed_data.label[i][j]]
+            else:
+                # update mne structure
+                for loaded_data_elem in self.preprocessed_data.data:
+                    loaded_data_elem.event_id = self.new_event
+                    for k,v in edited_label_map.items(): 
+                        loaded_data_elem.events[:,2][loaded_data_elem.events[:,2]==k] = v
+                
+                # update attr
+                for k,v in self.preprocessed_data.label_map.items():
+                    self.preprocessed_data.label_map[k] = edited_label_map[v]
 
-            # update attr_map
-            for k,v in edited_label_map.items(): 
-                self.preprocessed_data.label[self.preprocessed_data.label==k] = v
+                # update attr_map
+                for k,v in edited_label_map.items(): 
+                    self.preprocessed_data.label[self.preprocessed_data.label==k] = v
         
         #self.preprocessed_data.inspect()
         self.destroy()

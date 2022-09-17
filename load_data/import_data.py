@@ -9,13 +9,9 @@ import numpy as np
 import scipy.io
 import mne
 
-# TODO: consistency of multiple files (time samples?)
-#       code cleanup?
-#       layout
 
 class _loadevent(TopWindow):
     # TODO:
-    #      consistent event_id dict between files
     #      event file saved format & encoding & file type(lacking test data)
     """
     parameter: parent, title
@@ -111,7 +107,6 @@ class _loadevent(TopWindow):
         return self.ret_event_loaded
 
 class _editrow(TopWindow):
-    # TODO:
     """
     parameter: parent, title
                header: attr value fields (table header + 'Filepath')
@@ -208,7 +203,7 @@ class LoadTemplate(TopWindow):
         self.attr_len.set(0)
         self.event_ids = tk.StringVar()
         self.event_ids.set('None')
-        tk.Label(self.stat_frame, text="Dataset loaded: ").grid(row=0, column=0)
+        tk.Label(self.stat_frame, text="Dataset loaded: ").grid(row=0, column=0, sticky='w')
         tk.Label(self.stat_frame, textvariable=self.attr_len).grid(row=0, column=1, sticky='w')
         tk.Label(self.stat_frame, text="Loaded type: ").grid(row=1, column=0, sticky='w')
         tk.Label(self.stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1, sticky='w')
@@ -340,6 +335,9 @@ class LoadTemplate(TopWindow):
             return np.transpose(target, (3-dim_ch-dim_time, dim_ch, dim_time))
         else:
             return np.transpose(target, (dim_ch, dim_time))
+    def _clear_key(self):
+        self.attr_info['data key'] = ''
+        self.attr_info['event key'] = ''
     
     def _confirm(self):
         # check channel number
@@ -505,10 +503,11 @@ class LoadMat(LoadTemplate):
         self.nch.set(0)
         self.srate = tk.IntVar()
         self.srate.set(0)
-        tk.Label(self.stat_frame, text="Channels: ", column=0, sticky='w')
+        tk.Label(self.stat_frame, text="Channels: ").grid(row=3, column=0, sticky='w')
         tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1, sticky='w')
         tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0, sticky='w')
         tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1, sticky='w')
+        tk.Button(self.stat_frame, text="Clear selected keys", command=lambda:self._clear_key()).grid(row=5, column=0)
 
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
@@ -651,6 +650,7 @@ class LoadNp(LoadTemplate):
         tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1, sticky='w')
         tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0, sticky='w')
         tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1, sticky='w')
+        tk.Button(self.stat_frame, text="Clear selected keys", command=lambda:self._clear_key()).grid(row=5, column=0)
     
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available

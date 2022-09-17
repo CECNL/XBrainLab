@@ -91,7 +91,7 @@ class Epochs:
         self.sfreq = self.data[0].info['sfreq']
         self.label_map   = {i:i for i in np.unique(self.label)}
         self.session_map = {i:i for i in np.unique(self.session)}
-        self.subject_map = {i:f"S{i+1}" for i in np.unique(self.subject)}
+        self.subject_map = {int(i):f"S{int(i+1)}" for i in np.unique(self.subject)}
     
     def copy(self):
         newEpochs = Epochs()
@@ -115,7 +115,7 @@ class Epochs:
                  'samples'  : self.data[-1].get_data().shape[-1], #self.data[-1].shape[-1],
                  'sfreq'    : self.sfreq }
     def get_data_length(self):
-        return len(self.data[-1])
+        return len(self.data[-1])*len(self.data)
 
     def pick(self, target_type, target_type_map, mask, num, skip, is_ratio, ref_exclude):
         ret = mask & False
@@ -180,7 +180,7 @@ class Epochs:
                         mask &= np.logical_not(pos)
                         num -= 1
                         break
-        
+
         return ret, mask
     
     def pick_session(self, mask, num, split_type, ref_exclude=None, group_idx=None):
