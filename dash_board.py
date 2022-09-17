@@ -7,8 +7,8 @@ from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManag
 from .evaluation import ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow
 from .visualization import PickMontageWindow, SaliencyMapWindow, SaliencyTopographicMapWindow
 from .dataset.data_holder import Epochs
-
 from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel, TrainingSettingPanel, TrainingStatusPanel
+from .base import CustomException
 
 class DashBoard(tk.Tk):
     def __init__(self):

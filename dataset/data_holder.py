@@ -110,74 +110,69 @@ class Epochs:
         newEpochs.event_id = self.event_id.copy()
         newEpochs.channel_map = self.channel_map.copy()
         return newEpochs
-
-
-
-    def get_args(self):
-        return  {'n_classes': len(self.event_id), # max(np.unique(self.label)) + 1,
-                 'channels' : self.data[-1].info['nchan'], #self.data[-1].shape[-2],
-                 'samples'  : self.data[-1].get_data().shape[-1], #self.data[-1].shape[-1],
-                 'sfreq'    : self.sfreq }
     
-    def get_data(self): # return data array of (n_epochs * n_Epochs, n_channels, n_times)
-        data_array = np.zeros(self.data[-1].get_data().shape)
-        for d in self.data:
-            if np.array_equal(data_array, np.zeros(self.data[-1].get_data().shape)):
-                data_array = d.get_data()
-            else:
-                data_array = np.concatenate((data_array, d.get_data()))
-        return data_array
+    # data splitting
+    ## get list
+    def get_subject_list(self):
+        return self.subject
 
+    def get_session_list(self):
+        return self.session
 
+    def get_label_list(self):
+        return self.label
+
+    ## get list by mask
+    def get_subject_list_by_mask(self, mask):
+        return self.subject[mask]
+    
+    def get_session_list_by_mask(self, mask):
+        return self.session[mask]
+    
+    def get_label_list_by_mask(self, mask):
+        return self.label[mask]
+
+    def get_idx_list_by_mask(self, mask):
+        return self.idx[mask]
+
+    ## get mapping
+    def get_subject_name(self, idx):
+        return self.subject_map[idx]
+
+    def get_session_name(self, idx):
+        return self.session_map[idx]
+
+    def get_label_name(self, idx):
+        return self.label_map[idx]
+
+    ## get map
+    def get_subject_map(self):
+        return self.subject_map
+    
+    def get_session_map(self):
+        return self.session_map
+    
+    def get_label_map(self):
+        return self.label_map
+
+    ## misc getter
+    def get_subject_index_list(self):
+        return list(self.subject_map.keys())
+
+    def pick_subject_mask_by_idx(self, idx):
+        return self.subject == idx
+    
+    ## data info
     def get_data_length(self): # return n_epochs * n_Epochs
         return len(self.data[-1])*len(self.data)
 
-    def get_label_number(self):
-        return len(self.label_map)
-
-    def get_channel_names(self):
-        return self.channel_map
-    
-    def set_channels(self, chs, channel_position):
-        self.channel_map = chs
-        self.channel_position = channel_position
-
-    def get_montage_position(self):
-        return self.channel_position
-
-    def pick(self, target_type, target_type_map, mask, num, skip, is_ratio, ref_exclude):
-        ret = mask & False
-        if is_ratio:
-            if ref_exclude is None:
-                num *= len(np.unique( target_type[mask]) )
-            else:
-                num *= len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
-        num = int(num)
-        while num > 0:
-            for label in list(self.label_map.keys())[::-1]:
-                for session in list(self.session_map.keys())[::-1]:
-                    for subject in list(self.subject_map.keys())[::-1]:
-                        if num == 0:
-                            break
-                        if not mask.any():
-                            return ret, mask
-                        filtered_mask = (self.label == label) & (self.session == session) & (self.subject == subject)
-                        filtered_mask = filtered_mask & mask
-                        target = target_type[filtered_mask]
-                        if len(target) > 0:
-                            pos = (mask & (target_type == target[-1]))
-                            ret |= pos
-                            mask &= np.logical_not(pos)
-                            num -= 1
-        
-        return ret, mask
-
-    def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):
+    ## picker
+    def pick_subject(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
         # return self.pick(self.subject, self.subject_map, mask, num, skip, is_ratio, ref_exclude)
         target_type = self.subject
         target_type_map = self.subject_map
         ret = mask & False
-        if split_type == SplitUnit.KFOLD:
+        if split_unit == SplitUnit.KFOLD:
             if ref_exclude is None:
                 target = len( np.unique( target_type[mask]) )
             else:
@@ -186,7 +181,7 @@ class Epochs:
             num = target // num
             if inc > group_idx:
                 num += 1
-        elif split_type == SplitUnit.RATIO:
+        elif split_unit == SplitUnit.RATIO:
             if ref_exclude is None:
                 num *= len(np.unique( target_type[mask]) )
             else:
@@ -211,12 +206,11 @@ class Epochs:
 
         return ret, mask
     
-    def pick_session(self, mask, num, split_type, ref_exclude=None, group_idx=None):
-        # return self.pick(self.session, self.session_map, mask, num, skip, is_ratio, ref_exclude)
-        target_type = self.session
-        target_type_map = self.session_map
+    def pick_session(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
+        target_type = self.get_session_list()
+        target_type_map = self.get_session_map()
         ret = mask & False
-        if split_type == SplitUnit.KFOLD:
+        if split_unit == SplitUnit.KFOLD:
             if ref_exclude is None:
                 target = len( np.unique( target_type[mask]) )
             else:
@@ -225,7 +219,7 @@ class Epochs:
             num = target // num
             if inc > group_idx:
                 num += 1
-        elif split_type == SplitUnit.RATIO:
+        elif split_unit == SplitUnit.RATIO:
             if ref_exclude is None:
                 num *= len(np.unique( target_type[mask]) )
             else:
@@ -250,11 +244,11 @@ class Epochs:
         
         return ret, mask
     
-    def pick_trail(self, mask, num, split_type, ref_exclude=None, group_idx=None):
+    def pick_trail(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
         ret = mask & False
         if not mask.any():
             return ret, mask
-        if split_type == SplitUnit.KFOLD:
+        if split_unit == SplitUnit.KFOLD:
             if ref_exclude is None:
                 target = sum(mask)
             else:
@@ -263,7 +257,7 @@ class Epochs:
             num = target // num
             if inc > group_idx:
                 num += 1
-        elif split_type == SplitUnit.RATIO:
+        elif split_unit == SplitUnit.RATIO:
             if ref_exclude is None:
                 num *= sum(mask)
             else:
@@ -287,8 +281,36 @@ class Epochs:
                             num -= 1
         return ret, mask
 
-    def pick_subject_by_idx(self, idx):
-        return self.subject == idx
+    # train
+    def get_args(self):
+        return  {'n_classes': len(self.event_id), # max(np.unique(self.label)) + 1,
+                 'channels' : self.data[-1].info['nchan'], #self.data[-1].shape[-2],
+                 'samples'  : self.data[-1].get_data().shape[-1], #self.data[-1].shape[-1],
+                 'sfreq'    : self.sfreq }
+    
+    def get_data(self): # return data array of (n_epochs * n_Epochs, n_channels, n_times)
+        data_array = np.zeros(self.data[-1].get_data().shape)
+        for d in self.data:
+            if np.array_equal(data_array, np.zeros(self.data[-1].get_data().shape)):
+                data_array = d.get_data()
+            else:
+                data_array = np.concatenate((data_array, d.get_data()))
+        return data_array
+
+    #eval
+    def get_label_number(self):
+        return len(self.label_map)
+
+    def get_channel_names(self):
+        return self.channel_map
+    
+    def set_channels(self, chs, channel_position):
+        self.channel_map = chs
+        self.channel_position = channel_position
+
+    def get_montage_position(self):
+        return self.channel_position
+
     def inspect(self):
         print(self.data[0].events[:,2])
         print(self.event_id)
@@ -297,114 +319,108 @@ class DataSet:
     SEQ = 0
     def __init__(self, data_holder):
         self.name = ''
+        self.data_holder = data_holder
         self.dataset_id = DataSet.SEQ
         DataSet.SEQ += 1
-        self.data_holder = data_holder
 
         data_length = data_holder.get_data_length()
-        self.remaining = np.ones(data_length, dtype=bool)
+        self.remaining_mask = np.ones(data_length, dtype=bool)
 
-        self.train = np.zeros(data_length, dtype=bool)
+        self.train_mask = np.zeros(data_length, dtype=bool)
         self.kept_training_session_list = []
         self.kept_training_subject_list = []
-        self.val = np.zeros(data_length, dtype=bool)
-        self.test = np.zeros(data_length, dtype=bool)
+        self.val_mask = np.zeros(data_length, dtype=bool)
+        self.test_mask = np.zeros(data_length, dtype=bool)
         self.is_selected = True
-
+    
+    # data splitting
+    ## getter
+    ### info
     def get_data_holder(self):
         return self.data_holder
 
-    def set_selection(self, select):
-        self.is_selected = select
-
-    def get_remaining(self):
-        return self.remaining.copy()
-    
-    def set_name(self, name):
-        self.name = name
-    
     def get_name(self):
         return str(self.dataset_id) + '-' + self.name
 
-        
-    def pick_subject(self, mask, num, split_type, ref_exclude=None, group_idx=None):
-        return self.data_holder.pick_subject(mask, num, split_type, ref_exclude, group_idx)
-    
-    def pick_session(self, mask, num, split_type, ref_exclude=None, group_idx=None):
-        return self.data_holder.pick_session(mask, num, split_type, ref_exclude, group_idx)
-    
-    def pick_trail(self, mask, num, split_type, ref_exclude=None, group_idx=None):
-        return self.data_holder.pick_trail(mask, num, split_type, ref_exclude, group_idx)
-    
-    def pick_subject_by_idx(self, idx):
-        self.remaining = self.data_holder.pick_subject_by_idx(idx)
+    ### mask
+    def get_remaining_mask(self):
+        return self.remaining_mask.copy()
 
-    def filter_by_subject_idx(self, mask, idx):
-        return mask & self.data_holder.pick_subject_by_idx(idx)
+    def get_all_trail_numbers(self):
+        train_number = sum(self.train_mask)
+        val_number = sum(self.val_mask)
+        test_number = sum(self.test_mask)
+        return train_number, val_number, test_number
+    
+    def has_set_empty(self):
+        train_number, val_number, test_number = self.get_all_trail_numbers()
+        return train_number == 0 or val_number == 0 or test_number == 0
 
+    def get_treeview_row_info(self):
+        train_number, val_number, test_number = self.get_all_trail_numbers()
+        selected = 'O' if self.is_selected else 'X'
+        name = self.get_name()
+        return selected, name, train_number, val_number, test_number
+
+    ## setter
+    def set_selection(self, select):
+        self.is_selected = select
+
+    def set_name(self, name):
+        self.name = name
+    
+    ## picker
+    def discard(self, mask):
+        self.remaining_mask &= np.logical_not(mask)
+
+    def set_remaining_by_subject_idx(self, idx):
+        self.remaining_mask = self.data_holder.pick_subject_mask_by_idx(idx)
+
+    ## keep from validation
     def kept_training_session(self, mask):
         self.kept_training_session_list = np.unique(self.data_holder.session[mask])
 
     def kept_training_subject(self, mask):
         self.kept_training_subject_list = np.unique(self.data_holder.subject[mask])
     
+    ## set result
     def set_test(self, mask):
-        self.test = mask.copy()
-        self.remaining &= np.logical_not(mask)
+        self.test_mask = mask.copy()
+        self.remaining_mask &= np.logical_not(mask)
         for kept_training_session in self.kept_training_session_list:
-            target = self.data_holder.session == kept_training_session
-            self.train |= (self.remaining & target)
-            self.remaining &= np.logical_not(target)
+            target = self.data_holder.get_session_list() == kept_training_session
+            self.train_mask |= (self.remaining_mask & target)
+            self.remaining_mask &= np.logical_not(target)
         for kept_training_subject in self.kept_training_subject_list:
             target = self.data_holder.subject == kept_training_subject
-            self.train |= (self.remaining & target)
-            self.remaining &= np.logical_not(target)
+            self.train_mask |= (self.remaining_mask & target)
+            self.remaining_mask &= np.logical_not(target)
     
     def set_val(self, mask):
-        self.val = mask.copy()
-        self.remaining &= np.logical_not(mask)
+        self.val_mask = mask.copy()
+        self.remaining_mask &= np.logical_not(mask)
 
     def set_train(self):
-        self.train |= self.remaining
-        self.remaining &= False
+        self.train_mask |= self.remaining_mask
+        self.remaining_mask &= False
 
-    def discard(self, mask):
-        self.remaining &= np.logical_not(mask)
+    ## filter
+    def intersection_with_subject_by_idx(self, mask, idx):
+        return mask & self.data_holder.pick_subject_mask_by_idx(idx)
 
-    def get_args(self):
-        return self.data_holder.get_args()
-
+    # train
     def get_training_data(self):
-        # from loaded data:
-        # X = self.data_holder.get_data()[self.train,:,:]
-        X = self.data_holder.data[self.train]
-        y = self.data_holder.label[self.train]   
+        X = self.data_holder.get_data()[self.train_mask]
+        y = self.data_holder.get_label_list()[self.train_mask]   
         return X, y
-    
+
     def get_val_data(self):
-        # from loaded data:
-        # X = self.data_holder.get_data()[self.val]
-        X = self.data_holder.data[self.val]
-        y = self.data_holder.label[self.val]
+        X = self.data_holder.get_data()[self.val_mask]
+        y = self.data_holder.get_label_list()[self.val_mask]
         return X, y
 
     def get_test_data(self):
-        # from loaded data:
-        # X = self.data_holder.get_data()[self.test]
-        X = self.data_holder.data[self.val]
-        y = self.data_holder.label[self.test]
+        X = self.data_holder.get_data()[self.test_mask]
+        y = self.data_holder.get_label_list()[self.test_mask]
         return X, y
-
-    def preview(self):
-        for idx, d in enumerate([self.train, self.val]):
-            print(idx)
-            for s in range(9):
-                for i in range(2):
-                    for j in range(4):
-                        for k in range(72):
-                            print(d[s * 2 * 4 * 72 + i * 4 * 72 + j * 72 + k], end='\t')
-                        print()
-                    print()
-                print()
-            print()
-            print()
+    

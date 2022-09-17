@@ -8,17 +8,21 @@ import numpy as np
 import time
 import threading
 
+DEFAULT_SPLIT_ENTRY_VALUE = 0.2
+LOADING_TREE_ROW_IID = '-'
 ###
 class DataSplittingWindow(TopWindow):
     def __init__(self, parent, title, data_holder, config):
         super().__init__(parent, title)
-        self.last_update = time.time()
         self.data_holder = data_holder
-        self.preview_failed = False
         self.config = config
-        self.worker = None
         self.datasets = []
         self.return_datasets = None
+        #
+        self.preview_worker = None
+        self.preview_failed = False
+        self.last_update = time.time()
+        #
         split_unit_list = [i.value for i in SplitUnit if i != SplitUnit.KFOLD]
         # preprocess
         val_splitter_list, test_splitter_list = self.config.get_splitter_option()
@@ -35,17 +39,17 @@ class DataSplittingWindow(TopWindow):
         
         # dataset frame
         dataset_frame = tk.LabelFrame(self, text ='Dataset Info')
-        tk.Label(dataset_frame, text='Subject: ').grid(row=0, column=0, sticky='e', padx=3)
+        tk.Label(dataset_frame, text='Subject: ')                        .grid(row=0, column=0, sticky='e', padx=3)
         tk.Label(dataset_frame, text=len(data_holder.subject_map.keys())).grid(row=0, column=1, padx=5)
-        tk.Label(dataset_frame, text='Session: ').grid(row=1, column=0, sticky='e', padx=3)
+        tk.Label(dataset_frame, text='Session: ')                        .grid(row=1, column=0, sticky='e', padx=3)
         tk.Label(dataset_frame, text=len(data_holder.session_map.keys())).grid(row=1, column=1, padx=5)
-        tk.Label(dataset_frame, text='Label: ').grid(row=2, column=0, sticky='e', padx=3)
-        tk.Label(dataset_frame, text=len(data_holder.label_map.keys())).grid(row=2, column=1, padx=5)
-        tk.Label(dataset_frame, text='Trail: ').grid(row=3, column=0, sticky='e', padx=3)
-        tk.Label(dataset_frame, text=len(data_holder.data)).grid(row=3, column=1, padx=5)
+        tk.Label(dataset_frame, text='Label: ')                          .grid(row=2, column=0, sticky='e', padx=3)
+        tk.Label(dataset_frame, text=len(data_holder.label_map.keys()))  .grid(row=2, column=1, padx=5)
+        tk.Label(dataset_frame, text='Trail: ')                          .grid(row=3, column=0, sticky='e', padx=3)
+        tk.Label(dataset_frame, text=len(data_holder.data))              .grid(row=3, column=1, padx=5)
         # training
         training_frame = tk.LabelFrame(self, text ='Training type')
-        tk.Label(training_frame, text=self.config.train.value).pack(pady=5)
+        tk.Label(training_frame, text=self.config.train_type.value).pack(pady=5)
 
         # val frame
         validation_frame = tk.LabelFrame(self, text ='Validation')
@@ -53,10 +57,12 @@ class DataSplittingWindow(TopWindow):
         row = 0
         for val_splitter in val_splitter_list:
             if val_splitter.is_option:
-                val_splitter.set_split_var(self, split_unit_list[0], self.preview)
+                ## init variables
+                val_splitter.set_split_unit_var(root=self, val=split_unit_list[0], callback=self.preview)
+                val_splitter.set_entry_var(root=self, val=DEFAULT_SPLIT_ENTRY_VALUE, callback=self.preview)
+                ## init widget
                 val_split_by_label = tk.Label(validation_frame, text=val_splitter.text)
                 val_split_type_option = tk.OptionMenu(validation_frame, val_splitter.split_var, *split_unit_list)
-                val_splitter.set_entry_var(self, '0.2', self.preview)
                 val_split_entry = tk.Entry(validation_frame, textvariable=val_splitter.entry_var)
                 ## pack
                 val_split_by_label.grid(row=row + 0, column=0, columnspan=2)
@@ -77,13 +83,15 @@ class DataSplittingWindow(TopWindow):
         for test_splitter in test_splitter_list:
             if test_splitter.is_option:
                 idx += 1
-                test_splitter.set_split_var(self, split_unit_list[0], self.preview)
+                ## init variables
+                test_splitter.set_split_unit_var(root=self, val=split_unit_list[0], callback=self.preview)
+                test_splitter.set_entry_var(root=self, val=DEFAULT_SPLIT_ENTRY_VALUE, callback=self.preview)
+                ## init widget
                 test_split_by_label = tk.Label(testing_frame, text=test_splitter.text)
                 tmp_split_unit_list = split_unit_list
                 if (config.is_cross_validation and idx == 1):
                     tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
                 test_split_type_option = tk.OptionMenu(testing_frame, test_splitter.split_var, *tmp_split_unit_list)
-                test_splitter.set_entry_var(self, '0.2', self.preview)
                 test_split_entry = tk.Entry(testing_frame, textvariable=test_splitter.entry_var)
                 ## pack
                 test_split_by_label.grid(row=row + 0, column=0, columnspan=2)
@@ -93,7 +101,6 @@ class DataSplittingWindow(TopWindow):
             else:
                 tk.Label(testing_frame, text=test_splitter.text).grid(row=row, column=0, columnspan=2, pady=5)
                 row += 1
-        
 
         # btn
         confirm_btn = tk.Button(self, text='Confirm', command=self.confirm)
@@ -116,44 +123,56 @@ class DataSplittingWindow(TopWindow):
         self.update_table()
 
     def preview(self, var=None, index=None, mode=None):
+        # reset config
         self.preview_failed = False
         self.last_update = time.time()
         self.datasets = []
         self.tree.delete(*self.tree.get_children())
-        self.tree.insert("", 'end', iid='-', values=['...'] + ['calculating'] + ['...'] * 3)
+        self.tree.insert("", 'end', iid=LOADING_TREE_ROW_IID, values=['...'] + ['calculating'] + ['...'] * 3)
+        # convert variable to constant
         for splitter in self.test_splitter_list:
             splitter.to_thread()
         for splitter in self.val_splitter_list:
             splitter.to_thread()        
-        self.worker = threading.Thread(target=self.handle_data, args=(self.last_update, ))
-        self.worker.start()
-
+        # start worker
+        self.preview_worker = threading.Thread(target=self.handle_data, args=(self.last_update, ))
+        self.preview_worker.start()
+    
+    # TODO code review
     def handle_data(self, checker):
-        for subject_idx in range(len(self.data_holder.subject_map.keys())):
+        # for loop for individual scheme
+        # break at the end if not individual scheme
+        for subject_idx in range(len(self.data_holder.get_subject_index_list())):
             group_idx = 0
+            # parms for cross validation
+            # break at the end if not cross validation
             has_next = True
             ref_mask = None
             ref_exclude = None
             while has_next:
+                # check job interrupt
                 if self.last_update != checker:
                     return
                 dataset = DataSet(self.data_holder)
                 dataset.set_name(f"Group {group_idx}")
-                if self.config.train == TrainingType.IND:
-                    dataset.pick_subject_by_idx(subject_idx)
+                # set name to subject-xxx for individual scheme
+                if self.config.train_type == TrainingType.IND:
+                    dataset.set_remaining_by_subject_idx(subject_idx)
                     if group_idx > 0:
-                        dataset.set_name(f"Subject {self.data_holder.subject_map[subject_idx]}-{group_idx}")
+                        dataset.set_name(f"Subject {self.data_holder.get_subject_name(subject_idx)}-{group_idx}")
                     else:
-                        dataset.set_name(f"Subject {self.data_holder.subject_map[subject_idx]}")
-                # split test data
+                        dataset.set_name(f"Subject {self.data_holder.get_subject_name(subject_idx)}")
+                # get reference mask
                 if ref_mask is None:
-                    mask = dataset.get_remaining()
+                    mask = dataset.get_remaining_mask()
                     ref_exclude = np.logical_not(mask)
                 else:
                     mask = ref_mask
-                    ref_exclude = dataset.get_remaining() & np.logical_not(ref_mask)
-                if self.config.train == TrainingType.IND:
-                    ref_exclude = dataset.filter_by_subject_idx(ref_exclude, subject_idx)
+                    ref_exclude = dataset.get_remaining_mask() & np.logical_not(ref_mask)
+                # filter out non-target subjects for individual scheme
+                if self.config.train_type == TrainingType.IND:
+                    ref_exclude = dataset.intersection_with_subject_by_idx(ref_exclude, subject_idx)
+                # split for test
                 idx = 0
                 for test_splitter in self.test_splitter_list:
                     if test_splitter.is_option:
@@ -163,83 +182,98 @@ class DataSplittingWindow(TopWindow):
                             self.preview_failed = True
                             return
                         # session
-                        if test_splitter.option == SplitByType.SESSION or test_splitter.option == SplitByType.SESSION_IND:
-                            mask, exclude = dataset.pick_session(mask, num=test_splitter.get_value(), group_idx=group_idx, split_type=test_splitter.get_split_type(), ref_exclude=ref_exclude if (idx == 0) else None)
+                        if test_splitter.split_type == SplitByType.SESSION or test_splitter.split_type == SplitByType.SESSION_IND:
+                            mask, exclude = self.data_holder.pick_session(mask, num=test_splitter.get_value(), group_idx=group_idx, split_unit=test_splitter.get_split_unit(), ref_exclude=ref_exclude if (idx == 0) else None)
+                            # save for next cross validation
                             if idx == 0:
                                 ref_mask = exclude.copy()
+                                # restore previous cross validation part
                                 exclude |= ref_exclude
                             if not mask.any():
                                 has_next = False
                                 break
                             # independent
-                            if test_splitter.option == SplitByType.SESSION_IND:
+                            if test_splitter.split_type == SplitByType.SESSION_IND:
                                 dataset.discard(exclude)
                             elif idx == 0:
+                                # filter out first option from validation data
                                 dataset.kept_training_session(mask)
                         # label
-                        elif test_splitter.option == SplitByType.TRAIL or test_splitter.option == SplitByType.TRAIL_IND:
-                            mask, exclude = dataset.pick_trail(mask, num=test_splitter.get_value(), group_idx=group_idx, split_type=test_splitter.get_split_type(), ref_exclude=ref_exclude if (idx == 0) else None)
+                        elif test_splitter.split_type == SplitByType.TRAIL or test_splitter.split_type == SplitByType.TRAIL_IND:
+                            mask, exclude = self.data_holder.pick_trail(mask, num=test_splitter.get_value(), group_idx=group_idx, split_unit=test_splitter.get_split_unit(), ref_exclude=ref_exclude if (idx == 0) else None)
+                            # save for next cross validation
                             if idx == 0:
                                 ref_mask = exclude.copy()
+                                # restore previous cross validation part
                                 exclude |= ref_exclude
                             if not mask.any():
                                 has_next = False
                                 break
                             # independent
-                            if test_splitter.option == SplitByType.TRAIL_IND:
+                            if test_splitter.split_type == SplitByType.TRAIL_IND:
                                 dataset.discard(exclude)
                         # subject
-                        elif test_splitter.option == SplitByType.SUBJECT or test_splitter.option == SplitByType.SUBJECT_IND:
-                            mask, exclude = dataset.pick_subject(mask, num=test_splitter.get_value(), group_idx=group_idx, split_type=test_splitter.get_split_type(), ref_exclude=ref_exclude if (idx == 0) else None)
+                        elif test_splitter.split_type == SplitByType.SUBJECT or test_splitter.split_type == SplitByType.SUBJECT_IND:
+                            mask, exclude = self.data_holder.pick_subject(mask, num=test_splitter.get_value(), group_idx=group_idx, split_unit=test_splitter.get_split_unit(), ref_exclude=ref_exclude if (idx == 0) else None)
+                            # save for next cross validation
                             if idx == 0:
                                 ref_mask = exclude.copy()
+                                # restore previous cross validation part
                                 exclude |= ref_exclude
                             if not mask.any():
                                 has_next = False
                                 break
                             # independent
-                            if test_splitter.option == SplitByType.SUBJECT_IND:
+                            if test_splitter.split_type == SplitByType.SUBJECT_IND:
                                 dataset.discard(exclude)
                             elif idx == 0:
                                 dataset.kept_training_subject(mask)
                         idx += 1
 
+                # set result as mask if available
                 if not has_next:
                     break
                 if idx > 0:
                     dataset.set_test(mask)
                 
                 # split val data
-                mask = dataset.get_remaining()
+                mask = dataset.get_remaining_mask()
                 idx = 0
                 for val_splitter in self.val_splitter_list:
                     if val_splitter.is_option:
+                        # check job interrupt
                         if self.last_update != checker:
                             return
                         if not val_splitter.is_valid():
                             self.preview_failed = True
                             return
                         # session
-                        if val_splitter.option == ValSplitByType.SESSION:
-                            mask, exclude = dataset.pick_session(mask, num=val_splitter.get_value(), split_type=val_splitter.get_split_type())
+                        if val_splitter.split_type == ValSplitByType.SESSION:
+                            mask, exclude = self.data_holder.pick_session(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
                         # label
-                        elif val_splitter.option == ValSplitByType.TRAIL:
-                            mask, exclude = dataset.pick_trail(mask, num=val_splitter.get_value(), split_type=val_splitter.get_split_type())
+                        elif val_splitter.split_type == ValSplitByType.TRAIL:
+                            mask, exclude = self.data_holder.pick_trail(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
                         # subject
-                        elif val_splitter.option == ValSplitByType.SUBJECT:
-                            mask, exclude = dataset.pick_subject(mask, num=val_splitter.get_value(), split_type=val_splitter.get_split_type())
+                        elif val_splitter.split_type == ValSplitByType.SUBJECT:
+                            mask, exclude = self.data_holder.pick_subject(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
                         idx += 1
+                
+                # set result as mask if available
                 if idx > 0:
                     dataset.set_val(mask)
                 dataset.set_train()
+                # check job interrupt
                 if self.last_update != checker:
                     return
                 self.datasets.append(dataset)
                 group_idx += 1
+                # break at the end if not cross validation
                 if not self.config.is_cross_validation:
                     break
-            if self.config.train != TrainingType.IND:
+            # break at the end if not individual scheme
+            if self.config.train_type != TrainingType.IND:
                 break
+        
         if len(self.datasets) == 0:
             self.preview_failed = True
 
@@ -252,8 +286,8 @@ class DataSplittingWindow(TopWindow):
         if self.preview_failed:
             self._failed_preview()
         elif len(self.datasets) > 0:
-            if '-' in self.tree.get_children():
-                self.tree.delete('-')
+            if LOADING_TREE_ROW_IID in self.tree.get_children():
+                self.tree.delete(LOADING_TREE_ROW_IID)
             counter = 0
             while len(self.tree.get_children()) < len(self.datasets):
                 if counter > 50:
@@ -261,7 +295,7 @@ class DataSplittingWindow(TopWindow):
                 counter += 1
                 idx = len(self.tree.get_children())
                 dataset = self.datasets[idx]
-                self.tree.insert("", 'end', iid=idx, values=('O', dataset.get_name(), sum(dataset.train), sum(dataset.val), sum(dataset.test)))
+                self.tree.insert("", 'end', iid=idx, values=dataset.get_treeview_row_info())
         self.after(500, self.update_table)
 
     def show_info(self):
@@ -272,38 +306,36 @@ class DataSplittingWindow(TopWindow):
         target = self.datasets[idx]
         window = DataSplittingInfoWindow(self, target)
         window.get_result()
-        # update
+        # update tree
         if len(self.datasets) > idx:
             target = self.datasets[idx]
             if self.winfo_exists():
-                self.tree.item(idx, values=('O' if target.is_selected else 'X', target.get_name(), sum(target.train), sum(target.val), sum(target.test)))
+                self.tree.item(idx, values=target.get_treeview_row_info())
 
     def confirm(self):
         # check if dataset is empty
-        if self.winfo_ismapped():
-            if len(self.datasets) == 0:
-                tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
-                return
-            # check if data is empty
-            for dataset in self.datasets:
-                if sum(dataset.test) == 0 or sum(dataset.val) == 0 or sum(dataset.train) == 0:
-                    if tk.messagebox.askokcancel(parent=self, title='Warning', message='There are some datasets without training/testing/validation data.\nDo you want to proceed?'):
-                        break
-                    else:
-                        return
-        self.withdraw()
-        if self.worker.is_alive():
-            self.after(1000, self.confirm)
+        if len(self.datasets) == 0:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
+            return
+        # check if data is empty
+        for dataset in self.datasets:
+            if dataset.has_set_empty():
+                if tk.messagebox.askokcancel(parent=self, title='Warning', message='There are some datasets without training/testing/validation data.\nDo you want to proceed?'):
+                    break
+                else:
+                    return
+        if self.preview_worker.is_alive():
+            tk.messagebox.show_info(parent=self, title='Warning', message='Generating dataset, please try again later.')
             return
         # remove unselected plan
         while True:
-            skip = True
+            done = True
             for i in range(len(self.datasets)):
                 if not self.datasets[i].is_selected:
                     del self.datasets[i]
-                    skip = False
+                    done = False
                     break
-            if skip:
+            if done:
                 break
 
         self.return_datasets = self.datasets
@@ -322,6 +354,7 @@ class DataSplittingInfoWindow(TopWindow):
         self.dataset = dataset
         name_var = tk.StringVar(self)
         select_var = tk.BooleanVar(self)
+        # init value
         name_var.set(dataset.name)
         select_var.set(dataset.is_selected)
 
@@ -352,26 +385,26 @@ class DataSplittingInfoWindow(TopWindow):
         tk.Button(self, text='Save', command=self.confirm).grid(row=3, column=1)
         self.name_var = name_var
         self.select_var = select_var
-        self.show_info(train_tree, dataset.train)
-        self.show_info(test_tree, dataset.test)
-        self.show_info(val_tree, dataset.val)
+        self.show_info(train_tree, dataset.train_mask)
+        self.show_info(test_tree, dataset.test_mask)
+        self.show_info(val_tree, dataset.val_mask)
 
     def show_info(self, tree, mask):
-        data_holder = self.dataset.data_holder
+        data_holder = self.dataset.get_data_holder()
         # traverse subject
-        for subject_idx in np.unique( data_holder.subject[mask] ):
-            subject_mask = (data_holder.subject == subject_idx) & mask
-            subject_root = tree.insert("", 'end', text=f"Subject {data_holder.subject_map[subject_idx]} ({sum(subject_mask)})")
+        for subject_idx in np.unique( data_holder.get_subject_list_by_mask(mask) ):
+            subject_mask = (data_holder.get_subject_list() == subject_idx) & mask
+            subject_root = tree.insert("", 'end', text=f"Subject {data_holder.get_subject_name(subject_idx)} ({sum(subject_mask)})")
             # traverse session
-            for session_idx in np.unique( data_holder.session[subject_mask] ):
-                session_mask = (data_holder.session == session_idx) & subject_mask
-                session_root = tree.insert(subject_root, 'end', text=f"Session {data_holder.session_map[session_idx]} ({sum(session_mask)})")
+            for session_idx in np.unique( data_holder.get_session_list_by_mask(subject_mask) ):
+                session_mask = (data_holder.get_session_list() == session_idx) & subject_mask
+                session_root = tree.insert(subject_root, 'end', text=f"Session {data_holder.get_session_name(session_idx)} ({sum(session_mask)})")
                 # traverse label
-                for label_idx in np.unique( data_holder.label[session_mask] ):
-                    label_mask = (data_holder.label == label_idx) & session_mask
-                    label_root = tree.insert(session_root, 'end', text=f"Label {data_holder.label_map[label_idx]} ({sum(label_mask)})")
+                for label_idx in np.unique( data_holder.get_label_list_by_mask(session_mask) ):
+                    label_mask = (data_holder.get_label_list() == label_idx) & session_mask
+                    label_root = tree.insert(session_root, 'end', text=f"Label {data_holder.get_label_name(label_idx)} ({sum(label_mask)})")
                     # traverse index
-                    idx_list = data_holder.idx[label_mask]
+                    idx_list = data_holder.get_idx_list_by_mask(label_mask)
                     start_idx = 0
                     last_idx = None
                     for i in idx_list:
@@ -390,6 +423,99 @@ class DataSplittingInfoWindow(TopWindow):
         self.dataset.set_name(self.name_var.get())
         self.dataset.set_selection(self.select_var.get())
         self.destroy()
+
+###
+
+class DataSplitter():
+    def __init__(self, is_option, text, split_type):
+        self.is_option = is_option
+        self.split_type = split_type
+        self.text = text
+        self.split_var = None
+        self.entry_var = None
+
+        self.is_valid_var = False
+        self.value_var = None
+        self.split_unit = None
+    
+    # initialize variable
+    def set_split_unit_var(self, root, val, callback):
+        self.split_var = tk.StringVar(root)
+        self.split_var.set(val)
+        self.split_var.trace_add('write', callback)
+
+    def set_entry_var(self, root, val, callback):
+        self.entry_var = tk.StringVar(root)
+        self.entry_var.set(val)
+        self.entry_var.trace_add('write', callback)
+
+    # convert variable to constant
+    def _is_valid(self):
+        if self.entry_var is None:
+            return False
+        if self.split_var is None:
+            return False
+        if self.split_var.get() == SplitUnit.RATIO.value:
+            try:
+                val = float(self.entry_var.get())
+                if 0 <= val <= 1:
+                    return True
+            except ValueError:
+                return False   
+        elif self.split_var.get() == SplitUnit.NUMBER.value:
+            return self.entry_var.get().isdigit()
+        elif self.split_var.get() == SplitUnit.KFOLD.value:
+            val = self.entry_var.get()
+            if val.isdigit():
+                return 0 < int(val)
+        return False
+
+    def _get_value(self):
+        if not self._is_valid():
+            return 0
+        return float(self.entry_var.get())
+
+    def _get_split_unit(self):
+        if self.split_var is None:
+            return None
+        for i in SplitUnit:
+            if i.value == self.split_var.get():
+                return i
+        
+    def to_thread(self):
+        self.is_valid_var = self._is_valid()
+        self.value_var = self._get_value()
+        self.split_unit = self._get_split_unit()
+    #
+    def is_valid(self):
+        return self.is_valid_var
+    # getter
+    def get_value(self):
+        return self.value_var
+        
+    def get_split_unit(self):
+        return self.split_unit
+    
+class DataSplittingConfig():
+    def __init__(self, train_type, val_type_list, test_type_list, is_cross_validation):
+        self.train_type = train_type # TrainingType
+        self.val_type_list = val_type_list # [SplitByType ...]
+        self.test_type_list = test_type_list # [ValSplitByType ...]
+        self.is_cross_validation = is_cross_validation
+    
+    def get_splitter_option(self):
+        val_splitter_list = []
+        for val_type in self.val_type_list:
+            is_option = not (val_type == ValSplitByType.DISABLE)
+            text = val_type.value
+            val_splitter_list.append(DataSplitter(is_option, text, val_type))
+        test_splitter_list = []
+        for test_type in self.test_type_list:
+            is_option = not (test_type == SplitByType.DISABLE)
+            text = test_type.value
+            test_splitter_list.append(DataSplitter(is_option, text, test_type))
+
+        return val_splitter_list, test_splitter_list
 
 ###
 

@@ -1,55 +1,42 @@
 import tkinter as tk
 import tkinter.messagebox
-from ..base import TopWindow
-from .data_splitting import DataSplittingWindow
-from .option import TrainingType, SplitByType, ValSplitByType, SplitUnit
-from .data_holder import Epochs
+
 import numpy as np
 from enum import Enum
 
-VAL_SPLIT_OPTION_NUM = 1
-TEST_SPLIT_OPTION_NUM = 3
+from ..base import TopWindow, InitWindowValidateException
+from .option import TrainingType, SplitByType, ValSplitByType, SplitUnit
+from .data_holder import Epochs
+from .data_splitting import DataSplittingWindow, DataSplittingConfig
 
 class DataSplittingSettingWindow(TopWindow):
     def __init__(self, parent, data_holder):
         super().__init__(parent, 'Data splitting')
         self.data_holder = data_holder
-        if not self.check_data():
-            return
+        # validate input data
+        self.check_data()
         # start of options
         ## training type
         training_type_label = tk.Label(self, text='Training Type')
-
         training_type_list = [i.value for i in TrainingType]
         training_type_var = tk.StringVar(self)
         training_type_var.set(training_type_list[0])
         training_type_option = tk.OptionMenu(self, training_type_var, *training_type_list)
-
-        validation_var_list = []
-        
-        ## validation/test type
+        ## validation type
         validation_label = tk.Label(self, text='Validation Set')
-        testing_label = tk.Label(self, text='Testing Set')
-        test_split_by_list = [i.value for i in SplitByType]
+        VAL_SPLIT_OPTION_NUM = 1
         val_split_by_list = [i.value for i in ValSplitByType]
-        validation_option_list = []
-        testing_option_list = []
         validation_var_list = []
+        validation_option_list = []
+        self.init_option_list(VAL_SPLIT_OPTION_NUM, val_split_by_list, validation_var_list, validation_option_list)
+        ## test type
+        testing_label = tk.Label(self, text='Testing Set')
+        TEST_SPLIT_OPTION_NUM = 3
+        test_split_by_list = [i.value for i in SplitByType]
         testing_var_list = []
-        
-        for name, option_list, var_list, split_by_list, opt_num in zip(
-                                ['Validation',              'Testing'], 
-                                [validation_option_list,    testing_option_list], 
-                                [validation_var_list,       testing_var_list],
-                                [val_split_by_list,         test_split_by_list],
-                                [VAL_SPLIT_OPTION_NUM,      TEST_SPLIT_OPTION_NUM]
-                            ):
-            for i in range(opt_num):
-                var = tk.StringVar(self)
-                var.set(split_by_list[0])
-                option = tk.OptionMenu(self, var, *split_by_list)
-                var_list.append(var)
-                option_list.append(option)
+        testing_option_list = []
+        self.init_option_list(TEST_SPLIT_OPTION_NUM, test_split_by_list, testing_var_list, testing_option_list)
+        ## cross validation
         cross_validation_var = tk.BooleanVar(self)
         cross_validation_check_button = tk.Checkbutton(self, text='Cross Validation', var=cross_validation_var)
 
@@ -57,13 +44,12 @@ class DataSplittingSettingWindow(TopWindow):
         training_type_var.trace_add('write', self.option_menu_callback)
         [validation_var.trace_add('write', self.option_menu_callback) for validation_var in validation_var_list]
         [testing_var.trace_add('write', self.option_menu_callback) for testing_var in testing_var_list]
-        # end of options
 
         # Preview canvas
         canvas_frame = tk.Frame(self)
+        ## canvas_frame
         canvas = tk.Canvas(canvas_frame)
         legend_frame = tk.Frame(canvas_frame)
-
         tk.Label(legend_frame, width=2, height=1, bg=DrawColor.TRAIN.value).pack(side='left', padx=10)
         tk.Label(legend_frame, text='Training').pack(side='left')
         tk.Label(legend_frame, width=2, height=1, bg=DrawColor.VAL.value).pack(side='left', padx=(30, 10))
@@ -80,67 +66,85 @@ class DataSplittingSettingWindow(TopWindow):
         training_type_label.grid(column=1, row=0, padx=10, pady=(10, 0))
         training_type_option.grid(column=1, row=1, padx=10)        
         inc = 0
+        ## test options
         testing_label.grid(column=1, row=2+inc, pady=(10, 0))
         cross_validation_check_button.grid(row=3+inc, column=1)
-        inc += 1
         for i in range(TEST_SPLIT_OPTION_NUM):
-            testing_option_list[i].grid(column=1, row=3+inc)
+            testing_option_list[i].grid(column=1, row=4+inc)
+            # hide disabled
             if i > 0:
                 testing_option_list[i].grid_remove()
             inc += 1
+        ## validation options
         validation_label.grid(column=1, row=4+inc, pady=(10, 0))
         for i in range(VAL_SPLIT_OPTION_NUM):
             validation_option_list[i].grid(column=1, row=5+inc)
+            # hide disabled
             if i > 0:
                 validation_option_list[i].grid_remove()
             inc += 1
-        confirm_btn.grid(column=0, row=6+inc, columnspan=2, pady=(20, 15))
-        canvas_frame.grid(column=0, row=0, rowspan=6+inc, pady=(10, 0))
+        confirm_btn.grid(column=0, row=5+inc, columnspan=2, pady=(20, 15))
+        canvas_frame.grid(column=0, row=0, rowspan=5+inc, pady=(10, 0))
         
         # init member
-        self.training_type_var = training_type_var
-        self.validation_var_list = validation_var_list
-        self.validation_option_list = validation_option_list
-        self.testing_var_list = testing_var_list
-        self.testing_option_list = testing_option_list
-        self.cross_validation_var = cross_validation_var
         self.subject_num = 5
         self.session_num = 5
+        ## var
+        self.training_type_var = training_type_var
+        self.testing_var_list = testing_var_list
+        self.validation_var_list = validation_var_list
+        self.cross_validation_var = cross_validation_var
+        ## option
+        self.testing_option_list = testing_option_list
+        self.validation_option_list = validation_option_list
+        ## region info
         self.train_region = DrawRegion(self.session_num, self.subject_num)
         self.val_region = DrawRegion(self.session_num, self.subject_num)
         self.test_region = DrawRegion(self.session_num, self.subject_num)
-        self.step2_window = None
         ## canvas
         self.canvas = canvas
-
-        ## init func
-        self.option_menu_callback(None,None,None)
+        ## step 2
+        self.step2_window = None
+        
+        # init func
+        self.option_menu_callback()
         self.draw_preview()
 
     def check_data(self):
         if type(self.data_holder) != Epochs:
-            self.valid = False
-            self.withdraw()
-            tk.messagebox.showerror(parent=self.master, title='Error', message='No valid epoch data is generated')
-            self.destroy()
-            return False
-        return True
+            raise InitWindowValidateException(self, 'No valid epoch data is generated')
 
-    def option_menu_callback(self, var, index, mode):
+    def init_option_list(self, opt_num, split_by_list, var_list, option_list):
+        for i in range(opt_num):
+            var = tk.StringVar(self)
+            var.set(split_by_list[0])
+            option = tk.OptionMenu(self, var, *split_by_list)
+            var_list.append(var)
+            option_list.append(option)
+    #
+    def check_option_disable_status(self, var_list, option_list):
+        opt_num = len(option_list)
+        for i in range(opt_num):
+            if var_list[i].get() == SplitByType.DISABLE.value:
+            # disable next level
+                if i + 1 < opt_num and option_list[i + 1].winfo_ismapped():
+                    self.after(100, lambda idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
+                    self.after(100, lambda idx=i+1,v=option_list: v[idx].grid_remove())
+                    return True
+            else:
+            # enable next level
+                if i + 1 < opt_num and not option_list[i + 1].winfo_ismapped():
+                    self.after(100, lambda idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
+                    self.after(100, lambda idx=i+1,v=option_list: v[idx].grid())
+                    return True
+        return False
+
+    def option_menu_callback(self, *args):
         # check disable visibility
-        for var_list, option_list in zip([self.validation_var_list, self.testing_var_list], [self.validation_option_list, self.testing_option_list]):
-            opt_num = len(option_list)
-            for i in range(opt_num):
-                if var_list[i].get() == SplitByType.DISABLE.value:
-                    if i + 1 < opt_num and option_list[i + 1].winfo_ismapped():
-                        self.after(100, lambda idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
-                        self.after(100, lambda idx=i+1,v=option_list: v[idx].grid_remove())
-                        return
-                else:
-                    if i + 1 < opt_num and not option_list[i + 1].winfo_ismapped():
-                        self.after(100, lambda idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
-                        self.after(100, lambda idx=i+1,v=option_list: v[idx].grid())
-                        return
+        if self.check_option_disable_status(self.testing_var_list, self.testing_option_list):
+            return
+        if self.check_option_disable_status(self.validation_var_list, self.validation_option_list):
+            return
         # reset region
         self.train_region = DrawRegion(self.session_num, self.subject_num)
         self.val_region = DrawRegion(self.session_num, self.subject_num)
@@ -151,14 +155,24 @@ class DataSplittingSettingWindow(TopWindow):
         elif self.training_type_var.get() == TrainingType.IND.value:
             self.handle_data(TrainingType.IND)
         self.draw_preview()
-
+    #
+    # TODO code review
     def handle_data(self, training_type):
-        # set init region
+        # set init region based on training type
         if training_type == TrainingType.FULL:
             self.train_region.set_to(self.session_num, self.subject_num)
         elif training_type == TrainingType.IND:
             self.train_region.set_to(self.session_num, 1)
-        # testing
+        #
+        self.handle_testing()
+        self.train_region.mask(self.test_region)
+
+        self.handle_validation()
+        self.val_region.mask_intersect(self.train_region)
+
+        self.train_region.mask(self.val_region)
+    # TODO code review
+    def handle_testing(self):
         for idx, testing_var in enumerate(self.testing_var_list):
             # reference region
             if idx == 0:
@@ -205,8 +219,8 @@ class DataSplittingSettingWindow(TopWindow):
                 # avoid being used by validation set
                 if idx == 0:
                     self.train_region.to_y -= 1
-        self.train_region.mask(self.test_region)
-        # validation
+    # TODO code review
+    def handle_validation(self):
         for idx, validation_var in enumerate(self.validation_var_list):
             if validation_var.get() == ValSplitByType.SESSION.value:
                 self.val_region.copy(self.train_region)
@@ -235,17 +249,18 @@ class DataSplittingSettingWindow(TopWindow):
                     self.train_region.to_y -= 1
                     self.val_region.set_from(self.train_region.from_x, self.train_region.to_y - 1)
                     self.val_region.set_to(self.train_region.to_x, self.train_region.to_y)
-        self.val_region.mask_intersect(self.train_region)
-        self.train_region.mask(self.val_region)
-        
+    #
     def draw_preview(self):
+        # preview region padding
         left = 80
         top = 5
         right = bottom = 30
+        # preview region size
         w = 360
         h = 120
         canvas_width = w + left + right
         canvas_height = h + top + bottom
+        
         subject = self.subject_num
         session = self.session_num
         delta_x = w / session
@@ -275,30 +290,30 @@ class DataSplittingSettingWindow(TopWindow):
         for i in range(1, session):
             d = left + w / session * i
             canvas.create_line(d, top, d, top + h, dash=(4, 4))
-
-    def confirm(self):
-        for i in TrainingType:
-            if i.value == self.training_type_var.get():
-                train = i
-        
-        val = []
-        test = []
-        for var_list, by_type, arr in zip(
-                        [self.validation_var_list, self.testing_var_list],
-                        [ValSplitByType, SplitByType], 
-                        [val, test]
-                    ):
-            for j in var_list:
-                for i in by_type:
+    #
+    def retreive_result(self, var_list, ByType, arr):
+        for j in var_list:
+                for i in ByType:
                     if i.value == j.get():
-                        if i == by_type.DISABLE and len(arr) > 0:
+                        if i == ByType.DISABLE and len(arr) > 0:
                             break
                         arr.append(i)
-        config = DataSplittingConfig(train, val, test, self.cross_validation_var.get())
+    
+    def confirm(self):
+        # get training type
+        for i in TrainingType:
+            if i.value == self.training_type_var.get():
+                train_type = i
+        # get training type
+        val_type_list = []
+        test_type_list = []
+        self.retreive_result(self.validation_var_list, ValSplitByType, val_type_list)
+        self.retreive_result(self.testing_var_list, SplitByType, test_type_list)
+        config = DataSplittingConfig(train_type, val_type_list, test_type_list, is_cross_validation=self.cross_validation_var.get())
 
         self.step2_window = DataSplittingWindow(self.master, self.title(), self.data_holder, config)
         self.destroy()
-
+    #
     def _get_result(self):
         try:
             self.step2_window.wait_window()
@@ -319,7 +334,7 @@ class DrawRegion():
         self.h = h
         self.from_canvas = np.zeros((w, h))
         self.to_canvas = np.zeros((w, h))
-
+        # global parms
         self.from_x = 0
         self.from_y = 0
         self.to_x = 0
@@ -371,8 +386,6 @@ class DrawRegion():
                     self.from_canvas[i, j] = np.maximum(self.from_canvas[i, j] - 0.2, 0)
                     self.to_canvas[i, j] = np.minimum(self.to_canvas[i, j] - 0.2, rhs.from_canvas[i, j])
 
-
-
     def set_w(self, a, b):
         self.from_w = a
         self.to_w = b
@@ -397,97 +410,6 @@ class DrawRegion():
     def fix(self):
         self.to_canvas[self.to_x:, :] = self.from_canvas[self.to_x:, :]
         self.to_canvas[:, self.to_y:] = self.from_canvas[:, self.to_y:]
-
-###
-
-class DataSplittingOption():
-    def __init__(self, is_option, text, option):
-        self.is_option = is_option
-        self.option = option
-        self.text = text
-        self.split_var = None
-        self.entry_var = None
-
-        self.is_valid_var = False
-        self.value_var = None
-        self.split_type = None
-    
-    def _is_valid(self):
-        if self.entry_var is None:
-            return False
-        if self.split_var is None:
-            return False
-        if self.split_var.get() == SplitUnit.RATIO.value:
-            try:
-                val = float(self.entry_var.get())
-                if 0 <= val <= 1:
-                    return True
-            except ValueError:
-                return False   
-        elif self.split_var.get() == SplitUnit.NUMBER.value:
-            return self.entry_var.get().isdigit()
-        elif self.split_var.get() == SplitUnit.KFOLD.value:
-            val = self.entry_var.get()
-            if val.isdigit():
-                return 0 < int(val)
-        return False
-
-    def _get_value(self):
-        if not self._is_valid():
-            return 0
-        return float(self.entry_var.get())
-
-    def _get_split_type(self):
-        if self.split_var is None:
-            return None
-        for i in SplitUnit:
-            if i.value == self.split_var.get():
-                return i
-        
-    def to_thread(self):
-        self.is_valid_var = self._is_valid()
-        self.value_var = self._get_value()
-        self.split_type = self._get_split_type()
-
-    def is_valid(self):
-        return self.is_valid_var
-    
-    def get_value(self):
-        return self.value_var
-        
-    def get_split_type(self):
-        return self.split_type
-
-    def set_split_var(self, root, val, callback):
-        self.split_var = tk.StringVar(root)
-        self.split_var.set(val)
-        self.split_var.trace_add('write', callback)
-
-    def set_entry_var(self, root, val, callback):
-        self.entry_var = tk.StringVar(root)
-        self.entry_var.set(val)
-        self.entry_var.trace_add('write', callback)
-
-class DataSplittingConfig():
-    def __init__(self, train, val, test, is_cross_validation):
-        self.train = train
-        self.val = val
-        self.test = test
-        self.is_cross_validation = is_cross_validation
-    
-    def get_splitter_option(self):
-        val = []
-        for v in self.val:
-            is_option = not (v == ValSplitByType.DISABLE)
-            text = v.value
-            val.append(DataSplittingOption(is_option, text, option=v))
-        test = []
-        for t in self.test:
-            is_option = not (t == SplitByType.DISABLE)
-            text = t.value
-            test.append(DataSplittingOption(is_option, text, option=t))
-
-        return val, test
 
 ###
 
