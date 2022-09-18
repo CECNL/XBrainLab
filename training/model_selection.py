@@ -55,7 +55,8 @@ class ModelSelectionWindow(TopWindow):
         pretrained_weight_disp_label.grid(row=3, column=1)
         pretrained_weight_btn.grid(row=3, column=2)
         tk.Button(self, text='Confirm', command=self.confirm).grid(row=4, column=2)
-        
+        self.columnconfigure([0,1,2], weight=1)
+        self.rowconfigure([2], weight=1)
 
         self.model_map = model_map
         self.selected_model_name = selected_model_name

@@ -85,16 +85,18 @@ class TrainingSettingWindow(TopWindow):
         evaluation_option = tk.OptionMenu(self, evaluation_var, *evaluation_list)
         repeat_entry = tk.Entry(self)
 
-        epoch_entry.grid(row=0, column=1)
-        bs_entry.grid(row=1, column=1)
-        lr_entry.grid(row=2, column=1)
+        epoch_entry.grid(row=0, column=1, sticky='EW')
+        bs_entry.grid(row=1, column=1, sticky='EW')
+        lr_entry.grid(row=2, column=1, sticky='EW')
         opt_label.grid(row=3, column=1, sticky='EW')
         dev_label.grid(row=4, column=1, sticky='EW')
         output_dir_label.grid(row=5, column=1, sticky='EW')
-        checkpoint_entry.grid(row=6, column=1)
-        evaluation_option.grid(row=7, column=1)
-        repeat_entry.grid(row=8, column=1)
+        checkpoint_entry.grid(row=6, column=1, sticky='EW')
+        evaluation_option.grid(row=7, column=1, sticky='EW')
+        repeat_entry.grid(row=8, column=1, sticky='EW')
         tk.Button(self, text='Confirm', command=self.confirm).grid(row=9, column=0, columnspan=3)
+        self.columnconfigure([1], weight=1)
+        self.rowconfigure(list(range(10)), weight=1)
 
         self.output_dir_label = output_dir_label
         self.epoch_entry = epoch_entry

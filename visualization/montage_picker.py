@@ -32,10 +32,13 @@ class PickMontageWindow(TopWindow):
 
         montage_opt.grid(row=0, column=0)
         selected_label.grid(row=0, column=2)
-        option_list.grid(row=1, column=0)
+        option_list.grid(row=1, column=0, sticky='news')
         button_frame.grid(row=1, column=1)
-        seleced_list.grid(row=1, column=2)
+        seleced_list.grid(row=1, column=2, sticky='news')
         tk.Button(self, text='confirm', command=self.confirm).grid(row=2, column=0, columnspan=3)
+        self.columnconfigure([0,2], weight=1)
+        self.rowconfigure([1], weight=1)
+
         
         self.selected_montage = selected_montage
         self.option_list = option_list

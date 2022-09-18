@@ -16,13 +16,17 @@ class TopWindow(tk.Toplevel):
         padx = 25
         pady = 20
         self.geometry(f"+{toplevel_offsetx + padx}+{toplevel_offsety + pady}")
-
+    #
     def append_child_window(self, child):
         self.child_list.append(child)
     
     def remove_child_window(self, child):
         self.child_list.remove(child)
+    
+    def fix_window_size(self):
+        self.resizable(False, False)
         
+    #
     def _get_result(self):
         """Override this to return values."""
         return None
@@ -34,7 +38,7 @@ class TopWindow(tk.Toplevel):
             pass
         
         return self._get_result()
-
+    #
     def destroy(self):
         # close all children window
         child_list = self.child_list.copy()

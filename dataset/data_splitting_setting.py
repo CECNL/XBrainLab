@@ -154,6 +154,7 @@ class DataSplittingSettingWindow(TopWindow):
             self.handle_data(TrainingType.FULL)
         elif self.training_type_var.get() == TrainingType.IND.value:
             self.handle_data(TrainingType.IND)
+        self.fix_window_size()
         self.draw_preview()
     #
     # TODO code review

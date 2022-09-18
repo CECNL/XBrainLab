@@ -9,4 +9,4 @@ class PanelBase(tk.LabelFrame):
     def update_panel(self, *args):
         """Override this to update values."""
         if (len(self.winfo_children()) == 0):
-            tk.Label(self, text='Put content here').pack()
+            tk.Label(self, text='Put content here').pack(expand=True)

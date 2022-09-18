@@ -272,15 +272,19 @@ class Trainer:
         target = target_loader = None
         trainLoader, valLoader, testLoader = self.get_loader()
         target = self.model_holder.get_model(self.dataset.get_data_holder().get_args()).to(self.option.get_device())
+        target_loader = testLoader or valLoader
         if self.option.evaluation_option == TRAINING_EVALUATION.VAL_LOSS:
-            target.load_state_dict(train_record.best_val_loss_model)
-            target_loader = valLoader or testLoader
+            if train_record.best_val_loss_model:
+                target.load_state_dict(train_record.best_val_loss_model)
+            else:
+                target = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.TEST_ACC:
-            target.load_state_dict(train_record.best_test_acc_model)
-            target_loader = testLoader or valLoader
+            if train_record.best_test_acc_model:
+                target.load_state_dict(train_record.best_test_acc_model)
+            else:
+                target = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.LAST_EPOCH:
             target = train_record.model
-            target_loader = testLoader or valLoader
         return target, target_loader
 
     def train_one_repeat(self, train_record):

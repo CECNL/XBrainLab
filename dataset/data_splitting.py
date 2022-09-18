@@ -32,10 +32,10 @@ class DataSplittingWindow(TopWindow):
         tree = ttk.Treeview(tree_frame, columns=columns, show='headings', selectmode=tk.BROWSE)
         for i in columns:
             tree.heading(i, text=i)
-            tree.column(i, width=80)
+            tree.column(i, width=80, anchor=tk.CENTER)
 
-        tree.pack()
-        tk.Button(tree_frame, text='Show info', command=self.show_info).pack()
+        tree.pack(fill=tk.BOTH, expand=True)
+        tk.Button(tree_frame, text='Show info', command=self.show_info).pack(padx=20)
         
         # dataset frame
         dataset_frame = tk.LabelFrame(self, text ='Dataset Info')
@@ -106,11 +106,11 @@ class DataSplittingWindow(TopWindow):
         confirm_btn = tk.Button(self, text='Confirm', command=self.confirm)
 
         # pack
-        tree_frame.pack(side=tk.LEFT, padx=20, anchor='n', pady=40)
-        dataset_frame.pack(side=tk.TOP, padx=20, pady=20, fill=tk.X)
-        training_frame.pack(side=tk.TOP, padx=20, fill=tk.X)
-        testing_frame.pack(side=tk.TOP, padx=20, fill=tk.X)
-        validation_frame.pack(side=tk.TOP, padx=20, fill=tk.X)
+        tree_frame.pack(side=tk.LEFT, padx=20, anchor='n', pady=40, fill=tk.BOTH, expand=True)
+        dataset_frame.pack(side=tk.TOP, padx=20, pady=20, fill=tk.X, expand=True)
+        training_frame.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
+        testing_frame.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
+        validation_frame.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
         confirm_btn.pack(side=tk.TOP, padx=20, pady=20)
 
         # init 
@@ -313,10 +313,6 @@ class DataSplittingWindow(TopWindow):
                 self.tree.item(idx, values=target.get_treeview_row_info())
 
     def confirm(self):
-        # check if dataset is empty
-        if len(self.datasets) == 0:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
-            return
         # check if data is empty
         for dataset in self.datasets:
             if dataset.has_set_empty():
@@ -337,6 +333,10 @@ class DataSplittingWindow(TopWindow):
                     break
             if done:
                 break
+        # check if dataset is empty
+        if len(self.datasets) == 0:
+            tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
+            return
 
         self.return_datasets = self.datasets
         self.destroy()
@@ -371,16 +371,19 @@ class DataSplittingInfoWindow(TopWindow):
         val_tree = ttk.Treeview(val_frame)
         test_tree = ttk.Treeview(test_frame)
         
-        train_tree.pack()
-        val_tree.pack()
-        test_tree.pack()
+        train_tree.pack(fill=tk.BOTH, expand=True)
+        val_tree.pack(fill=tk.BOTH, expand=True)
+        test_tree.pack(fill=tk.BOTH, expand=True)
 
         select_checkbox.grid(row=0, column=1)
         name_label.grid(row=1, column=0, sticky='e')
-        name_entry.grid(row=1, column=1)
-        train_frame.grid(row=2, column=0)
-        val_frame.grid(row=2, column=1)
-        test_frame.grid(row=2, column=2)
+        name_entry.grid(row=1, column=1, sticky='we')
+        train_frame.grid(row=2, column=0, sticky='news')
+        val_frame.grid(row=2, column=1, sticky='news')
+        test_frame.grid(row=2, column=2, sticky='news')
+        self.columnconfigure([0,1,2], weight=1)
+        self.rowconfigure([2], weight=1)
+
 
         tk.Button(self, text='Save', command=self.confirm).grid(row=3, column=1)
         self.name_var = name_var

@@ -16,7 +16,7 @@ class DashBoard(tk.Tk):
         super().__init__()
         # window
         self.child_list = []
-        self.geometry("500x500")
+        self.geometry("600x300")
         self.title('Dashboard')
         self.init_menu()
         # panel

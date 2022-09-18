@@ -10,6 +10,8 @@ class ModelOutputWindow(TopWindow):
         super().__init__(parent, self.command_label)
         self.trainers = trainers
         self.check_data()
+        self.geometry("400x125")
+        self.fix_window_size()
 
         # init data
         ## fetch plan list
@@ -30,11 +32,14 @@ class ModelOutputWindow(TopWindow):
         selected_plan_name.trace('w', lambda *args,win=self: selected_real_plan_name.set(real_plan_list[0])) # reset selection
         real_plan_opt = tk.OptionMenu(self, selected_real_plan_name, *real_plan_list)
 
-        tk.Label(self, text='Plan Name: ').grid(row=0, column=0)
-        plan_opt.grid(row=0, column=1)
-        tk.Label(self, text='Repeat: ').grid(row=1, column=0)
-        real_plan_opt.grid(row=1, column=1)
+        tk.Label(self, text='Plan Name: ').grid(row=0, column=0, sticky='e', pady=(10,0))
+        plan_opt.grid(row=0, column=1, sticky='w')
+        tk.Label(self, text='Repeat: ').grid(row=1, column=0, sticky='e')
+        real_plan_opt.grid(row=1, column=1, sticky='w')
         tk.Button(self, text='Export', command=self.export).grid(row=2, column=0, columnspan=2)
+        self.columnconfigure([0,1], weight=1)
+        self.rowconfigure([2], weight=1)
+
 
         self.real_plan_opt = real_plan_opt
         self.training_plan_map = training_plan_map

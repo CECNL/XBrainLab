@@ -37,6 +37,8 @@ class EvaluationTableWindow(TopWindow):
 
         metric_opt.grid(row=0, column=0)
         tree.grid(row=1, column=0, sticky='news')
+        self.columnconfigure([0], weight=1)
+        self.rowconfigure([1], weight=1)
 
         self.selected_metric = selected_metric
         self.tree = tree
