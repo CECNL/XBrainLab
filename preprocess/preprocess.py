@@ -133,4 +133,4 @@ class EditEvent(TopWindow):
         #self.preprocessed_data.inspect()
         self.destroy()
     def _get_result(self):
-        return self.preprocessed_data, self.command_label
+        return self.preprocessed_data

@@ -171,7 +171,7 @@ class LoadTemplate(TopWindow):
         self.raw_events = {} # if events of raw structure were loaded, fn: [label of (n_event,1), event_ids dict] 
         self.attr_row_template = self._init_row()
 
-        self.attr_info = {'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0} # used for .mat & .npy/npz
+        self.attr_info = {'data key': [], 'event key': [], 'sampling rate': 0, 'nchan': 0, 'ntimes':0} # used for .mat & .npy/npz
 
         # ==== type selection ==== 
         type_frame = ttk.LabelFrame(self, text="Data type")
@@ -265,7 +265,7 @@ class LoadTemplate(TopWindow):
             self.data_list.pop(selected_row['text'])
             self.attr_len.set(len(self.attr_list))
         if len(self.attr_list) == 0:
-            self.attr_info = {'data key': '', 'event key': '', 'sampling rate': 0, 'nchan': 0, 'ntimes':0}
+            self.attr_info = {'data key': [], 'event key': [], 'sampling rate': 0, 'nchan': 0, 'ntimes':0}
             self.nch.set(self.attr_info['nchan'])
             self.srate.set(self.attr_info['sampling rate'])
             self.type_raw.config(state="active")
@@ -307,16 +307,22 @@ class LoadTemplate(TopWindow):
         if self.type_ctrl.get() == 'raw':
             assert len(data_array.shape) == 2, 'Data dimension invalid.'
             selected_data = mne.io.RawArray(data_array, data_info)
-            if attr_info_tmp['event key'] not in  ["None", ""]:
-                event_label = selected_data[attr_info_tmp['event key']]
+            if attr_info_tmp['event key'] != []:
+                assert sum(k in attr_info_tmp['event key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing event.'
+                for k in attr_info_tmp['event key']:
+                    if k in selected_data.keys():
+                        event_label = selected_data[k]
                 event_label = list(set(event_label.flatten()))
                 event_id = {str(i): event_label[i] for i in range(len(event_label))}
                 return selected_data, (event_label, event_id)
         else:
             assert len(data_array.shape) == 3, 'Data dimension invalid.'
             selected_data_tmp = mne.EpochsArray(data_array, data_info)
-            if attr_info_tmp['event key'] not in  ["None", ""]:
-                event_label = selected_data[attr_info_tmp['event key']]
+            if attr_info_tmp['event key'] != []:
+                assert sum(k in attr_info_tmp['event key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing event.'
+                for k in attr_info_tmp['event key']:
+                    if k in selected_data.keys():
+                        event_label = selected_data[k]
                 selected_data_tmp.events[:,2] = np.squeeze(event_label)
                 event_label = list(set(event_label.flatten()))
                 selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
@@ -336,8 +342,8 @@ class LoadTemplate(TopWindow):
         else:
             return np.transpose(target, (dim_ch, dim_time))
     def _clear_key(self):
-        self.attr_info['data key'] = ''
-        self.attr_info['event key'] = ''
+        self.attr_info['data key'] = []
+        self.attr_info['event key'] = []
     
     def _confirm(self):
         # check channel number
@@ -400,7 +406,7 @@ class _loadmat(TopWindow):
         super().__init__(parent, title)
         
         self.loaded_mat = loaded_mat
-        self.ret_key = {"data key":"", "event key":"", "sampling rate":0, "nchan":0, "ntimes":0}
+        self.ret_key = attr_info_tmp
         self.srate = tk.IntVar()
         self.srate.set(attr_info_tmp['sampling rate'])
         self.nch = tk.IntVar()
@@ -410,7 +416,7 @@ class _loadmat(TopWindow):
         tk.Label(self, text="Filename: "+fp.split('/')[-1]).grid(row=0, column=0, sticky='w')
 
         # ==== select key
-        spin_val = [k for k in loaded_mat.keys() if k not in ['__globals__', '__version__', '__header__']] # discard '__globals__', '__version__', '__header__'
+        spin_val = [k for k in loaded_mat.keys() if k not in ['__globals__', '__version__', '__header__']]
         spin_val = tuple(reversed(spin_val)) 
         
         self.data_shape_view = tk.StringVar()
@@ -462,7 +468,7 @@ class _loadmat(TopWindow):
                 tk.Entry(self, textvariable=tv).grid(row=4+sr_ch_time.index(tv), column=1, sticky='w')
         else:
             for t in sr_ch_time:
-                tk.Label(self, text=t).grid(row=4+sr_ch_time.index(t), column=1, sticky='w')
+                tk.Label(self, text=t.get()).grid(row=4+sr_ch_time.index(t), column=1, sticky='w')
 
         # ==== confirm
         tk.Button(self, text="Confirm",command=self._key_confirm).grid(row=7, column=0)
@@ -475,13 +481,13 @@ class _loadmat(TopWindow):
             self.event_shape_view.set(str(self.loaded_mat[self.event_key_select.get()].shape))
         
     def _key_confirm(self):
-        self.ret_key["data key"] =  self.data_key_select.get()
-        self.ret_key["event key"] = self.event_key_select.get()
+        self.ret_key["data key"].append(self.data_key_select.get())
+        self.ret_key["event key"].append(self.event_key_select.get())
         self.ret_key["sampling rate"] = self.srate.get()
         self.ret_key["nchan"] = self.nch.get()
         self.ret_key["ntimes"] = self.ntime.get()
 
-        assert self.ret_key["data key"] != self.ret_key["event key"], 'Data key and event key should be different.'
+        assert self.ret_key["data key"][-1] != self.ret_key["event key"][-1], 'Data key and event key should be different.'
         assert self.ret_key["sampling rate"] >0, 'Sampling rate invalid.'
         assert (self.ret_key["nchan"] >0) and (self.ret_key["nchan"] in self.loaded_mat[self.data_key_select.get()].shape), 'Number of channels invalid.'
         assert (self.ret_key["ntimes"] >0) and (self.ret_key["ntimes"] in self.loaded_mat[self.data_key_select.get()].shape), 'Number of time points invalid.'
@@ -489,6 +495,12 @@ class _loadmat(TopWindow):
 
     def _get_result(self):
         return self.ret_key
+
+class _keyhandler(TopWindow):
+    def __init__(self, parent):
+        super().__init__(parent, "Selected keys")
+
+        
 
 class LoadMat(LoadTemplate):
     # TODO: reset common settings
@@ -523,10 +535,17 @@ class LoadMat(LoadTemplate):
             if fn.split('/')[-1] not in self.attr_list.keys():
                 selected_data = scipy.io.loadmat(fn)
 
-                if self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0:
+                if (self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0 ) \
+                    or any(k in selected_data.keys() for k in attr_info_tmp['data key'])==False \
+                    or any(k in selected_data.keys() for k in attr_info_tmp['event key'])==False:
                     attr_info_tmp = _loadmat(self, "Select Field", fn,attr_info_tmp, selected_data).get_result()
 
-                data_array = selected_data[attr_info_tmp['data key']]
+                assert sum(k in attr_info_tmp['data key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing data.'
+                
+                for k in attr_info_tmp['data key']:
+                    if k in selected_data.keys():
+                        data_array = selected_data[k]
+                        break
                 data_array = self._reshape_array(data_array, attr_info_tmp)
                 data_info = mne.create_info(attr_info_tmp['nchan'], attr_info_tmp['sampling rate'], 'eeg')
                 
@@ -540,7 +559,7 @@ class LoadMat(LoadTemplate):
 
         # update attr table
         self._list_update(attr_list_tmp, data_list_tmp, raw_event_tmp)
-        if self.attr_info['nchan']==0:
+        if self.nch.get()==0:
             self.attr_info = attr_info_tmp
             self.nch.set(self.attr_info['nchan'])
             self.srate.set(self.attr_info['sampling rate'])
@@ -667,14 +686,20 @@ class LoadNp(LoadTemplate):
                 selected_data = np.load(fn)
                 if isinstance(selected_data, np.lib.npyio.NpzFile): # npz
                     selected_data = {k:selected_data[k] for k in selected_data.keys()}
-                    if self.attr_info['data key'] =='' and attr_info_tmp['data key']=='':
+                    if (self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0 ) \
+                    or any(k in selected_data.keys() for k in attr_info_tmp['data key'])==False \
+                    or any(k in selected_data.keys() for k in attr_info_tmp['event key'])==False:
                         attr_info_tmp.update(_loadmat(self, "Set attribute", fn, attr_info_tmp, selected_data).get_result())
                 else: # npy
                     if self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0:
                         attr_info_tmp.update(_loadnpy(self, "Set attribute", fn, attr_info_tmp, selected_data).get_result())
                 
                 if isinstance(selected_data, dict): # npz
-                    data_array = selected_data[attr_info_tmp['data key']]
+                    assert sum(k in attr_info_tmp['data key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing data.'
+                    for k in attr_info_tmp['data key']:
+                        if k in selected_data.keys():
+                            data_array = selected_data[k]
+                            break
                 else:
                     data_array = selected_data
                 
@@ -690,7 +715,7 @@ class LoadNp(LoadTemplate):
                 data_list_tmp[fn.split('/')[-1]] = selected_data
         
         self._list_update(attr_list_tmp, data_list_tmp, raw_event_tmp)
-        if self.attr_info['nchan']==0:
+        if self.nch.get()==0:
             self.attr_info = attr_info_tmp
             self.nch.set(self.attr_info['nchan'])
             self.srate.set(self.attr_info['sampling rate'])
