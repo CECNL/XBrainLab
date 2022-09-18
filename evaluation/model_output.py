@@ -27,7 +27,7 @@ class ModelOutputWindow(TopWindow):
         ###+ real plan
         selected_real_plan_name = tk.StringVar(self)
         selected_real_plan_name.set(real_plan_list[0])
-        selected_plan_name.trace('w', lambda *args: selected_real_plan_name.set(real_plan_list[0])) # reset selection
+        selected_plan_name.trace('w', lambda *args,win=self: selected_real_plan_name.set(real_plan_list[0])) # reset selection
         real_plan_opt = tk.OptionMenu(self, selected_real_plan_name, *real_plan_list)
 
         tk.Label(self, text='Plan Name: ').grid(row=0, column=0)
@@ -60,7 +60,7 @@ class ModelOutputWindow(TopWindow):
         
         self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
-            self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
+            self.real_plan_opt['menu'].add_command(label=choice, command=lambda win=self,value=choice: self.selected_real_plan_name.set(value))
 
     def export(self):
         if self.selected_real_plan_name.get() not in self.real_plan_map:

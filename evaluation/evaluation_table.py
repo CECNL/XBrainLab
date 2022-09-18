@@ -22,7 +22,7 @@ class EvaluationTableWindow(TopWindow):
         ## option menu
         selected_metric = tk.StringVar(self)
         selected_metric.set(metric_list[0])
-        selected_metric.trace('w', lambda *args: self.update_loop(loop=False))
+        selected_metric.trace('w', lambda *args,win=self: self.update_loop(loop=False))
         metric_opt = tk.OptionMenu(self, selected_metric, *metric_list)
         ## tree
         

@@ -128,14 +128,14 @@ class DataSplittingSettingWindow(TopWindow):
             if var_list[i].get() == SplitByType.DISABLE.value:
             # disable next level
                 if i + 1 < opt_num and option_list[i + 1].winfo_ismapped():
-                    self.after(100, lambda idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
-                    self.after(100, lambda idx=i+1,v=option_list: v[idx].grid_remove())
+                    self.after(100, lambda win=self,idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
+                    self.after(100, lambda win=self,idx=i+1,v=option_list: v[idx].grid_remove())
                     return True
             else:
             # enable next level
                 if i + 1 < opt_num and not option_list[i + 1].winfo_ismapped():
-                    self.after(100, lambda idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
-                    self.after(100, lambda idx=i+1,v=option_list: v[idx].grid())
+                    self.after(100, lambda win=self,idx=i+1,v=var_list: v[idx].set(SplitByType.DISABLE.value))
+                    self.after(100, lambda win=self,idx=i+1,v=option_list: v[idx].grid())
                     return True
         return False
 

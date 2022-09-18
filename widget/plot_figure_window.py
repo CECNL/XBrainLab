@@ -41,7 +41,7 @@ class PlotFigureWindow(SinglePlotWindow):
         selected_real_plan_name = tk.StringVar(self)
         selected_real_plan_name.set(real_plan_list[0])
         selected_real_plan_name.trace('w', self.on_real_plan_select) # callback
-        selected_plan_name.trace('w', lambda *args: selected_real_plan_name.set(real_plan_list[0])) # reset selection
+        selected_plan_name.trace('w', lambda *args,win=self: selected_real_plan_name.set(real_plan_list[0])) # reset selection
         real_plan_opt = tk.OptionMenu(selector_frame, selected_real_plan_name, *real_plan_list)
 
         plan_opt.pack()
@@ -78,7 +78,7 @@ class PlotFigureWindow(SinglePlotWindow):
         self.trainer = trainer
         self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
-            self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
+            self.real_plan_opt['menu'].add_command(label=choice, command=lambda win=self,value=choice: self.selected_real_plan_name.set(value))
 
     def on_real_plan_select(self, var_name, *args):
         self.set_selection(False)
@@ -128,7 +128,7 @@ class PlotFigureWindow(SinglePlotWindow):
         while len(trainer.get_plans()) > 0 and item_count < len(trainer.get_plans()):
             self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
             choice = trainer.get_plans()[item_count].get_name()
-            self.real_plan_opt['menu'].add_command(label=choice, command=lambda value=choice: self.selected_real_plan_name.set(value))
+            self.real_plan_opt['menu'].add_command(label=choice, command=lambda win=self,value=choice: self.selected_real_plan_name.set(value))
             item_count += 1
 
     def set_selection(self, allow):
