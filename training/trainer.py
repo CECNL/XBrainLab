@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 import torch.utils.data as Data
 import time
+from matplotlib import pyplot as plt
 from copy import deepcopy
 from ..base import InitValidateException
 from .training_setting import TRAINING_EVALUATION
 import numpy as np
 from enum import Enum
+import traceback
 
 def calculate_confusion(output, label):
     classNum = len(np.unique(label))
@@ -62,7 +64,6 @@ class TrainRecord:
     
     # figure
     def get_loss_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
-        from matplotlib import pyplot as plt
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -86,7 +87,6 @@ class TrainRecord:
         return fig
 
     def get_acc_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
-        from matplotlib import pyplot as plt
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -109,7 +109,6 @@ class TrainRecord:
         return fig
     
     def get_lr_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
-        from matplotlib import pyplot as plt
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -125,7 +124,6 @@ class TrainRecord:
         return fig
 
     def get_confusion_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
-        from matplotlib import pyplot as plt
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -258,7 +256,6 @@ class Trainer:
                 self.train_one_repeat( self.train_record_list[i] )
             self.status = Status.DONE.value
         except Exception as e:
-            import traceback
             traceback.print_exc()
             self.error = str(e)
             self.status = Status.PENDING.value

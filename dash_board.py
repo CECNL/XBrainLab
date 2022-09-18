@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.messagebox
+from matplotlib import pyplot as plt
 from .load_data import LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp
 from .preprocess import Channel, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent
 from .dataset import DataSplittingSettingWindow
@@ -206,7 +207,6 @@ class DashBoard(tk.Tk):
         self.child_list.remove(child)
        
     def check_training(self):
-        from .training.training_manager import TrainingManagerWindow
         if TrainingManagerWindow.task:
             if tk.messagebox.askokcancel(parent=self, title='Warning', message='Training is in progress.\nDo you want to exit?'):
                 TrainingManagerWindow.task.set_interrupt()
@@ -224,7 +224,6 @@ class DashBoard(tk.Tk):
             if child.destroy():
                 return True
         
-        from matplotlib import pyplot as plt
         plt.close('all')
         # recycling
         print('recycling...')
