@@ -37,7 +37,7 @@ def run():
         dash_board = DashBoard()
         dash_board.mainloop()
         return dash_board
-    except:
+    except Exception as e:
         try:
             dash_board.destroy()
         except:

@@ -381,6 +381,8 @@ class Trainer:
     
     # status
     def get_training_status(self):
+        if self.error:
+            return self.error
         return self.status
 
     def get_training_repeat(self):

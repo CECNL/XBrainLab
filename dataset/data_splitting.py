@@ -321,7 +321,7 @@ class DataSplittingWindow(TopWindow):
                 else:
                     return
         if self.preview_worker.is_alive():
-            tk.messagebox.show_info(parent=self, title='Warning', message='Generating dataset, please try again later.')
+            tk.messagebox.showinfo(parent=self, title='Warning', message='Generating dataset, please try again later.')
             return
         # remove unselected plan
         while True:
