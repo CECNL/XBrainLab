@@ -1,12 +1,12 @@
 import tkinter as tk
 import tkinter.messagebox
 from matplotlib import pyplot as plt
-from .load_data import LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp
-from .preprocess import Channel, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent
+from .load_data import IMPORT_TYPE_MODULE_LIST
+from .preprocess import PREPROCESS_MODULE_LIST
 from .dataset import DataSplittingSettingWindow
 from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow, Trainer
-from .evaluation import ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow
-from .visualization import PickMontageWindow, SaliencyMapWindow, SaliencyTopographicMapWindow
+from .evaluation import EVALUATION_MODULE_LIST
+from .visualization import PickMontageWindow, VISUALIZATION_MODULE_LIST
 from .dataset.data_holder import Epochs
 from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel, TrainingSettingPanel, TrainingStatusPanel
 from .base import InitValidateException
@@ -69,14 +69,12 @@ class DashBoard(tk.Tk):
         menu.add_cascade(label="Visualization", menu=visualization_menu)
         
         # import data
-        import_data_type_list = [LoadSet, LoadEdf, LoadCnt, LoadMat, LoadNp]
-        for import_data_type in import_data_type_list:
-            import_data_menu.add_command(label=import_data_type.command_label, command=lambda var=import_data_type:self.import_data(var))
+        for import_module in IMPORT_TYPE_MODULE_LIST:
+            import_data_menu.add_command(label=import_module.command_label, command=lambda var=import_module:self.import_data(var))
         
         # preprocess/epoching
-        preprocess_type_list = [Channel, Filtering, Resample, EditEvent, TimeEpoch, WindowEpoch]
-        for preprocess_type in preprocess_type_list:
-            preprocess_menu.add_command(label=preprocess_type.command_label, command=lambda var=preprocess_type:self.preprocess(var))
+        for preprocess_module in PREPROCESS_MODULE_LIST:
+            preprocess_menu.add_command(label=preprocess_module.command_label, command=lambda var=preprocess_module:self.preprocess(var))
         preprocess_menu.add_command(label='Reset', command=self.reset_preprocess)
         
         # training
@@ -87,15 +85,13 @@ class DashBoard(tk.Tk):
         training_menu.add_command(label='Training Manager', command=self.open_training_manager)
 
         # evaluation
-        evaluation_type_list = [ConfusionMatrixWindow, EvaluationTableWindow, ModelOutputWindow]
-        for evaluate_type in evaluation_type_list:
-            evaluation_menu.add_command(label=evaluate_type.command_label, command=lambda var=evaluate_type:self.evaluate(var))
+        for evaluation_module in EVALUATION_MODULE_LIST:
+            evaluation_menu.add_command(label=evaluation_module.command_label, command=lambda var=evaluation_module:self.evaluate(var))
         
         # visualization
         visualization_menu.add_command(label='Set Montage', command=lambda:self.set_montage())
-        visualization_type_list = [SaliencyMapWindow, SaliencyTopographicMapWindow]
-        for visualization_type in visualization_type_list:
-            visualization_menu.add_command(label=visualization_type.command_label, command=lambda var=visualization_type:self.visualize(var))
+        for visualization_module in VISUALIZATION_MODULE_LIST:
+            visualization_menu.add_command(label=visualization_module.command_label, command=lambda var=visualization_module:self.visualize(var))
 
         self.config(menu=menu)
     
@@ -105,21 +101,21 @@ class DashBoard(tk.Tk):
         return False
 
     # data
-    def import_data(self, import_data_type):
+    def import_data(self, import_module):
         if self.preprocessed_data:
             if not self.warn_flow_cleaning():
                 return
-        loaded_data = import_data_type(self).get_result()
+        loaded_data = import_module(self).get_result()
         if loaded_data:
             self.loaded_data = loaded_data
             self.preprocessed_data = loaded_data.copy()
             # TODO clear working flow
 
-    def preprocess(self, preprocess_type):
+    def preprocess(self, preprocess_module):
         if self.datasets:
             if not self.warn_flow_cleaning():
                 return
-        preprocessed_data = preprocess_type(self, self.preprocessed_data).get_result()
+        preprocessed_data = preprocess_module(self, self.preprocessed_data).get_result()
         if preprocessed_data:
             self.preprocessed_data = preprocessed_data
             # TODO clear working flow
@@ -184,8 +180,8 @@ class DashBoard(tk.Tk):
         TrainingManagerWindow(self, self.trainers)
 
     # eval
-    def evaluate(self, evaluation_type):
-        evaluation_type(self, self.trainers)
+    def evaluate(self, evaluation_module):
+        evaluation_module(self, self.trainers)
     
     # visualize
     def set_montage(self):
@@ -196,8 +192,8 @@ class DashBoard(tk.Tk):
         if chs is not None and positions is not None:
             self.preprocessed_data.set_channels(chs, positions)
 
-    def visualize(self, visualize_type):
-        visualize_type(self, self.trainers)
+    def visualize(self, visualization_module):
+        visualization_module(self, self.trainers)
 
     # destroy
     def append_child_window(self, child):
