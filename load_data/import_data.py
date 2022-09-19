@@ -374,7 +374,7 @@ class LoadSet(LoadTemplate):
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
-            filetypes = (('eeg file', '*.set'),)
+            filetypes = (('.set files', '*.set'),)
         )
         attr_list_tmp = {}
         data_list_tmp = {}
@@ -524,7 +524,7 @@ class LoadMat(LoadTemplate):
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
-            filetypes = (('eeg file', '*.mat'),)
+            filetypes = (('.mat files', '*.mat'),)
         )
         attr_list_tmp = {}
         data_list_tmp = {}
@@ -574,7 +574,7 @@ class LoadEdf(LoadTemplate):
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
-            filetypes = (('eeg file', '*.edf'),)
+            filetypes = (('.edf files', '*.edf'),)
         )
         attr_list_tmp = {}
         data_list_tmp = {}
@@ -602,7 +602,7 @@ class LoadCnt(LoadTemplate):
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
-            filetypes = (('eeg file', '*.cnt'),)
+            filetypes = (('.cnt files', '*.cnt'),)
         )
         attr_list_tmp = {}
         data_list_tmp = {}
@@ -674,7 +674,7 @@ class LoadNp(LoadTemplate):
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
-            filetypes = (('eeg file', '*.npy'), ('eeg file', '*.npz'))
+            filetypes = (('.npy files', '*.npy'), ('.npz files', '*.npz'))
         )
         attr_list_tmp = {}
         data_list_tmp = {}
