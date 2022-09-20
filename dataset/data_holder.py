@@ -1,6 +1,7 @@
 import numpy as np
 from enum import Enum
 from .option import SplitUnit
+from copy import deepcopy
 
 class Raw:
     """
@@ -54,62 +55,70 @@ class Raw:
         #print(self.event_id_map)
 
 class Epochs:
-    def __init__(self, epoch_attr={}, epoch_data={}):
+    def __init__(self, epoch_attr={}, epoch_data={}, label_map={}):
+        self.epoch_attr = epoch_attr # {'filename': (subject, session)}
+        self.epoch_data = epoch_data # {'filename': mne structure}
+        self.label_map = label_map   # {int(event_id): 'description'}
+        self.event_id = {}           # {'event_name': int(event_id)}
+        for filename in self.epoch_data:
+            self.event_id.update(self.epoch_data[filename].event_id)
+        self.check_data()
+        self.update()
+
+    def check_data(self):
+        event_ids = self.event_id.values()
+        if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
+            raise ValueError("Invalid event_id")
+        for i in event_ids:
+            if i not in  self.label_map:
+                self.label_map[i] = '(Empty)'
+
+    def copy(self):
+        return Epochs(self.epoch_attr.copy(), deepcopy(self.epoch_data), self.label_map.copy())
+
+    def reset(self):
         self.sfreq = None
-        self.subject_map = {} # index: S{subject idx}
-        self.session_map = {} # index: unique session num
-        self.label_map = {} # index: event idx
+        self.subject_map = {} # index: subject name
+        self.session_map = {} # index: session name
+        self.label_map = {}   # index: event idx
         self.channel_map = []
         self.channel_position = None
 
-        # shape(n_data_loaded * len_epoch)
-        self.subject = np.array([]) # ([subject] * len(epochs) for n data)
-        self.session = np.array([]) # ([session] * len(epochs) for n data)
-        self.label = np.array([]) # (len(event_label) for n data)
-        self.idx = np.array([]) # range(len(epochs)) for n data
+        # 1D np array
+        self.subject = []
+        self.session = []
+        self.label = []
+        self.idx = []
 
-        self.data = [] # mne structure
+        self.data = []
 
-        self.event_id = {} # difference with label map: keys are event name string
-
-        # ===== ? initialize somewhere else?
-        if epoch_attr != {} and epoch_data !={}:
-            self._init_epochs(epoch_attr=epoch_attr, epoch_data=epoch_data)
-
-    def _init_epochs(self, epoch_attr, epoch_data):
-        i = 0
-        for fn in epoch_attr.keys():
-            epoch_len = len(epoch_data[fn])
-            self.subject = np.concatenate((self.subject, np.array([epoch_attr[fn][0]] * epoch_len)))
-            self.session = np.concatenate((self.session, np.array([epoch_attr[fn][1]] * epoch_len)))
-            self.label   = np.concatenate((self.label,   epoch_data[fn].events[:,2]))
-            self.idx     = np.concatenate((self.idx,     range(epoch_len))) # epoch len
-            self.data.append(epoch_data[fn])
-            if self.event_id=={}:
-                self.event_id = epoch_data[fn].event_id
-            else: 
-                assert epoch_data[fn].event_id == self.event_id, 'Event Id inconsistent.'
-            i += 1
-        self.sfreq = self.data[0].info['sfreq']
-        self.label_map   = {i:i for i in np.unique(self.label)}
-        self.session_map = {i:i for i in np.unique(self.session)}
-        self.subject_map = {int(i):f"S{int(i)}" for i in np.unique(self.subject)}
-        # TODO channel_map
+    # make sure to call this on every preprocessing
+    def update(self):
+        self.reset()
+        map_subject = {}
+        map_session = {}
+        map_label = {}
         
-    def copy(self):
-        newEpochs = Epochs()
-        newEpochs.sfreq = self.sfreq
-        newEpochs.subject_map = self.subject_map.copy()
-        newEpochs.session_map = self.session_map.copy()
-        newEpochs.label_map = self.label_map.copy()
-        newEpochs.subject = self.subject.copy()
-        newEpochs.session = self.session.copy()
-        newEpochs.label = self.label.copy()
-        newEpochs.idx = self.idx.copy()
-        newEpochs.data = [e.copy() for e in self.data]
-        newEpochs.event_id = self.event_id.copy()
-        newEpochs.channel_map = self.channel_map.copy()
-        return newEpochs
+        for filename in self.epoch_attr.keys():
+            epoch_len = len(self.epoch_data[filename].events)
+            subject_name, session_name = self.epoch_attr[filename]
+            if subject_name not in map_subject:
+                map_subject[subject_name] = len(map_subject)
+            if session_name not in map_session:
+                map_session[session_name] = len(map_session)
+            subject_idx = map_subject[subject_name]
+            session_idx = map_session[session_name]
+
+            self.subject = np.concatenate((self.subject, [subject_idx] * epoch_len))
+            self.session = np.concatenate((self.session, [session_idx] * epoch_len))
+            self.label   = np.concatenate((self.label,   self.epoch_data[filename].events[:,2]))
+            self.idx     = np.concatenate((self.idx,     range(epoch_len)))
+            self.data    = np.concatenate((self.data,    self.epoch_data[filename].get_data()))
+            self.sfreq = self.epoch_data[filename].info['sfreq']
+            self.channel_map = self.epoch_data[filename].info.ch_names.copy()
+
+        self.session_map = {map_session[i]:i for i in map_session}
+        self.subject_map = {map_subject[i]:i for i in map_subject}
     
     # data splitting
     ## get list
@@ -164,7 +173,7 @@ class Epochs:
     
     ## data info
     def get_data_length(self): # return n_epochs * n_Epochs
-        return len(self.data[-1])*len(self.data)
+        return len(self.data)
 
     ## picker
     def pick_subject(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
@@ -283,19 +292,13 @@ class Epochs:
 
     # train
     def get_args(self):
-        return  {'n_classes': len(self.event_id), # max(np.unique(self.label)) + 1,
-                 'channels' : self.data[-1].info['nchan'], #self.data[-1].shape[-2],
-                 'samples'  : self.data[-1].get_data().shape[-1], #self.data[-1].shape[-1],
+        return  {'n_classes': len(self.event_id),
+                 'channels' : len(self.channel_map),
+                 'samples'  : self.data.shape[-1],
                  'sfreq'    : self.sfreq }
     
-    def get_data(self): # return data array of (n_epochs * n_Epochs, n_channels, n_times)
-        data_array = np.zeros(self.data[-1].get_data().shape)
-        for d in self.data:
-            if np.array_equal(data_array, np.zeros(self.data[-1].get_data().shape)):
-                data_array = d.get_data()
-            else:
-                data_array = np.concatenate((data_array, d.get_data()))
-        return data_array
+    def get_data(self):
+        return self.data
 
     #eval
     def get_label_number(self):
@@ -421,6 +424,4 @@ class DataSet:
 
     def get_test_data(self):
         X = self.data_holder.get_data()[self.test_mask]
-        y = self.data_holder.get_label_list()[self.test_mask]
-        return X, y
-    
+        y = self.data_holder.get_la
