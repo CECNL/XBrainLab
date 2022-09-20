@@ -64,7 +64,6 @@ class DataSplittingWindow(TopWindow):
                 val_split_by_label = tk.Label(validation_frame, text=val_splitter.text)
                 val_split_type_option = tk.OptionMenu(validation_frame, val_splitter.split_var, *split_unit_list)
                 val_split_entry = tk.Entry(validation_frame, textvariable=val_splitter.entry_var)
-                val_split_entry.bind('<Return>', self.preview)
                 ## pack
                 val_split_by_label.grid(row=row + 0, column=0, columnspan=2)
                 val_split_type_option.grid(row=row + 1, column=0)
@@ -94,7 +93,6 @@ class DataSplittingWindow(TopWindow):
                     tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
                 test_split_type_option = tk.OptionMenu(testing_frame, test_splitter.split_var, *tmp_split_unit_list)
                 test_split_entry = tk.Entry(testing_frame, textvariable=test_splitter.entry_var)
-                test_split_entry.bind('<Return>', self.preview) # avoid messing up dataset sequence
                 ## pack
                 test_split_by_label.grid(row=row + 0, column=0, columnspan=2)
                 test_split_type_option.grid(row=row + 1, column=0)
@@ -121,11 +119,9 @@ class DataSplittingWindow(TopWindow):
         self.tree = tree
         
         ## init func
-        self.preview_init()
+        self.preview()
         self.update_table()
-    def preview_init(self): # avoid messing up dataset sequence
-        self.tree.insert("", 'end', iid=LOADING_TREE_ROW_IID, values=['Press', 'enter','on entry','to start','calculating'])
-    
+
     def preview(self, var=None, index=None, mode=None):
         # reset config
         self.preview_failed = False
@@ -184,7 +180,6 @@ class DataSplittingWindow(TopWindow):
                             return
                         if not test_splitter.is_valid():
                             self.preview_failed = True
-                            DataSet.SEQ-=1
                             return
                         # session
                         if test_splitter.split_type == SplitByType.SESSION or test_splitter.split_type == SplitByType.SESSION_IND:
@@ -225,10 +220,6 @@ class DataSplittingWindow(TopWindow):
                                 ref_mask = exclude.copy()
                                 # restore previous cross validation part
                                 exclude |= ref_exclude
-                            if mask.all() and exclude.all():
-                                self.preview_failed = True
-                                DataSet.SEQ-=1
-                                return
                             if not mask.any():
                                 has_next = False
                                 break
@@ -255,7 +246,6 @@ class DataSplittingWindow(TopWindow):
                             return
                         if not val_splitter.is_valid():
                             self.preview_failed = True
-                            DataSet.SEQ -= 1
                             return
                         # session
                         if val_splitter.split_type == ValSplitByType.SESSION:
@@ -426,11 +416,11 @@ class DataSplittingInfoWindow(TopWindow):
                             start_idx = i
                             continue
                         if last_idx + 1 != i:
-                            tree.insert(label_root, 'end', text=f"Trail {int(start_idx)}~{int(last_idx)}")
+                            tree.insert(label_root, 'end', text=f"Trail {start_idx}~{last_idx}")
                             start_idx = i
                         last_idx = i
                     if last_idx:
-                        tree.insert(label_root, 'end', text=f"Trail {int(start_idx)}~{int(idx_list[-1])}")
+                        tree.insert(label_root, 'end', text=f"Trail {start_idx}~{idx_list[-1]}")
     
     def confirm(self):
         self.dataset.set_name(self.name_var.get())
@@ -455,12 +445,12 @@ class DataSplitter():
     def set_split_unit_var(self, root, val, callback):
         self.split_var = tk.StringVar(root)
         self.split_var.set(val)
-        #self.split_var.trace_add('write', callback)
+        self.split_var.trace_add('write', callback)
 
     def set_entry_var(self, root, val, callback):
         self.entry_var = tk.StringVar(root)
         self.entry_var.set(val)
-        #self.entry_var.trace_add('write', callback)
+        self.entry_var.trace_add('write', callback)
 
     # convert variable to constant
     def _is_valid(self):

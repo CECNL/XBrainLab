@@ -187,10 +187,6 @@ class Epochs:
             else:
                 num *= len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
         num = int(num)
-        if num > len(self.subject_map) or num == 0:
-            ret = np.array([True] * target_type.shape[0])
-            mask = np.array([True] * target_type.shape[0])
-            return ret, mask
         while num > 0:
             for label in list(self.label_map.keys())[::-1]:
                 for subject in list(self.subject_map.keys())[::-1]:

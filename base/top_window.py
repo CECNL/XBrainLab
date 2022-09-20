@@ -42,7 +42,7 @@ class TopWindow(tk.Toplevel):
     def destroy(self):
         # close all children window
         child_list = self.child_list.copy()
-        for child in child_list[::-1]:
+        for child in child_list:
             if child.destroy():
                 return True
         # remove self from parent
