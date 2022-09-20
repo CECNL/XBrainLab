@@ -6,7 +6,7 @@ class DatasetPanel(PanelBase):
         super().__init__(parent, text='Dataset', **args)
 
         self.preprocessed_data = None
-        self.row_label = ["Data trials: ", "Epochs per trial: ", "EEG channels: ", "Sampling rate: ", "Classes: "]
+        self.row_label = ["Data sessions: ", "Epochs per session: ", "EEG channels: ", "Sampling rate: ", "Classes: "]
         self.row_var = {k:tk.StringVar() for k in self.row_label}
         
         
@@ -18,10 +18,11 @@ class DatasetPanel(PanelBase):
     def update_panel(self, preprocessed_data):
         self.preprocessed_data = preprocessed_data
         if preprocessed_data!= None:
-            row_value = [len(self.preprocessed_data.data)*len(self.preprocessed_data.data[-1])]
-            row_value += [len(self.preprocessed_data.data[-1]), self.preprocessed_data.data[-1].info['nchan']]
-            row_value += [self.preprocessed_data.data[-1].info['sfreq']]
-            row_value += [len(self.preprocessed_data.label_map)]
+            row_value = [len(self.preprocessed_data.data),\
+                len(self.preprocessed_data.data[-1]),\
+                self.preprocessed_data.data[-1].info['nchan'],\
+                int(self.preprocessed_data.data[-1].info['sfreq']),\
+                len(self.preprocessed_data.label_map)]
             for i in range(len(self.row_label)):
                 self.row_var[self.row_label[i]].set(str(row_value[i]))
         else:
