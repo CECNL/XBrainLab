@@ -9,6 +9,9 @@ class Catcher:
         self.subst = subst
         self.widget = widget
         self.win = None
+        if hasattr(func, '__self__'):
+            if isinstance(self.func.__self__, tk.Toplevel):
+                self.win = self.func.__self__
         for parm, value in inspect.signature(self.func).parameters.items():
             if parm == 'win' and isinstance(value.default, tk.Toplevel):
                 self.win = value.default

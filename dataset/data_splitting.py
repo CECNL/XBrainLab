@@ -40,11 +40,11 @@ class DataSplittingWindow(TopWindow):
         # dataset frame
         dataset_frame = tk.LabelFrame(self, text ='Dataset Info')
         tk.Label(dataset_frame, text='Subject: ')                        .grid(row=0, column=0, sticky='e', padx=3)
-        tk.Label(dataset_frame, text=len(data_holder.subject_map.keys())).grid(row=0, column=1, padx=5)
+        tk.Label(dataset_frame, text=len(data_holder.subject_map)).grid(row=0, column=1, padx=5)
         tk.Label(dataset_frame, text='Session: ')                        .grid(row=1, column=0, sticky='e', padx=3)
-        tk.Label(dataset_frame, text=len(data_holder.session_map.keys())).grid(row=1, column=1, padx=5)
+        tk.Label(dataset_frame, text=len(data_holder.session_map)).grid(row=1, column=1, padx=5)
         tk.Label(dataset_frame, text='Label: ')                          .grid(row=2, column=0, sticky='e', padx=3)
-        tk.Label(dataset_frame, text=len(data_holder.label_map.keys()))  .grid(row=2, column=1, padx=5)
+        tk.Label(dataset_frame, text=len(data_holder.label_map))  .grid(row=2, column=1, padx=5)
         tk.Label(dataset_frame, text='Trail: ')                          .grid(row=3, column=0, sticky='e', padx=3)
         tk.Label(dataset_frame, text=len(data_holder.data))              .grid(row=3, column=1, padx=5)
         # training

@@ -53,10 +53,22 @@ class Epochs:
         self.epoch_attr = epoch_attr # {'filename': (subject, session)}
         self.epoch_data = epoch_data # {'filename': mne structure}
         self.label_map = label_map   # {int(event_id): 'description'}
-        self.event_id = {}           # {'event_name': int(event_id)}
-        for filename in self.epoch_data:
-            self.event_id.update(self.epoch_data[filename].event_id)
-        self.check_data()
+        #
+        self.sfreq = None
+        self.subject_map = {} # index: subject name
+        self.session_map = {} # index: session name
+        self.event_id = {}    # {'event_name': int(event_id)}
+        self.channel_map = []
+        self.channel_position = None
+
+        # 1D np array
+        self.subject = []
+        self.session = []
+        self.label = []
+        self.idx = []
+
+        self.data = []
+        
         self.update()
 
     def check_data(self):
@@ -64,8 +76,12 @@ class Epochs:
         #if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
         #    raise ValueError("Invalid event_id")
         for i in event_ids:
-            if i not in  self.label_map:
+            if i not in self.label_map:
                 self.label_map[i] = '(Empty)'
+        
+        for i in self.label_map:
+            if i not in event_ids:
+                del self.label_map[i]
 
     def copy(self):
         return Epochs(self.epoch_attr.copy(), deepcopy(self.epoch_data), self.label_map.copy())
@@ -74,7 +90,7 @@ class Epochs:
         self.sfreq = None
         self.subject_map = {} # index: subject name
         self.session_map = {} # index: session name
-        self.label_map = {}   # index: event idx
+        self.event_id = {}    # {'event_name': int(event_id)}
         self.channel_map = []
         self.channel_position = None
 
@@ -89,6 +105,10 @@ class Epochs:
     # make sure to call this on every preprocessing
     def update(self):
         self.reset()
+        for filename in self.epoch_data:
+            self.event_id.update(self.epoch_data[filename].event_id)
+        self.check_data()
+        
         map_subject = {}
         map_session = {}
         map_label = {}
@@ -289,7 +309,7 @@ class Epochs:
 
     # train
     def get_args(self):
-        return  {'n_classes': len(self.event_id),
+        return  {'n_classes': len(self.label_map),
                  'channels' : len(self.channel_map),
                  'samples'  : self.data.shape[-1],
                  'sfreq'    : self.sfreq }
