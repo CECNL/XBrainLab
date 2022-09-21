@@ -19,7 +19,7 @@ class InitWindowValidateException(CustomException):
             self.window.destroy()
         tk.messagebox.showerror(parent=self.window.master, title='Error', message=self)
 
-class InitValidateException(CustomException):
+class ValidateException(CustomException):
     def __init__(self, message):
         super().__init__(message)
         

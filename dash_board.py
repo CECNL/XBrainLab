@@ -9,7 +9,7 @@ from .evaluation import EVALUATION_MODULE_LIST
 from .visualization import PickMontageWindow, VISUALIZATION_MODULE_LIST
 from .dataset.data_holder import Epochs
 from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel, TrainingSettingPanel, TrainingStatusPanel
-from .base import InitValidateException
+from .base import ValidateException
 
 class DashBoard(tk.Tk):
     def __init__(self):
@@ -164,7 +164,7 @@ class DashBoard(tk.Tk):
             if not self.warn_flow_cleaning():
                 return
         if not self.datasets:
-            raise InitValidateException('No valid dataset is generated')
+            raise ValidateException('No valid dataset is generated')
 
         trainers = []
         option = self.training_option

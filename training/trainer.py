@@ -4,7 +4,7 @@ import torch.utils.data as Data
 import time
 from matplotlib import pyplot as plt
 from copy import deepcopy
-from ..base import InitValidateException
+from ..base import ValidateException
 from .training_setting import TRAINING_EVALUATION
 import numpy as np
 from enum import Enum
@@ -238,15 +238,15 @@ class Trainer:
             optim = self.option.get_optim(model)
             self.train_record_list.append(TrainRecord(model, self.dataset, optim, repeat=i))
         if len(self.train_record_list) == 0:
-            raise InitValidateException('Invalid training settings.')
+            raise ValidateException('Invalid training settings.')
     
     def check_data(self):
         if not self.dataset:
-            raise InitValidateException('No valid dataset is generated')
+            raise ValidateException('No valid dataset is generated')
         if not self.option:
-            raise InitValidateException('No valid training setting is generated')
+            raise ValidateException('No valid training setting is generated')
         if not self.model_holder:
-            raise InitValidateException('No valid model is selected')
+            raise ValidateException('No valid model is selected')
 
     # interact
     def train(self):
