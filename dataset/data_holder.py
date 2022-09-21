@@ -10,7 +10,7 @@ class Raw:
     raw_data: {fn: mne.io.Raw}
     raw_event: {fn: [labels, event_ids]}
     """
-    def __init__(self, raw_attr={}, raw_data={}, raw_event={}):
+    def __init__(self, raw_attr={}, raw_data={}, raw_event={}, event_ids={}):
         
         self.id_map = {} # {fn: subject/session/data list position id}
         self.event_id_map = {} # {fn: label list position id}
@@ -21,9 +21,9 @@ class Raw:
         self.data = []
         self.event_id = {}
         if raw_attr!={} and raw_data!={}:
-            self._init_attr(raw_attr=raw_attr, raw_data=raw_data, raw_event=raw_event)
+            self._init_attr(raw_attr=raw_attr, raw_data=raw_data, raw_event=raw_event, event_ids=event_ids)
     
-    def _init_attr(self, raw_attr, raw_data, raw_event):
+    def _init_attr(self, raw_attr, raw_data, raw_event, event_ids):
         i = 0
         for fn in raw_attr.keys():
             self.id_map[fn] = i
@@ -31,13 +31,10 @@ class Raw:
             self.session.append(raw_attr[fn][1])
             self.data.append(raw_data[fn])
             self.sfreq = raw_data[fn].info['sfreq']
+            self.event_id = event_ids
             if fn in raw_event.keys():
                 self.event_id_map[fn] = i
-                self.label.append(raw_event[fn][0])
-                if self.event_id == {}:
-                    self.event_id = raw_event[fn][1]
-                else:
-                    assert self.event_id == raw_event[fn][1], 'Event id inconsistent.'
+                self.label.append(raw_event[fn][0])   
             i += 1
     def copy(self):
         newRaw = Raw()
