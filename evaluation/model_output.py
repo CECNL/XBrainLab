@@ -1,6 +1,6 @@
 import tkinter as tk
 import tkinter.filedialog
-from ..base import TopWindow
+from ..base import TopWindow, InitWindowValidateException
 import os
 import numpy as np
 

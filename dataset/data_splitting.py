@@ -153,7 +153,7 @@ class DataSplittingWindow(TopWindow):
                 # check job interrupt
                 if self.last_update != checker:
                     return
-                dataset = DataSet(self.data_holder)
+                dataset = DataSet(self.data_holder, self.config)
                 dataset.set_name(f"Group {group_idx}")
                 # set name to subject-xxx for individual scheme
                 if self.config.train_type == TrainingType.IND:
@@ -505,20 +505,24 @@ class DataSplittingConfig():
         self.val_type_list = val_type_list # [SplitByType ...]
         self.test_type_list = test_type_list # [ValSplitByType ...]
         self.is_cross_validation = is_cross_validation
+        self.val_splitter_list = None
+        self.test_splitter_list = None
     
     def get_splitter_option(self):
-        val_splitter_list = []
-        for val_type in self.val_type_list:
-            is_option = not (val_type == ValSplitByType.DISABLE)
-            text = val_type.value
-            val_splitter_list.append(DataSplitter(is_option, text, val_type))
-        test_splitter_list = []
-        for test_type in self.test_type_list:
-            is_option = not (test_type == SplitByType.DISABLE)
-            text = test_type.value
-            test_splitter_list.append(DataSplitter(is_option, text, test_type))
-
-        return val_splitter_list, test_splitter_list
+        if not self.val_splitter_list:
+            val_splitter_list = []
+            for val_type in self.val_type_list:
+                is_option = not (val_type == ValSplitByType.DISABLE)
+                text = val_type.value
+                val_splitter_list.append(DataSplitter(is_option, text, val_type))
+            test_splitter_list = []
+            for test_type in self.test_type_list:
+                is_option = not (test_type == SplitByType.DISABLE)
+                text = test_type.value
+                test_splitter_list.append(DataSplitter(is_option, text, test_type))
+            self.val_splitter_list = val_splitter_list
+            self.test_splitter_list = test_splitter_list
+        return self.val_splitter_list, self.test_splitter_list
 
 ###
 

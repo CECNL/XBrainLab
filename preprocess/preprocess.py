@@ -1,4 +1,4 @@
-from ..base.top_window import TopWindow
+from ..base import TopWindow, ValidateException, InitWindowValidateException
 from ..dataset.data_holder import Raw, Epochs
 from ..base import InitWindowValidateException, ValidateException
 import tkinter as tk
@@ -127,55 +127,48 @@ class Resample(TopWindow):
 class EditEvent(TopWindow):
     #  menu state disable
     command_label = "Edit Event"
-    def __init__(self, parent, old_data):
+    def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Edit Event")
-        self.old_event = old_data.event_id
+        self.old_event = preprocessed_data.event_id
+        self.preprocessed_data = preprocessed_data
+        self.new_event_name = {k:tk.StringVar() for k in self.old_event.keys()}
         self.new_event = {}
-        self.preprocessed_data = old_data.copy()
+        self.check_data()
 
-        self.new_event_name = {i:tk.StringVar() for i in range(len(self.old_event))}
-        self.new_event_id = {i:tk.IntVar() for i in range(len(self.old_event))}
-        tk.Label(self, text="Event id: ").grid()
+        eventidframe = tk.LabelFrame(self, text="Event ids:").grid(row=0, column=0, columnspan=2, sticky='w')
         i = 0
         for k,v in self.old_event.items():
-            self.new_event_name[i].set(k)
-            self.new_event_id[i].set(int(v))
-            tk.Entry(self, textvariable=self.new_event_name[i]).grid(row=i+1, column=0)
-            tk.Entry(self, textvariable=self.new_event_id[i]).grid(row=i+1, column=1)
+            self.new_event_name[k].set(k)
+            tk.Entry(eventidframe, textvariable=self.new_event_name[k]).grid(row=i, column=0)
+            tk.Label(eventidframe, text=str(v)).grid(row=i, column=1)
             i += 1
-        tk.Button(self, text="Cancel", command=lambda:self._confirm(0)).grid(row=i+1, column=0)
-        tk.Button(self, text="Confirm", command=lambda:self._confirm(1)).grid(row=i+1, column=1)
+        
+        tk.Button(self, text="Cancel", command=lambda:self._confirm(0)).grid(row=1, column=0)
+        tk.Button(self, text="Confirm", command=lambda:self._confirm(1)).grid(row=1, column=1)
+    
+    def check_data(self):
+        if not any([ isinstance(self.preprocessed_data, Raw), isinstance(self.preprocessed_data, Epochs)]):
+            raise InitWindowValidateException(self, 'No validate data is loaded.')
+        if self.preprocessed_data.event_ids == {}:
+            raise InitWindowValidateException(self, 'Lacking events in loaded data.')
     
     def _confirm(self, confirm_bool=0):
         if confirm_bool ==1:
             # get from entry to new_event dict
             for i in range(len(self.old_event)):
-                assert self.new_event_id[i].get() not in self.new_event.values(), 'Duplicate event id.'
-                assert self.new_event_name[i].get() not in self.new_event.keys(), 'Duplicate event name.'
-                self.new_event[self.new_event_name[i].get()] = self.new_event_id[i].get()
-        
+                if len(set([v.get() for v in self.new_event_name.values()])) < len(self.old_event):
+                    raise ValidateException("Duplicate event name.")
+
             # update parent event data
-            edited_label_map = {k:v for k,v in zip(self.old_event.values(), self.new_event.values())}
+            for k in self.old_event.keys():
+                self.new_event[self.new_event_name[k].get()] = self.old_event[k]
             self.preprocessed_data.event_id = self.new_event
             
             if isinstance(self.preprocessed_data, Raw): # Raw
-                for i in range(len(self.preprocessed_data.label)):
-                    for j in range(self.preprocessed_data.label[i].shape[0]):
-                        self.preprocessed_data.label[i][j] = edited_label_map[self.preprocessed_data.label[i][j]]
+                self.preprocessed_data.event_id = self.new_event
             else:
-                # update mne structure
-                for loaded_data_elem in self.preprocessed_data.data:
-                    loaded_data_elem.event_id = self.new_event
-                    for k,v in edited_label_map.items(): 
-                        loaded_data_elem.events[:,2][loaded_data_elem.events[:,2]==k] = v
-                
-                # update attr
-                for k,v in self.preprocessed_data.label_map.items():
-                    self.preprocessed_data.label_map[k] = edited_label_map[v]
-
-                # update attr_map
-                for k,v in edited_label_map.items(): 
-                    self.preprocessed_data.label[self.preprocessed_data.label==k] = v
+                for mne in self.preprocessed_data.epoch_data:
+                    mne.event_id = self.new_event
         
         #self.preprocessed_data.inspect()
         self.destroy()

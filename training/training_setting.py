@@ -40,6 +40,11 @@ class TrainingOption:
     def get_optim_name(self):
         return self.optim.__name__
 
+    def get_optim_desc_str(self):
+        option_list = [f"{i}={self.optim_parms[i]}" for i in self.optim_parms if self.optim_parms[i] ]
+        options = ', '.join(option_list)
+        return f"{self.optim.__name__} ({options})"
+
     def get_device_name(self):
         return parse_device_name(self.use_cpu, self.gpu_idx)
     
