@@ -503,7 +503,7 @@ class _loadmat(TopWindow):
             raise InitWindowValidateException(self, 'Invalid data type passed to _loadmat on index{}'.format(\
                 ','.join([idx for idx in np.where(check_bools)])))
 
-    def _shape_view_update(self): # on spinbox change
+    def _shape_view_update(self, var, id, mode): # on spinbox change
         self.data_shape_view.set(str(self.loaded_mat[self.data_key_trace.get()].shape)) 
         if self.event_key_trace.get() == 'None':
             self.event_shape_view.set('None')
