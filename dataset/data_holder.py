@@ -424,4 +424,6 @@ class DataSet:
 
     def get_test_data(self):
         X = self.data_holder.get_data()[self.test_mask]
-        y = self.data_holder.get_la
+        y = self.data_holder.get_label_list()[self.test_mask]
+        return X, y
+    
