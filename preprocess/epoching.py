@@ -35,7 +35,6 @@ class TimeEpoch(TopWindow):
         self.max_entry = tk.Entry(self, textvariable=self.field_var['baseline_tmax'], bg="White")
         self.max_entry.grid(row=8, column=1, sticky="w")
         self.field_var['doRemoval'].set(1)
-
         tk.Button(self, text="Confirm", command=lambda win=self: self._extract_epoch(), width=8).grid(row=9, columnspan=3)
 
     def check_data(self):
@@ -128,8 +127,7 @@ class WindowEpoch(TopWindow):
         self.data_list = []
         for data in self.preprocessed_data.data:
             overlap = 0.0 if self.field_var['overlap'].get() == "" else float(self.field_var['overlap'].get())
-            epoch = mne.make_fixed_length_epochs(data, duration=float(self.field_var['duration'].get()),
-                                                 overlap=overlap, preload=True)
+            epoch = mne.make_fixed_length_epochs(data, duration=float(self.field_var['duration'].get()), overlap=overlap, preload=True)
             if self.field_var['doRemoval'].get() == "1":
                 baseline_tmin = float(self.field_var['baseline_tmin'].get()) if self.field_var['baseline_tmin'].get() != "" else None
                 baseline_tmax = float(self.field_var['baseline_tmax'].get()) if self.field_var['baseline_tmax'].get() != "" else None
