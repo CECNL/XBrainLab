@@ -171,7 +171,7 @@ class LoadTemplate(TopWindow):
         self.raw_events = {} # if events of raw structure were loaded, fn: [label of (n_event,1), event_ids dict] 
         self.attr_row_template = self._init_row()
 
-        self.attr_info = {'data key': [], 'event key': [], 'sampling rate': 0, 'nchan': 0, 'ntimes':0} # used for .mat & .npy/npz
+        self.attr_info = {'data key': [], 'event key': [], 'sampling rate': 0, 'nchan': 0, 'ntimes':0, 'tmin':'0'} # used for .mat & .npy/npz
 
         # ==== type selection ==== 
         type_frame = ttk.LabelFrame(self, text="Data type")
@@ -222,7 +222,7 @@ class LoadTemplate(TopWindow):
         new_row['Events'].set('no')
         return new_row
 
-    def _make_row(self, selected_path, selected_data, raw_event_bool=0):
+    def _make_row(self, selected_path, selected_data, raw_event_tuple=None):
         new_row = self._init_row()
         new_row['Filepath'].set(selected_path)
         new_row['Filename'].set(selected_path.split('/')[-1])
@@ -231,8 +231,9 @@ class LoadTemplate(TopWindow):
         if self.type_ctrl.get() == 'raw':
             if(len(selected_data.info['events'])) == 0:
                 new_row['Epochs'].set(1) # raw: only 1 epoch
-            if not raw_event_bool:
+            if raw_event_tuple != None:
                 new_row['Events'].set('yes')
+                #=============self.event_ids.set(str(raw_event_tuple [1]))
         else:
             new_row['Epochs'].set(len(selected_data.events))
             new_row['Events'].set('yes')
@@ -266,8 +267,8 @@ class LoadTemplate(TopWindow):
             self.attr_len.set(len(self.attr_list))
         if len(self.attr_list) == 0:
             self.attr_info = {'data key': [], 'event key': [], 'sampling rate': 0, 'nchan': 0, 'ntimes':0}
-            self.nch.set(self.attr_info['nchan'])
-            self.srate.set(self.attr_info['sampling rate'])
+            #self.nch.set(self.attr_info['nchan'])
+            #self.srate.set(self.attr_info['sampling rate'])
             self.type_raw.config(state="active")
             self.type_epoch.config(state="active")
         
@@ -280,46 +281,53 @@ class LoadTemplate(TopWindow):
         pass
     def _list_update(self, attr_list_tmp, data_list_tmp, raw_event_tmp={}):
         for k,v in attr_list_tmp.items():
+
+            # events
+            if self.type_ctrl.get()=='epochs':
+                if self.event_ids.get() == 'None':
+                    self.event_ids.set(str(data_list_tmp[k].event_id))
+                #else:
+                #    if str(data_list_tmp[k].event_id)!=self.event_ids.get():
+                #        tk.messagebox.showerror(parent=self, title='Error', message='Event ids inconsistent.')
+                #        return
+            elif k in raw_event_tmp.keys():
+                if self.event_ids.get() == 'None':
+                    self.event_ids.set(str(raw_event_tmp[k][1]))
+                else:
+                    if str(raw_event_tmp[k][1])!=self.event_ids.get():
+                        tk.messagebox.showerror(parent=self, title='Error', message='Event ids inconsistent.')
+                        return
             if k not in self.attr_list.keys():
                 v_val = tuple([vv.get() for vv in v.values()])
                 self.data_attr_treeview.insert('', index="end" ,text=k, values=v_val[1:])
                 self.attr_list[k] = v
                 self.data_list[k] = data_list_tmp[k]
-            # events
-            if self.type_ctrl.get()=='epochs':
-                if self.event_ids.get() == 'None':
-                    self.event_ids.set(str(data_list_tmp[k].event_id))
-                else:
-                    assert str(data_list_tmp[k].event_id)==self.event_ids.get(), 'Event ids inconsistent.'
-            elif k in raw_event_tmp.keys():
-                if self.event_ids.get() == 'None':
-                    self.event_ids.set(str(raw_event_tmp[k][1]))
-                else:
-                    assert str(raw_event_tmp[k][1])==self.event_ids.get(), 'Event ids inconsistent.'
         self.raw_events.update(raw_event_tmp)
         self.attr_len.set(len(self.attr_list))
 
         if len(self.attr_list) != 0:
             self.type_raw.config(state="disabled")
             self.type_epoch.config(state="disabled")
-
     def _data_from_array(self, data_array, data_info, attr_info_tmp, selected_data):
         if self.type_ctrl.get() == 'raw':
-            assert len(data_array.shape) == 2, 'Data dimension invalid.'
-            selected_data = mne.io.RawArray(data_array, data_info)
+            selected_data_tmp = mne.io.RawArray(data_array, data_info)
             if attr_info_tmp['event key'] != []:
-                assert sum(k in attr_info_tmp['event key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing event.'
+                if sum(k in attr_info_tmp['event key'] for k in selected_data.keys())>1:
+                    tk.messagebox.showerror(parent=self, title='Error', message='Data has multiple keys identified as containing events.')
+                    return
                 for k in attr_info_tmp['event key']:
                     if k in selected_data.keys():
                         event_label = selected_data[k]
                 event_label = list(set(event_label.flatten()))
                 event_id = {str(i): event_label[i] for i in range(len(event_label))}
-                return selected_data, (event_label, event_id)
+                return selected_data_tmp, (event_label, event_id)
+            selected_data = selected_data_tmp
         else:
-            assert len(data_array.shape) == 3, 'Data dimension invalid.'
-            selected_data_tmp = mne.EpochsArray(data_array, data_info)
+            selected_data_tmp = mne.EpochsArray(data = data_array, info=data_info, tmin=float(attr_info_tmp['tmin']))
             if attr_info_tmp['event key'] != []:
-                assert sum(k in attr_info_tmp['event key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing event.'
+                if sum(k in attr_info_tmp['event key'] for k in selected_data.keys())>1:
+                    tk.messagebox.showerror(parent=self, title='Error', message='Data has multiple keys identified as containing events.')
+                    return                
                 for k in attr_info_tmp['event key']:
                     if k in selected_data.keys():
                         event_label = selected_data[k]
@@ -335,12 +343,21 @@ class LoadTemplate(TopWindow):
         # shape for feeding epoch constructor: (epoch, channel, timepoint)
         target = np.squeeze(target) # squeeze dimension of 1, should ended up be 3d
         target_shape = [s for s in target.shape]
-        dim_ch = target_shape.index(attr_info_tmp['nchan'])
-        dim_time = target_shape.index(attr_info_tmp['ntimes'])
-        if len(target_shape) == 3:
-            return np.transpose(target, (3-dim_ch-dim_time, dim_ch, dim_time))
+        if len(target_shape) == 2:
+            if self.type_ctrl.get()=='epochs':
+                tk.messagebox.showwarning(parent=self, title="Warning", message="detected data of dimension 2, switch to raw loading")
+                self.type_ctrl.set('raw')
+                return self._reshape_array(target, attr_info_tmp)
+            return target          
         else:
-            return np.transpose(target, (dim_ch, dim_time))
+            if self.type_ctrl.get() == 'raw':
+                tk.messagebox.showwarning(parent=self, title="Warning", message="detected data of dimension 3, switch to epochs loading")
+                self.type_ctrl.set('epochs')
+                return self._reshape_array(target, attr_info_tmp)
+            dim_ch = target_shape.index(attr_info_tmp['nchan'])
+            dim_time = target_shape.index(attr_info_tmp['ntimes'])
+            return np.transpose(target, (3-dim_ch-dim_time, dim_ch, dim_time))
+            
     def _clear_key(self):
         self.attr_info['data key'] = []
         self.attr_info['event key'] = []
@@ -348,15 +365,15 @@ class LoadTemplate(TopWindow):
     def _confirm(self):
         # check channel number
         check_chs = set(self.data_attr_treeview.item(at_row)['values'][3] for at_row in self.data_attr_treeview.get_children())
-        assert len(check_chs)==1, 'Dataset channel numbers inconsistent.'
-
+        if len(check_chs)!=1:
+            tk.messagebox.showerror(parent=self, title='Error', message='Dataset channel numbers inconsistent.')
+            return
         ret_attr = {}
         ret_data = {}
         for at_row in self.data_attr_treeview.get_children():
             at_val = self.data_attr_treeview.item(at_row)['values']
             ret_attr[at_val[0]] = [at_val[1], at_val[2]] # subject, session
             ret_data[at_val[0]] = self.data_list[at_val[0]] # mne
-            
         if self.type_ctrl.get() == 'raw':
             self.ret_val = Raw(ret_attr, ret_data, self.raw_events)
         else:
@@ -393,7 +410,6 @@ class LoadSet(LoadTemplate):
         self._list_update(attr_list_tmp, data_list_tmp)
 
 class _loadmat(TopWindow):
-    # TODO: spinbox default (if cleaner method is possible)
     """
     parameter: parent, title
                fp: filepath
@@ -407,36 +423,36 @@ class _loadmat(TopWindow):
         
         self.loaded_mat = loaded_mat
         self.ret_key = attr_info_tmp
-        self.srate = tk.IntVar()
-        self.srate.set(attr_info_tmp['sampling rate'])
-        self.nch = tk.IntVar()
-        self.nch.set(attr_info_tmp['nchan'])
-        self.ntime = tk.IntVar()
-        self.ntime.set(attr_info_tmp['ntimes'])
+        self.attr_var = {k:tk.IntVar() for k in attr_info_tmp.keys() if not k in ['data key', 'event key']}
+        self.attr_var['tmin'] = tk.StringVar()
+        [self.attr_var[k].set(v) for k,v in attr_info_tmp.items() if not k in ['data key', 'event key']]
+
         tk.Label(self, text="Filename: "+fp.split('/')[-1]).grid(row=0, column=0, sticky='w')
 
         # ==== select key
-        spin_val = [k for k in loaded_mat.keys() if k not in ['__globals__', '__version__', '__header__']]
-        spin_val = tuple(reversed(spin_val)) 
+        opt_val = [k for k in loaded_mat.keys() if k not in ['__globals__', '__version__', '__header__']]
+        opt_val = tuple(opt_val) 
         
         self.data_shape_view = tk.StringVar()
         self.data_key_trace = tk.StringVar()
+        self.data_key_trace.set(opt_val[0])
         self.event_shape_view = tk.StringVar()
         self.event_key_trace = tk.StringVar()
+        self.event_key_trace.set(opt_val[0])
 
         # ======== data key
         data_key_frame = ttk.LabelFrame(self, text="Select Data key")
         data_key_frame.grid(row=1, column=0, columnspan=2, sticky='w')
         
         tk.Label(data_key_frame, text="Data key: ").grid(row=0, column=0, sticky='w')
-        self.data_key_select = tk.Spinbox(data_key_frame, values = spin_val, textvariable=self.data_key_trace)
+        self.data_key_select = tk.OptionMenu(data_key_frame, self.data_key_trace, *opt_val)
         self.data_key_select.grid(row=0, column=1, sticky='w')
 
-        self.data_shape_view.set(str(self.loaded_mat[self.data_key_select.get()].shape)) # init spinbox 1
+        self.data_shape_view.set(str(self.loaded_mat[self.data_key_trace.get()].shape)) # init spinbox 1
         
         tk.Label(data_key_frame, text="Value shape: ").grid(row=1, column=0, sticky='w')
         tk.Label(data_key_frame, textvariable=self.data_shape_view).grid(row=1, column=1)
-        self.data_key_trace.trace_variable('r', self._shape_view_update)
+        self.data_key_trace.trace_add('write', self._shape_view_update)
 
         # ======== horizontal line
         sep = ttk.Separator(self, orient='horizontal')
@@ -447,7 +463,7 @@ class _loadmat(TopWindow):
         event_key_frame.grid(row=3, column=0, columnspan=2, sticky='w')
         
         tk.Label(event_key_frame, text="Event key: ").grid(row=0, column=0, sticky='w')
-        self.event_key_select = tk.Spinbox(event_key_frame, values = ('None',)+spin_val, textvariable=self.event_key_trace) # need the comma for expressing as tuple
+        self.event_key_select = tk.OptionMenu(event_key_frame, self.event_key_trace, 'None', *opt_val) # need the comma for expressing as tuple
         self.event_key_select.grid(row=0, column=1, sticky='w')
         
         self.event_key_trace.set('None') # init spinbox 2
@@ -455,42 +471,51 @@ class _loadmat(TopWindow):
         
         tk.Label(event_key_frame, text="Value shape: ").grid(row=1, column=0, sticky='w')
         tk.Label(event_key_frame, textvariable=self.event_shape_view).grid(row=1, column=1)
-        self.event_key_trace.trace_variable('r', self._shape_view_update)
+        self.event_key_trace.trace_add('write', self._shape_view_update)
 
         # ==== sampling rate & channel
-        tk.Label(self, text="Sampling Rate: ").grid(row=4, column=0, sticky='w')
-        tk.Label(self, text="Channel: ").grid(row=5, column=0, sticky='w')
-        tk.Label(self, text="Time samples: ").grid(row=6, column=0, sticky='w')
-
-        sr_ch_time = [self.srate, self.nch, self.ntime]
-        if attr_info_tmp['nchan'] == 0:
-            for tv in sr_ch_time:
-                tk.Entry(self, textvariable=tv).grid(row=4+sr_ch_time.index(tv), column=1, sticky='w')
-        else:
-            for t in sr_ch_time:
-                tk.Label(self, text=t.get()).grid(row=4+sr_ch_time.index(t), column=1, sticky='w')
+        i = 4
+        row_label = ["Sampling Rate: ", "Channel: ", "Time samples: ", "Time before event"]
+        for v in self.attr_var.values():
+            tk.Label(self, text = row_label[i-4]).grid(row=i, column=0, sticky='w')
+            if v.get() == 0 or v.get() == '0':
+                tk.Entry(self, textvariable=v).grid(row=i, column=1, sticky='w')
+            else:
+                tk.Label(self, text=v.get()).grid(row=i, column=1, sticky='w')
+            i+=1
+            if self.parent.type_ctrl.get() == 'raw' and i==7:
+                break
 
         # ==== confirm
-        tk.Button(self, text="Confirm",command=self._key_confirm).grid(row=7, column=0)
+        tk.Button(self, text="Confirm",command=self._key_confirm).grid(row=i, column=0)
 
     def _shape_view_update(self, var, id, mode): # on spinbox change
-        self.data_shape_view.set(str(self.loaded_mat[self.data_key_select.get()].shape)) 
-        if self.event_key_select.get() == 'None':
+        self.data_shape_view.set(str(self.loaded_mat[self.data_key_trace.get()].shape)) 
+        if self.event_key_trace.get() == 'None':
             self.event_shape_view.set('None')
         else:
-            self.event_shape_view.set(str(self.loaded_mat[self.event_key_select.get()].shape))
+            self.event_shape_view.set(str(self.loaded_mat[self.event_key_trace.get()].shape))
         
     def _key_confirm(self):
-        self.ret_key["data key"].append(self.data_key_select.get())
-        self.ret_key["event key"].append(self.event_key_select.get())
-        self.ret_key["sampling rate"] = self.srate.get()
-        self.ret_key["nchan"] = self.nch.get()
-        self.ret_key["ntimes"] = self.ntime.get()
+        check_bools = np.array([self.data_key_trace.get() != self.event_key_trace.get(), self.attr_var['sampling rate'].get() >0, \
+            (self.attr_var['nchan'].get() >0) and (self.attr_var['nchan'].get() in self.loaded_mat[self.data_key_trace.get()].shape),\
+            (self.attr_var['ntimes'].get() >0) and (self.attr_var['ntimes'].get() in self.loaded_mat[self.data_key_trace.get()].shape),\
+            (1 in self.loaded_mat[self.event_key_trace.get()].shape),\
+            float(self.attr_var['tmin'].get())])
+        check_msg = np.array(['Data key and event key should be different.', 'Sampling rate invalid.',\
+            'Number of channels invalid.', 'Number of time points invalid.',\
+            'Event dimension invalid.', 'Tmin value invalid'])
+        if not all(check_bools):
+            tk.messagebox.showerror(parent=self, title='Error', message=' '.join(check_msg[check_bools!=True]))
+            return
 
-        assert self.ret_key["data key"][-1] != self.ret_key["event key"][-1], 'Data key and event key should be different.'
-        assert self.ret_key["sampling rate"] >0, 'Sampling rate invalid.'
-        assert (self.ret_key["nchan"] >0) and (self.ret_key["nchan"] in self.loaded_mat[self.data_key_select.get()].shape), 'Number of channels invalid.'
-        assert (self.ret_key["ntimes"] >0) and (self.ret_key["ntimes"] in self.loaded_mat[self.data_key_select.get()].shape), 'Number of time points invalid.'
+        self.ret_key["data key"].append(self.data_key_trace.get())
+        if self.event_key_trace.get() != 'None':
+            self.ret_key["event key"].append(self.event_key_trace.get())
+        keys = ["sampling rate", "nchan", "ntimes", "tmin"]
+        for k in keys:
+            self.ret_key[k] = self.attr_var[k].get()
+        
         self.destroy()
 
     def _get_result(self):
@@ -534,26 +559,28 @@ class LoadMat(LoadTemplate):
         for fn in selected_tuple:            
             if fn.split('/')[-1] not in self.attr_list.keys():
                 selected_data = scipy.io.loadmat(fn)
-
                 if (self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0 ) \
                     or any(k in selected_data.keys() for k in attr_info_tmp['data key'])==False \
                     or any(k in selected_data.keys() for k in attr_info_tmp['event key'])==False:
                     attr_info_tmp = _loadmat(self, "Select Field", fn,attr_info_tmp, selected_data).get_result()
-
-                assert sum(k in attr_info_tmp['data key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing data.'
-                
+                if sum(k in attr_info_tmp['data key'] for k in selected_data.keys())>1:
+                    tk.messagebox.showerror(parent=self, title='Error', message='Data has multiple keys identified as containing data.')
+                    return
                 for k in attr_info_tmp['data key']:
                     if k in selected_data.keys():
                         data_array = selected_data[k]
                         break
                 data_array = self._reshape_array(data_array, attr_info_tmp)
+                if len(data_array.shape)==2:
+                    attr_info_tmp['nchan'] = data_array.shape[0]
+                    attr_info_tmp['sampling rate'] = data_array.shape[1]
+
                 data_info = mne.create_info(attr_info_tmp['nchan'], attr_info_tmp['sampling rate'], 'eeg')
-                
                 selected_data, rawevent_tmp = self._data_from_array(data_array, data_info, attr_info_tmp, selected_data)
                 if rawevent_tmp != {}:
                     raw_event_tmp[fn] = rawevent_tmp
                       
-                new_row = self._make_row(fn, selected_data, rawevent_tmp==None)
+                new_row = self._make_row(fn, selected_data, rawevent_tmp)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
 
@@ -567,21 +594,24 @@ class LoadMat(LoadTemplate):
 class LoadEdf(LoadTemplate):
     command_label = "Import EDF/EDF+ file (BIOSIG toolbox)"
     def __init__(self, parent):
-        super().__init__(parent, "Load data from .edf files")
+        super().__init__(parent, "Load data from .edf/.edf+ files")
         self.type_raw.config(state="disabled")# only supporting raw
         self.type_epoch.config(state="disabled")
 
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (# +"s" so multiple file selection is available
             parent = self,
-            filetypes = (('.edf files', '*.edf'),)
+            filetypes = (('.edf files', '*.edf'),('.gdf files', '*.gdf'))
         )
         attr_list_tmp = {}
         data_list_tmp = {}
 
         for fn in selected_tuple:
             if fn.split('/')[-1] not in self.attr_list.keys(): 
-                selected_data = mne.io.read_raw_edf(fn, preload=True)
+                if '.edf' in fn:
+                    selected_data = mne.io.read_raw_edf(fn, preload=True)
+                elif '.gdf' in fn:
+                    selected_data = mne.io.read_raw_gdf(fn, preload=True)
                 new_row = self._make_row(fn, selected_data)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
@@ -624,28 +654,49 @@ class _loadnpy(TopWindow):
                loaded_array: np file content (in np array)
     return: attr dict with selected key (None) and nchan/srate/ntime (input)
     """
-    def __init__(self, parent, title, fp, attr_info, loaded_array):
+    def __init__(self, parent, title, fp, attr_info_tmp, loaded_array):
         super().__init__(parent, title)
-        self.loaded_array = loaded_array
-        self.ret_key = attr_info
+        self.loaded_array = np.squeeze(loaded_array) #avoid redundent dimension of 1
+        self.ret_key = attr_info_tmp
+        row_label = ["Sampling Rate: ", "Channel: ", "Time samples: ", "Time before event"]
         
-        self.attr_dict = { k : tk.IntVar() for k in ["Channel", "Sampling rate", "Time samples"]}
+        self.attr_var = {k:tk.IntVar() for k in attr_info_tmp.keys() if not k in ['data key', 'event key']}
+        self.attr_var['tmin'] = tk.StringVar()
+        [self.attr_var[k].set(v) for k,v in attr_info_tmp.items() if not k in ['data key', 'event key']]
+
         tk.Label(self, text="Filename: "+fp.split('/')[-1]).grid(row=0, column=0, sticky='w')
         tk.Label(self, text="Current shape: "+str(loaded_array.shape)).grid(row=1, column=0, sticky='w')
+        
+        if len(self.loaded_array.shape) == 2:
+            self.attr_var['nchan'].set(self.loaded_array.shape[0])
+            self.attr_var['ntimes'].set(self.loaded_array.shape[1])
+            self.attr_var['tmin'].set('0')
+        
         i = 2
-        for k in self.attr_dict.keys():
-            tk.Label(self, text = k+": ").grid(row=i, column=0, sticky='w')
-            tk.Entry(self, textvariable=self.attr_dict[k]).grid(row=i,column=1, sticky='w')
-            i += 1
+        for v in self.attr_var.values():
+            tk.Label(self, text = row_label[i-2]).grid(row=i, column=0, sticky='w')
+            if v.get() == 0 or v.get() == '0':
+                tk.Entry(self, textvariable=v).grid(row=i, column=1, sticky='w')
+            else:
+                tk.Label(self, text=v.get()).grid(row=i, column=1, sticky='w')
+            i+=1
+            if self.parent.type_ctrl.get() == 'raw' and i==5:
+                break
+
         tk.Button(self,text="Confirm", command=lambda:self._confirm()).grid(row=i, column=0)
 
     def _confirm(self):
-        self.ret_key['sampling rate'] = self.attr_dict['Sampling rate'].get()
-        self.ret_key['nchan'] = self.attr_dict['Channel'].get()
-        self.ret_key['ntimes'] = self.attr_dict['Time samples'].get()
-        assert self.ret_key['nchan'] in self.loaded_array.shape, 'Channel number invalid.'
-        assert self.ret_key['ntimes'] in self.loaded_array.shape, 'Time sample number number invalid.'
-        assert self.ret_key['sampling rate'] >0, 'Sampling rate invalid.'
+        check_bools = np.array([self.attr_var['nchan'].get() in self.loaded_array.shape,\
+            self.attr_var['ntimes'].get() in self.loaded_array.shape,\
+            self.attr_var['sampling rate'].get() >0])
+        check_msg = np.array(['Channel number invalid.', 'Time sample number number invalid.','Sampling rate invalid.'])
+        if not all(check_bools):
+            tk.messagebox.showerror(parent=self, title='Error', message=' '.join(check_msg[check_bools!=True]))
+            return
+        self.ret_key['sampling rate'] = self.attr_var['sampling rate'].get()
+        self.ret_key['nchan'] = self.attr_var['nchan'].get()
+        self.ret_key['ntimes'] = self.attr_var['ntimes'].get()
+        self.ret_key['tmin'] = self.attr_var['tmin'].get()
         self.destroy()
     
     def _get_result(self):
@@ -686,16 +737,18 @@ class LoadNp(LoadTemplate):
                 selected_data = np.load(fn)
                 if isinstance(selected_data, np.lib.npyio.NpzFile): # npz
                     selected_data = {k:selected_data[k] for k in selected_data.keys()}
-                    if (self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0 ) \
-                    or any(k in selected_data.keys() for k in attr_info_tmp['data key'])==False \
+                    if  any(k in selected_data.keys() for k in attr_info_tmp['data key'])==False \
                     or any(k in selected_data.keys() for k in attr_info_tmp['event key'])==False:
                         attr_info_tmp.update(_loadmat(self, "Set attribute", fn, attr_info_tmp, selected_data).get_result())
                 else: # npy
-                    if self.attr_info['nchan'] ==0 and attr_info_tmp['nchan']==0:
+                    if self.attr_info['sampling rate'] ==0 and attr_info_tmp['sampling rate']==0:
                         attr_info_tmp.update(_loadnpy(self, "Set attribute", fn, attr_info_tmp, selected_data).get_result())
                 
                 if isinstance(selected_data, dict): # npz
-                    assert sum(k in attr_info_tmp['data key'] for k in selected_data.keys())<=1, 'Data has multiple keys identified as containing data.'
+                    if sum(k in attr_info_tmp['data key'] for k in selected_data.keys())>1:
+                        tk.messagebox.showerror(parent=self, title='Error', message='Data has multiple keys identified as containing data.')
+                        return
+                    
                     for k in attr_info_tmp['data key']:
                         if k in selected_data.keys():
                             data_array = selected_data[k]
@@ -705,12 +758,10 @@ class LoadNp(LoadTemplate):
                 
                 data_array = self._reshape_array(data_array, attr_info_tmp)
                 data_info = mne.create_info(attr_info_tmp['nchan'], attr_info_tmp['sampling rate'], 'eeg')
-                
                 selected_data, rawevent_tmp = self._data_from_array(data_array, data_info, attr_info_tmp, selected_data)
                 if rawevent_tmp != {}:
                     raw_event_tmp[fn] = rawevent_tmp
-                      
-                new_row = self._make_row(fn, selected_data, rawevent_tmp==None)
+                new_row = self._make_row(fn, selected_data, rawevent_tmp)
                 attr_list_tmp[fn.split('/')[-1]] = new_row
                 data_list_tmp[fn.split('/')[-1]] = selected_data
         
