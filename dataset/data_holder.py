@@ -320,9 +320,10 @@ class Epochs:
 
 class DataSet:
     SEQ = 0
-    def __init__(self, data_holder):
+    def __init__(self, data_holder, config):
         self.name = ''
         self.data_holder = data_holder
+        self.config = config
         self.dataset_id = DataSet.SEQ
         DataSet.SEQ += 1
 
@@ -427,3 +428,13 @@ class DataSet:
         y = self.data_holder.get_label_list()[self.test_mask]
         return X, y
     
+    # get data len
+    def get_train_len(self):
+        return sum(self.train_mask)
+
+    def get_val_len(self):
+        return sum(self.val_mask)
+
+    def get_test_len(self):
+        return sum(self.test_mask)
+        

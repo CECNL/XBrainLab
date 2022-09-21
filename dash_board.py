@@ -16,18 +16,18 @@ class DashBoard(tk.Tk):
         super().__init__()
         # window
         self.child_list = []
-        self.geometry("600x300")
+        self.minsize(800, 400)
         self.title('Dashboard')
         self.init_menu()
         # panel
         self.columnconfigure([0,1,2], weight=1)
         self.rowconfigure([0,1], weight=1)
 
-        self.dataset_paenl = DatasetPanel(self, row=0, column=0)
-        self.preprocess_paenl = PreprocessPanel(self, row=0, column=1)
-        self.training_scheme_paenl = TrainingSchemePanel(self, row=0, column=2)
-        self.training_setting_paenl = TrainingSettingPanel(self, row=1, column=0, columnspan=2)
-        self.trainin_status_paenl = TrainingStatusPanel(self, row=1, column=2)
+        self.dataset_panel = DatasetPanel(self, row=0, column=0)
+        self.preprocess_panel = PreprocessPanel(self, row=0, column=1)
+        self.training_scheme_panel = TrainingSchemePanel(self, row=0, column=2)
+        self.training_setting_panel = TrainingSettingPanel(self, row=1, column=0, columnspan=2)
+        self.trainin_status_panel = TrainingStatusPanel(self, row=1, column=2)
 
         # raw data
         self.loaded_data = None
@@ -45,13 +45,17 @@ class DashBoard(tk.Tk):
         if not self.winfo_exists():
             return
 
-        self.dataset_paenl.update_panel(self.preprocessed_data)
-        self.preprocess_paenl.update_panel(self.preprocessed_data)
-        self.training_scheme_paenl.update_panel(self.datasets)
-        self.training_setting_paenl.update_panel(self.model_holder, self.training_option)
-        self.trainin_status_paenl.update_panel(self.trainers)
-
-        self.after(1000, self.update_dashboard)
+        self.update_idletasks()
+        self.dataset_panel.update_panel(self.preprocessed_data)
+        self.update_idletasks()
+        self.preprocess_panel.update_panel(self.preprocessed_data)
+        self.update_idletasks()
+        self.training_scheme_panel.update_panel(self.datasets)
+        self.update_idletasks()
+        self.training_setting_panel.update_panel(self.model_holder, self.training_option)
+        self.update_idletasks()
+        self.trainin_status_panel.update_panel(self.trainers)
+        self.update_idletasks()
 
     def init_menu(self):
         menu = tk.Menu(self, tearoff=0)
@@ -109,7 +113,8 @@ class DashBoard(tk.Tk):
         if loaded_data:
             self.loaded_data = loaded_data
             self.preprocessed_data = loaded_data.copy()
-            # TODO clear working flow
+            self.clean_datasets()
+            self.update_dashboard()
 
     def preprocess(self, preprocess_module):
         if self.datasets:
@@ -118,7 +123,8 @@ class DashBoard(tk.Tk):
         preprocessed_data = preprocess_module(self, self.preprocessed_data).get_result()
         if preprocessed_data:
             self.preprocessed_data = preprocessed_data
-            # TODO clear working flow
+            self.clean_datasets()
+            self.update_dashboard()
 
     def reset_preprocess(self):
         if self.datasets:
@@ -129,7 +135,8 @@ class DashBoard(tk.Tk):
             tk.messagebox.showinfo(parent=self, title='Success', message='OK')
         else:
             tk.messagebox.showerror(parent=self, title='Error', message='No valid data is loaded')
-        # TODO clear working flow
+        self.clean_datasets()
+        self.update_dashboard()
     
     # train
     def split_data(self):
@@ -139,7 +146,8 @@ class DashBoard(tk.Tk):
         datasets = DataSplittingSettingWindow(self, self.preprocessed_data).get_result()
         if datasets:
             self.datasets = datasets
-        # TODO clear working flow
+        self.clean_trainer()
+        self.update_dashboard()
 
     def select_model(self):
         if self.trainers:
@@ -148,7 +156,8 @@ class DashBoard(tk.Tk):
         model_holder = ModelSelectionWindow(self).get_result()
         if model_holder:
             self.model_holder = model_holder
-        # TODO clear working flow
+        self.clean_trainer()
+        self.update_dashboard()
 
     def training_setting(self):
         if self.trainers:
@@ -157,7 +166,8 @@ class DashBoard(tk.Tk):
         training_option = TrainingSettingWindow(self).get_result()
         if training_option:
             self.training_option = training_option
-        # TODO clear working flow
+        self.clean_trainer()
+        self.update_dashboard()
 
     def generate_plan(self):
         if self.trainers:
@@ -174,10 +184,11 @@ class DashBoard(tk.Tk):
             trainers.append(Trainer(model_holder, dataset, option))
         self.trainers = trainers
         self.open_training_manager()
-        # TODO clear working flow
+        self.update_dashboard()
 
     def open_training_manager(self):
         TrainingManagerWindow(self, self.trainers)
+        self.update_dashboard()
 
     # eval
     def evaluate(self, evaluation_module):
@@ -191,6 +202,7 @@ class DashBoard(tk.Tk):
         chs, positions = PickMontageWindow(self, self.preprocessed_data.get_channel_names()).get_result()
         if chs is not None and positions is not None:
             self.preprocessed_data.set_channels(chs, positions)
+            self.update_dashboard()
 
     def visualize(self, visualization_module):
         visualization_module(self, self.trainers)
@@ -227,4 +239,11 @@ class DashBoard(tk.Tk):
         self.after(1000, super().destroy)
 
     # clean work flow
+
+    def clean_datasets(self):
+        self.datasets = None
+        self.clean_trainer()
+
+    def clean_trainer(self):
+        self.trainers = None
 

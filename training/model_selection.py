@@ -14,6 +14,11 @@ class ModelHolder:
         self.model_parms_map = model_parms_map
         self.pretrained_weight_path = pretrained_weight_path
 
+    def get_model_desc_str(self):
+        option_list = [f"{i}={self.model_parms_map[i]}" for i in self.model_parms_map if self.model_parms_map[i] ]
+        options = ', '.join(option_list)
+        return f"{self.target_model.__name__} ({options})"
+
     def get_model(self, args):
         model = self.target_model(**self.model_parms_map, **args)
         if self.pretrained_weight_path:
