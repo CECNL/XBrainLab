@@ -1,3 +1,4 @@
+from hashlib import new
 import numpy as np
 from enum import Enum
 from .option import SplitUnit
@@ -9,15 +10,18 @@ class Raw:
     raw_data: {fn: mne.io.Raw}
     raw_event: {fn: [labels, event_ids]}
     """
-    def __init__(self, raw_attr, raw_data, raw_event):
+    def __init__(self, raw_attr={}, raw_data={}, raw_event={}):
+        
         self.id_map = {} # {fn: subject/session/data list position id}
         self.event_id_map = {} # {fn: label list position id}
+        self.sfreq = 0
         self.subject = []
         self.session = []
         self.label = []
         self.data = []
         self.event_id = {}
-        self._init_attr(raw_attr=raw_attr, raw_data=raw_data, raw_event=raw_event)
+        if raw_attr!={} and raw_data!={}:
+            self._init_attr(raw_attr=raw_attr, raw_data=raw_data, raw_event=raw_event)
     
     def _init_attr(self, raw_attr, raw_data, raw_event):
         i = 0
@@ -26,6 +30,7 @@ class Raw:
             self.subject.append(raw_attr[fn][0])
             self.session.append(raw_attr[fn][1])
             self.data.append(raw_data[fn])
+            self.sfreq = raw_data[fn].info['sfreq']
             if fn in raw_event.keys():
                 self.event_id_map[fn] = i
                 self.label.append(raw_event[fn][0])
@@ -43,16 +48,8 @@ class Raw:
         newRaw.label = self.label.copy()
         newRaw.data = [r.copy() for r in self.data]
         newRaw.event_id = self.event_id.copy()
+        newRaw.sfreq = self.sfreq
         return newRaw
-            
-    def inspect(self):
-        for k,v in self.id_map.items():
-            #print(k, self.subject[v], self.session[v])
-            print(self.data[v])
-            #print(len(self.label[v]))
-        print(self.event_id)
-        #print(self.label)
-        #print(self.event_id_map)
 
 class Epochs:
     def __init__(self, epoch_attr={}, epoch_data={}, label_map={}):
@@ -67,8 +64,8 @@ class Epochs:
 
     def check_data(self):
         event_ids = self.event_id.values()
-        if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
-            raise ValueError("Invalid event_id")
+        #if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
+        #    raise ValueError("Invalid event_id")
         for i in event_ids:
             if i not in  self.label_map:
                 self.label_map[i] = '(Empty)'
@@ -113,7 +110,10 @@ class Epochs:
             self.session = np.concatenate((self.session, [session_idx] * epoch_len))
             self.label   = np.concatenate((self.label,   self.epoch_data[filename].events[:,2]))
             self.idx     = np.concatenate((self.idx,     range(epoch_len)))
-            self.data    = np.concatenate((self.data,    self.epoch_data[filename].get_data()))
+            if self.data == []:
+                self.data = self.epoch_data[filename].get_data()
+            else:
+                self.data    = np.concatenate((self.data,    self.epoch_data[filename].get_data()))
             self.sfreq = self.epoch_data[filename].info['sfreq']
             self.channel_map = self.epoch_data[filename].info.ch_names.copy()
 
