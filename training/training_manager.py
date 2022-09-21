@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.messagebox
 from ..widget import EditableTreeView, PlotFigureWindow, PlotType
-from ..base import TopWindow, InitWindowValidateException
+from ..base import TopWindow, InitWindowValidateException, ValidateException
 
 import threading, time
 
@@ -100,8 +100,7 @@ class TrainingManagerWindow(TopWindow):
 
     def stop_training(self):
         if TrainingManagerWindow.task is None:
-            tk.messagebox.showerror('Error', 'No training is in progress', parent=self)
-            return
+            raise ValidateException(window=self, message='No training is in progress')
         try:
             TrainingManagerWindow.task.set_interrupt()
         except:

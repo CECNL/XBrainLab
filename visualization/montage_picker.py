@@ -1,6 +1,5 @@
 import tkinter as tk
-import tkinter.messagebox
-from ..base import TopWindow, InitWindowValidateException
+from ..base import TopWindow, InitWindowValidateException, ValidateException
 import os
 import numpy as np
 import mne
@@ -87,8 +86,7 @@ class PickMontageWindow(TopWindow):
         montage = mne.channels.make_standard_montage(self.selected_montage.get())
         chs = self.get_selected()
         if len(chs) != len(self.channel_names):
-            tk.messagebox.showerror('Error',  f'Number of channels mismatch ({len(chs)} != {len(self.channel_names)})', parent=self)
-            return
+            raise ValidateException(window=self, message=f'Number of channels mismatch ({len(chs)} != {len(self.channel_names)})')
         positions = np.array([montage.get_positions()['ch_pos'][ch] for ch in chs])
         self.chs = chs
         self.positions = positions

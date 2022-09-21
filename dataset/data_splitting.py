@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox
-from ..base import TopWindow
+from ..base import TopWindow, ValidateException
 from .data_holder import DataSet
 from .option import TrainingType, SplitByType, ValSplitByType, SplitUnit
 import numpy as np
@@ -300,8 +300,7 @@ class DataSplittingWindow(TopWindow):
 
     def show_info(self):
         if len(self.datasets) == 0 or self.tree.focus() == '' or not self.tree.focus().isdigit():
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid item is selected')
-            return
+            raise ValidateException(window=self, message='No valid item is selected')
         idx = int(self.tree.focus())
         target = self.datasets[idx]
         window = DataSplittingInfoWindow(self, target)
@@ -335,8 +334,7 @@ class DataSplittingWindow(TopWindow):
                 break
         # check if dataset is empty
         if len(self.datasets) == 0:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid dataset is generated')
-            return
+            raise ValidateException(window=self, message='No valid dataset is generated')
 
         self.return_datasets = self.datasets
         self.destroy()

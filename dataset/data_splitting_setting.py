@@ -1,5 +1,4 @@
 import tkinter as tk
-import tkinter.messagebox
 
 import numpy as np
 from enum import Enum

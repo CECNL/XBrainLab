@@ -20,8 +20,15 @@ class InitWindowValidateException(CustomException):
         tk.messagebox.showerror(parent=self.window.master, title='Error', message=self)
 
 class ValidateException(CustomException):
-    def __init__(self, message):
+    def __init__(self, window, message):
         super().__init__(message)
+        self.window = window
         
     def handle_exception(self):
-        tk.messagebox.showerror(title='Error', message=self)
+        try:
+            if not self.window.winfo_exists():
+                self.window = None
+        except:
+            self.window = None
+        tk.messagebox.showerror(parent=self.window, title='Error', message=self)
+

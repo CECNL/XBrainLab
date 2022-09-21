@@ -54,7 +54,7 @@ class TimeEpoch(TopWindow):
 
         # Check if event is selected
         if self.selectedEvents is None:
-            raise ValidateException(message="No Event Selected")
+            raise ValidateException(window=self, message="No Event Selected")
 
         self.field_var['select_events'].set(",".join(list(self.new_data.event_id.keys())))
 

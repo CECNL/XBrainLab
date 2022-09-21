@@ -1,9 +1,8 @@
 import tkinter as tk
 import tkinter.filedialog
-import tkinter.messagebox
 import inspect
 
-from ..base import TopWindow
+from ..base import TopWindow, ValidateException
 from ..widget import EditableTreeView
 import torch
 from enum import Enum
@@ -168,8 +167,7 @@ class TrainingSettingWindow(TopWindow):
                 evaluation_option = i
         
         if reason:
-            tk.messagebox.showerror('Error',  f"{reason}", parent=self)
-            return None
+            raise ValidateException(window=self, message=reason)
         
         self.training_option = TrainingOption(self.output_dir, self.optim, self.optim_parms, 
                                 self.use_cpu, self.gpu_idx, 
@@ -259,8 +257,7 @@ class SetOptimizerWindow(TopWindow):
             reason = 'Invalid parameter'
         
         if reason:
-            tk.messagebox.showerror("Error", reason, parent=self)
-            return
+            raise ValidateException(window=self, message=reason)
         
         self.optim_parms = optim_parms
         self.optim = target

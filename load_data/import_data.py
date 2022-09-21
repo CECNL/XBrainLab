@@ -322,7 +322,7 @@ class LoadTemplate(TopWindow):
             selected_data_tmp = mne.io.RawArray(data_array, data_info)
             if attr_info_tmp['event key'] != []:
                 if sum(k in attr_info_tmp['event key'] for k in selected_data.keys())>1:
-                    raise ValidateException('Data has multiple keys identified as containing events.')
+                    raise ValidateException(window=self, message='Data has multiple keys identified as containing events.')
                 for k in attr_info_tmp['event key']:
                     if k in selected_data.keys():
                         event_label = selected_data[k]
@@ -334,7 +334,7 @@ class LoadTemplate(TopWindow):
             selected_data_tmp = mne.EpochsArray(data = data_array, info=data_info, tmin=float(attr_info_tmp['tmin']))
             if attr_info_tmp['event key'] != []:
                 if sum(k in attr_info_tmp['event key'] for k in selected_data.keys())>1:
-                    raise ValidateException('Data has multiple keys identified as containing events.')         
+                    raise ValidateException(window=self, message='Data has multiple keys identified as containing events.')         
                 for k in attr_info_tmp['event key']:
                     if k in selected_data.keys():
                         event_label = selected_data[k]
@@ -375,7 +375,7 @@ class LoadTemplate(TopWindow):
         # check channel number
         check_chs = set(self.data_attr_treeview.item(at_row)['values'][3] for at_row in self.data_attr_treeview.get_children())
         if len(check_chs)!=1:
-            raise ValidateException('Dataset channel numbers inconsistent.')
+            raise ValidateException(window=self, message='Dataset channel numbers inconsistent.')
         
         ret_attr = {}
         ret_data = {}
@@ -522,7 +522,7 @@ class _loadmat(TopWindow):
             'Number of channels invalid.', 'Number of time points invalid.',\
             'Event dimension invalid.', 'Tmin value invalid'])
         if not all(check_bools):
-            raise ValidateException(' '.join(check_msg[check_bools!=True]))
+            raise ValidateException(window=self, message=' '.join(check_msg[check_bools!=True]))
         self.ret_key["data key"].append(self.data_key_trace.get())
 
         if self.event_key_trace.get() != 'None':
@@ -578,7 +578,7 @@ class LoadMat(LoadTemplate):
                     or any(k in selected_data.keys() for k in attr_info_tmp['event key'])==False:
                     attr_info_tmp = _loadmat(self, "Select Field", fn,attr_info_tmp, selected_data).get_result()
                 if sum(k in attr_info_tmp['data key'] for k in selected_data.keys())>1:
-                    raise ValidateException('Data has multiple keys identified as containing data.')
+                    raise ValidateException(window=self, message='Data has multiple keys identified as containing data.')
                 for k in attr_info_tmp['data key']:
                     if k in selected_data.keys():
                         data_array = selected_data[k]
@@ -715,7 +715,7 @@ class _loadnpy(TopWindow):
             self.attr_var['sfreq'].get() >0])
         check_msg = np.array(['Channel number invalid.', 'Time sample number number invalid.','Sampling rate invalid.'])
         if not all(check_bools):
-            raise ValidateException(' '.join(check_msg[check_bools!=True]))
+            raise ValidateException(window=self, message=' '.join(check_msg[check_bools!=True]))
         self.ret_key['sfreq'] = self.attr_var['sfreq'].get()
         self.ret_key['nchan'] = self.attr_var['nchan'].get()
         self.ret_key['ntimes'] = self.attr_var['ntimes'].get()
@@ -771,7 +771,7 @@ class LoadNp(LoadTemplate):
 
                 if isinstance(selected_data, dict): # npz
                     if sum(k in attr_info_tmp['data key'] for k in selected_data.keys())>1:
-                        raise ValidateException('Data has multiple keys identified as containing data.')
+                        raise ValidateException(window=self, message='Data has multiple keys identified as containing data.')
                     for k in attr_info_tmp['data key']:
                         if k in selected_data.keys():
                             data_array = selected_data[k]

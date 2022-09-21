@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import messagebox
 from enum import Enum
 from . import SinglePlotWindow
 from ..base import InitWindowValidateException

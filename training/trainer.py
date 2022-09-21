@@ -238,15 +238,15 @@ class Trainer:
             optim = self.option.get_optim(model)
             self.train_record_list.append(TrainRecord(model, self.dataset, optim, repeat=i))
         if len(self.train_record_list) == 0:
-            raise ValidateException('Invalid training settings.')
+            raise ValidateException(window=self, message='Invalid training settings.')
     
     def check_data(self):
         if not self.dataset:
-            raise ValidateException('No valid dataset is generated')
+            raise ValidateException(window=self, message='No valid dataset is generated')
         if not self.option:
-            raise ValidateException('No valid training setting is generated')
+            raise ValidateException(window=self, message='No valid training setting is generated')
         if not self.model_holder:
-            raise ValidateException('No valid model is selected')
+            raise ValidateException(window=self, message='No valid model is selected')
 
     # interact
     def train(self):

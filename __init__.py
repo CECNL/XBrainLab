@@ -24,6 +24,7 @@ class Catcher:
         except CustomException as e:
             e.handle_exception()
         except Exception as e:
+            traceback.print_exc()
             parent = None
             try:
                 if self.win.winfo_exists():

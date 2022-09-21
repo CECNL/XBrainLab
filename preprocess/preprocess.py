@@ -157,7 +157,7 @@ class EditEvent(TopWindow):
             # get from entry to new_event dict
             for i in range(len(self.old_event)):
                 if len(set([v.get() for v in self.new_event_name.values()])) < len(self.old_event):
-                    raise ValidateException("Duplicate event name.")
+                    raise ValidateException(window=self, message="Duplicate event name.")
 
             # update parent event data
             for k in self.old_event.keys():

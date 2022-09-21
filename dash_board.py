@@ -134,7 +134,7 @@ class DashBoard(tk.Tk):
             self.preprocessed_data = self.loaded_data.copy()
             tk.messagebox.showinfo(parent=self, title='Success', message='OK')
         else:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid data is loaded')
+            raise ValidateException(window=self, message='No valid data is loaded')
         self.clean_datasets()
         self.update_dashboard()
     
@@ -174,7 +174,7 @@ class DashBoard(tk.Tk):
             if not self.warn_flow_cleaning():
                 return
         if not self.datasets:
-            raise ValidateException('No valid dataset is generated')
+            raise ValidateException(window=self, message='No valid dataset is generated')
 
         trainers = []
         option = self.training_option
@@ -197,7 +197,7 @@ class DashBoard(tk.Tk):
     # visualize
     def set_montage(self):
         if type(self.preprocessed_data) != Epochs:
-            tk.messagebox.showerror(parent=self, title='Error', message='No valid epoch data is generated')
+            raise ValidateException(window=self, message='No valid epoch data is generated')
             return
         chs, positions = PickMontageWindow(self, self.preprocessed_data.get_channel_names()).get_result()
         if chs is not None and positions is not None:
