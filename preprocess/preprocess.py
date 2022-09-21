@@ -1,5 +1,6 @@
 from ..base.top_window import TopWindow
 from ..dataset.data_holder import Raw, Epochs
+from ..base import InitWindowValidateException, ValidateException
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -8,34 +9,51 @@ class Channel(TopWindow):
     def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Select Channel")
         self.preprocessed_data = preprocessed_data
-        data_field = [ "ch_num"]
-        self.field_var = {key: tk.StringVar() for key in data_field}
+        self.check_data()
 
-        tk.Label(self, text="Channel: ").grid(row=6, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.field_var['ch_num'], bg="White").grid(row=6, column=1, sticky="w")
-        tk.Button(self, text="Confirm", command=lambda: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
+        self.return_data = None
+        ch_names = self.preprocessed_data.data[0].ch_names
+
+        tk.Label(self, text="Choose Channels: ").pack()
+        scrollbar = tk.Scrollbar(self).pack(side="right", fill="y")
+        self.listbox = tk.Listbox(self, selectmode="extended", yscrollcommand=scrollbar)
+        for each_item in range(len(ch_names)):
+            self.listbox.insert(tk.END, ch_names[each_item])
+        self.listbox.pack(padx=10, pady=10, expand=True, fill="both")
+        tk.Button(self, text="Confirm", command=lambda win=self: self._data_preprocess(), width=8).pack()
+
+    def check_data(self):
+        if not(type(self.preprocessed_data) == Raw or type(self.preprocessed_data) == Epochs):
+            raise InitWindowValidateException(window=self, message="Invalid data")
 
     def _data_preprocess(self):
-        for data in self.parent.loaded_data.ret_val.data:
-            if self.field_var['ch_num'].get() != "":
-                select_ch = []
-                for ch in self.field_var['ch_num'].get().replace(" ", "").split(','):
-                    nums = ch.split(':')
-                    if len(nums) > 1:
-                        select_ch.extend(data.info['ch_names'][int(nums[0]) - 1:int(nums[1])])
-                    else:
-                        select_ch.extend([data.info['ch_names'][int(nums[0]) - 1]])
-                data.pick_channels(select_ch)
+        self.select_channels = []
+        for idx in list(self.listbox.curselection()):
+            self.select_channels.append(self.listbox.get(idx))
+
+        # Check if channel is selected
+        if len(self.select_channels) == 0:
+            raise InitWindowValidateException(window=self, message="No Channel Selected")
+
+        self.data_list = []
+        for data in self.preprocessed_data.data:
+            self.data_list.append(data.copy().pick_channels(self.select_channels))
+
+        self.return_data = self.preprocessed_data
+        self.return_data.data = self.data_list
         self.destroy()
 
     def _get_result(self):
-        return self.preprocessed_data
+        return self.return_data
 
 class Filtering(TopWindow):
     command_label = "Filtering"
     def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Filtering")
         self.preprocessed_data = preprocessed_data
+        self.check_data()
+
+        self.return_data = None
         data_field = ["l_freq", "h_freq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
 
@@ -43,38 +61,67 @@ class Filtering(TopWindow):
         tk.Entry(self, textvariable=self.field_var['l_freq'], bg="White").grid(row=2, column=1, sticky="w")
         tk.Label(self, text="Upper pass-band edge: ").grid(row=3, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['h_freq'], bg="White").grid(row=3, column=1, sticky="w")
-        tk.Button(self, text="Confirm", command=lambda: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
+        tk.Button(self, text="Confirm", command=lambda win=self: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
+
+    def check_data(self):
+        if not(type(self.preprocessed_data) == Raw or type(self.preprocessed_data) == Epochs):
+            raise InitWindowValidateException(window=self, message="Invalid data")
 
     def _data_preprocess(self):
-        for data in self.parent.loaded_data.ret_val.data:
+        # Check if input is empty
+        if self.field_var['l_freq'].get() == "" and self.field_var['h_freq'].get() == "":
+            raise InitWindowValidateException(window=self, message="No Input")
+
+        self.data_list = []
+        for data in self.preprocessed_data.data:
             l_freq = float(self.field_var['l_freq'].get()) if self.field_var['l_freq'].get() != "" else None
             h_freq = float(self.field_var['h_freq'].get()) if self.field_var['h_freq'].get() != "" else None
-            data.filter(l_freq=l_freq, h_freq=h_freq)
+            self.data_list.append(data.copy().filter(l_freq=l_freq, h_freq=h_freq))
+
+        self.return_data = self.preprocessed_data
+        self.return_data.data = self.data_list
         self.destroy()
 
     def _get_result(self):
-        return self.preprocessed_data
+        return self.return_data
 
 class Resample(TopWindow):
     command_label = "Resample"
     def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Resample")
         self.preprocessed_data = preprocessed_data
+        self.check_data()
+
+        self.return_data = None
         data_field = [ "sfreq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
 
         tk.Label(self, text="Sampling Rate: ").grid(row=6, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['sfreq'], bg="White").grid(row=6, column=1, sticky="w")
-        tk.Button(self, text="Confirm", command=lambda: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
+        tk.Button(self, text="Confirm", command=lambda win=self: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
+
+    def check_data(self):
+        if not(type(self.preprocessed_data) == Raw or type(self.preprocessed_data) == Epochs):
+            raise InitWindowValidateException(window=self, message="Invalid data")
 
     def _data_preprocess(self):
-        for data in self.parent.loaded_data.ret_val.data:
-            if self.field_var['sfreq'].get() != "":
-                data.resample(sfreq=float(self.field_var['sfreq'].get()))
+        # Check Input is Valid
+        if self.field_var['sfreq'].get() == "":
+            raise InitWindowValidateException(window=self, message="No Input")
+        elif float(self.field_var['sfreq'].get()) < 0.0:
+            raise InitWindowValidateException(window=self, message="Input value invalid")
+
+        self.data_list = []
+        for data in self.preprocessed_data.data:
+            self.data_list.append(data.copy().resample(sfreq=float(self.field_var['sfreq'].get())))
+
+        self.return_data = self.preprocessed_data
+        self.return_data.sfreq = self.field_var['sfreq'].get()
+        self.return_data.data = self.data_list
         self.destroy()
 
     def _get_result(self):
-        return self.preprocessed_data
+        return self.return_data
 
 
 class EditEvent(TopWindow):
