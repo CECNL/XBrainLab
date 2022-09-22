@@ -148,7 +148,7 @@ class EditEvent(TopWindow):
     
     def check_data(self):
         if not any([ isinstance(self.preprocessed_data, Raw), isinstance(self.preprocessed_data, Epochs)]):
-            raise InitWindowValidateException(self, 'No validate data is loaded.')
+            raise InitWindowValidateException(self, 'No valid data were loaded.')
         if self.preprocessed_data.event_ids == {}:
             raise InitWindowValidateException(self, 'Lacking events in loaded data.')
     
@@ -167,8 +167,8 @@ class EditEvent(TopWindow):
             if isinstance(self.preprocessed_data, Raw): # Raw
                 self.preprocessed_data.event_id = self.new_event
             else:
-                for mne in self.preprocessed_data.epoch_data:
-                    mne.event_id = self.new_event
+                for mne_struct in self.preprocessed_data.epoch_data:
+                    mne_struct.event_id = self.new_event
         
         #self.preprocessed_data.inspect()
         self.destroy()
