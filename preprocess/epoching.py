@@ -1,6 +1,5 @@
-from ..base.top_window import TopWindow
+from ..base import TopWindow, ValidateException, InitWindowValidateException
 from ..dataset.data_holder import Raw, Epochs
-from ..base import InitWindowValidateException, ValidateException
 import tkinter as tk
 import mne
 
@@ -50,13 +49,13 @@ class TimeEpoch(TopWindow):
             self.max_entry.config(state="disabled")
 
     def _choose_events(self):
-        self.selectedEvents, self.new_data = SelectEvents(self, self.preprocessed_data).get_result()
+        self.new_data = SelectEvents(self, self.preprocessed_data).get_result()
 
         # Check if event is selected
-        if self.selectedEvents is None:
-            raise ValidateException(window=self, message="No Event Selected")
+        if self.new_data is None:
+            raise ValidateException(window=self, message="No Event is Selected")
 
-        self.field_var['select_events'].set(",".join(list(self.new_data.event_id.keys())))
+        self.field_var['select_events'].set(",".join(list(self.new_data.event_id)))
 
     def _extract_epoch(self):
         if self.field_var['doRemoval'].get() == "1":
@@ -69,10 +68,21 @@ class TimeEpoch(TopWindow):
             raise InitWindowValidateException(window=self, message="Invalid Value")
 
         self.data_list = []
-        for data in self.new_data.data:
-            self.data_list.append(mne.Epochs(data, self.selectedEvents, tmin=float(self.field_var['epoch_tmin'].get()), tmax=float(self.field_var['epoch_tmax'].get()), baseline=self.baseline, preload=True))
-        self.return_data = self.new_data
-        self.return_data.data = self.data_list
+        for data, label in zip(self.new_data.data, self.new_data.label):
+            self.data_list.append(mne.Epochs(data, label, tmin=float(self.field_var['epoch_tmin'].get()), tmax=float(self.field_var['epoch_tmax'].get()), baseline=self.baseline, preload=True, event_id=self.new_data.event_id))
+
+        # epoch_attr, epoch_data
+        epoch_attr, epoch_data = {}, {}
+        for filename in self.preprocessed_data.id_map:
+            idx = self.preprocessed_data.id_map[filename]
+            epoch_attr[filename] = [self.preprocessed_data.subject[idx], self.preprocessed_data.session[idx]]
+            epoch_data[filename] = self.data_list[idx]
+
+        # label_map
+        label_map = {}
+        for event in self.new_data.event_id:
+            label_map[self.new_data.event_id[event]] = event
+        self.return_data = Epochs(epoch_attr, epoch_data, label_map)
         self.destroy()
 
     def _get_result(self):
@@ -110,7 +120,7 @@ class WindowEpoch(TopWindow):
 
     def check_data(self):
         if type(self.preprocessed_data) != Raw:
-            raise InitWindowValidateException(window=self, message="Invalid data")
+            raise InitWindowValidateException(window=self, message="No valid data is loaded")
 
     def _click_checkbox(self):
         if self.field_var['doRemoval'].get() == "1":
@@ -134,8 +144,14 @@ class WindowEpoch(TopWindow):
                 epoch.average().apply_baseline((baseline_tmin, baseline_tmax))
             self.data_list.append(epoch)
 
-        self.return_data = self.preprocessed_data
-        self.return_data.data = self.data_list
+        # epoch_attr, epoch_data, label_map
+        epoch_attr, epoch_data, label_map = {}, {}, {}
+        for filename in self.preprocessed_data.id_map:
+            idx = self.preprocessed_data.id_map[filename]
+            epoch_attr[filename] = [self.preprocessed_data.subject[idx], self.preprocessed_data.session[idx]]
+            epoch_data[filename] = self.data_list[idx]
+
+        self.return_data = Epochs(epoch_attr, epoch_data, label_map)
         self.destroy()
 
     def _get_result(self):
@@ -148,12 +164,13 @@ class SelectEvents(TopWindow):
         self.check_data()
 
         self.return_data = None
-        self.new_events = None
 
         tk.Label(self, text="Choose Events: ").pack()
         scrollbar  = tk.Scrollbar(self).pack(side="right", fill="y")
         self.listbox = tk.Listbox(self, selectmode="multiple", yscrollcommand=scrollbar)
         events_keys = list(self.preprocessed_data.event_id.keys())
+        if len(events_keys) == 0:
+            raise InitWindowValidateException(window=self, message="No Event")
         for each_item in range(len(events_keys)):
             self.listbox.insert(tk.END, events_keys[each_item])
         self.listbox.pack(padx=10, pady=10, expand=True, fill="both")
@@ -169,26 +186,17 @@ class SelectEvents(TopWindow):
 
         # Check if event is selected
         if len(self.listbox_idx) == 0:
-            raise InitWindowValidateException(window=self, message="No Event is Selected")
+            raise InitWindowValidateException(window=self, message="No valid data is loaded")
 
         for idx in self.listbox_idx:
             new_event_id[self.listbox.get(idx)] = self.preprocessed_data.event_id[self.listbox.get(idx)]
 
-        try:
-            old_events = mne.find_events(self.preprocessed_data.data[0])
-        except:
-            try:
-                old_events = mne.events_from_annotations(self.preprocessed_data.data[0])
-            except (ValueError, TypeError) as err:
-                print(err)
-        self.new_events = mne.pick_events(old_events[0], include=list(new_event_id.values()))
-
-        new_label = []
-        for label in self.preprocessed_data.label:
-            new_label.append([value for value in label if value in list(new_event_id.values())])
+        self.new_events = []
+        for data in self.preprocessed_data.label:
+            self.new_events.append(mne.pick_events(data, include=list(new_event_id.values())))
 
         self.return_data = self.preprocessed_data
-        self.return_data.label = new_label
+        self.return_data.label = self.new_events
         self.return_data.event_id = new_event_id
         self.destroy()
 

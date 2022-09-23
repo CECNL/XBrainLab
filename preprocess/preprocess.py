@@ -1,6 +1,5 @@
 from ..base import TopWindow, ValidateException, InitWindowValidateException
 from ..dataset.data_holder import Raw, Epochs
-from ..base import InitWindowValidateException, ValidateException
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -12,7 +11,8 @@ class Channel(TopWindow):
         self.check_data()
 
         self.return_data = None
-        ch_names = self.preprocessed_data.data[0].ch_names
+        self.mne_data = self.preprocessed_data.data if type(self.preprocessed_data) == Raw else self.preprocessed_data.epoch_data.values()
+        ch_names = self.preprocessed_data.data[0].ch_names if type(self.preprocessed_data) == Raw else self.preprocessed_data.channel_map
 
         tk.Label(self, text="Choose Channels: ").pack()
         scrollbar = tk.Scrollbar(self).pack(side="right", fill="y")
@@ -24,7 +24,7 @@ class Channel(TopWindow):
 
     def check_data(self):
         if not(type(self.preprocessed_data) == Raw or type(self.preprocessed_data) == Epochs):
-            raise InitWindowValidateException(window=self, message="Invalid data")
+            raise InitWindowValidateException(window=self, message="No valid data is loaded")
 
     def _data_preprocess(self):
         self.select_channels = []
@@ -33,14 +33,20 @@ class Channel(TopWindow):
 
         # Check if channel is selected
         if len(self.select_channels) == 0:
-            raise InitWindowValidateException(window=self, message="No Channel Selected")
+            raise InitWindowValidateException(window=self, message="No Channel is Selected")
 
         self.data_list = []
-        for data in self.preprocessed_data.data:
+        for data in self.mne_data:
             self.data_list.append(data.copy().pick_channels(self.select_channels))
 
-        self.return_data = self.preprocessed_data
-        self.return_data.data = self.data_list
+        if type(self.preprocessed_data) == Raw:
+            self.return_data = self.preprocessed_data
+            self.return_data.data = self.data_list
+        else:
+            epoch_data = {}
+            for filename, data in zip(self.preprocessed_data.epoch_attr, self.data_list):
+                epoch_data[filename] = data
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, epoch_data, self.preprocessed_data.label_map)
         self.destroy()
 
     def _get_result(self):
@@ -56,6 +62,7 @@ class Filtering(TopWindow):
         self.return_data = None
         data_field = ["l_freq", "h_freq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
+        self.mne_data = self.preprocessed_data.data if type(self.preprocessed_data) == Raw else self.preprocessed_data.epoch_data.values()
 
         tk.Label(self, text="Lower pass-band edge: ").grid(row=2, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['l_freq'], bg="White").grid(row=2, column=1, sticky="w")
@@ -65,7 +72,7 @@ class Filtering(TopWindow):
 
     def check_data(self):
         if not(type(self.preprocessed_data) == Raw or type(self.preprocessed_data) == Epochs):
-            raise InitWindowValidateException(window=self, message="Invalid data")
+            raise InitWindowValidateException(window=self, message="No valid data is loaded")
 
     def _data_preprocess(self):
         # Check if input is empty
@@ -73,13 +80,19 @@ class Filtering(TopWindow):
             raise InitWindowValidateException(window=self, message="No Input")
 
         self.data_list = []
-        for data in self.preprocessed_data.data:
+        for data in self.mne_data:
             l_freq = float(self.field_var['l_freq'].get()) if self.field_var['l_freq'].get() != "" else None
             h_freq = float(self.field_var['h_freq'].get()) if self.field_var['h_freq'].get() != "" else None
             self.data_list.append(data.copy().filter(l_freq=l_freq, h_freq=h_freq))
 
-        self.return_data = self.preprocessed_data
-        self.return_data.data = self.data_list
+        if type(self.preprocessed_data) == Raw:
+            self.return_data = self.preprocessed_data
+            self.return_data.data = self.data_list
+        else:
+            epoch_data = {}
+            for filename, data in zip(self.preprocessed_data.epoch_attr, self.data_list):
+                epoch_data[filename] = data
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, epoch_data, self.preprocessed_data.label_map)
         self.destroy()
 
     def _get_result(self):
@@ -93,8 +106,9 @@ class Resample(TopWindow):
         self.check_data()
 
         self.return_data = None
-        data_field = [ "sfreq"]
+        data_field = ["sfreq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
+        self.mne_data = self.preprocessed_data.data if type(self.preprocessed_data) == Raw else self.preprocessed_data.epoch_data.values()
 
         tk.Label(self, text="Sampling Rate: ").grid(row=6, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['sfreq'], bg="White").grid(row=6, column=1, sticky="w")
@@ -102,7 +116,7 @@ class Resample(TopWindow):
 
     def check_data(self):
         if not(type(self.preprocessed_data) == Raw or type(self.preprocessed_data) == Epochs):
-            raise InitWindowValidateException(window=self, message="Invalid data")
+            raise InitWindowValidateException(window=self, message="No valid data is loaded")
 
     def _data_preprocess(self):
         # Check Input is Valid
@@ -112,12 +126,18 @@ class Resample(TopWindow):
             raise InitWindowValidateException(window=self, message="Input value invalid")
 
         self.data_list = []
-        for data in self.preprocessed_data.data:
+        for data in self.mne_data:
             self.data_list.append(data.copy().resample(sfreq=float(self.field_var['sfreq'].get())))
 
-        self.return_data = self.preprocessed_data
-        self.return_data.sfreq = self.field_var['sfreq'].get()
-        self.return_data.data = self.data_list
+        if type(self.preprocessed_data) == Raw:
+            self.return_data = self.preprocessed_data
+            self.return_data.sfreq = self.field_var['sfreq'].get()
+            self.return_data.data = self.data_list
+        else:
+            epoch_data = {}
+            for filename, data in zip(self.preprocessed_data.epoch_attr, self.data_list):
+                epoch_data[filename] = data
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, epoch_data, self.preprocessed_data.label_map)
         self.destroy()
 
     def _get_result(self):
