@@ -73,8 +73,8 @@ class Epochs:
 
     def check_data(self):
         event_ids = self.event_id.values()
-        #if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
-        #    raise ValueError("Invalid event_id")
+        if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
+           raise ValueError("Invalid event_id")
         for i in event_ids:
             if i not in self.label_map:
                 self.label_map[i] = '(Empty)'
@@ -105,7 +105,7 @@ class Epochs:
     # make sure to call this on every preprocessing
     def update(self):
         self.reset()
-        for filename in self.epoch_data and self.epoch_data[filename].event_id!={'1':1}:
+        for filename in self.epoch_data:
             self.event_id.update(self.epoch_data[filename].event_id)
         self.check_data()
         
