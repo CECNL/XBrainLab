@@ -105,7 +105,7 @@ class Epochs:
     # make sure to call this on every preprocessing
     def update(self):
         self.reset()
-        for filename in self.epoch_data:
+        for filename in self.epoch_data and self.epoch_data[filename].event_id!={'1':1}:
             self.event_id.update(self.epoch_data[filename].event_id)
         self.check_data()
         

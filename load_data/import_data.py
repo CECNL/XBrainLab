@@ -8,6 +8,7 @@ from collections import OrderedDict
 import numpy as np
 import scipy.io
 import mne
+from copy import deepcopy
 
 def parse_event(current_data): # for raw
     src_event = 0
@@ -128,7 +129,7 @@ class _editrow(TopWindow): # called when double click on treeview
         tk.Button(self, text="Confirm", command=lambda:self._confirm_val(target)).grid(row=i, column=2)
     
     def _check_data(self, target):
-        if isinstance(target, dict):
+        if not isinstance(target, dict):
             raise InitWindowValidateException(self, '_edit_row target parameter should be dict of a row in treeview.')
     
     def _load_events(self, fn, target): # load event from file or view loaded event
@@ -241,7 +242,8 @@ class LoadTemplate(TopWindow):
             return new_row, raw_event_tuple, event_src
         else:
             new_row['Epochs'].set(len(selected_data.events))
-            new_row['Events'].set('yes')
+            if selected_data.event_id != {'1':1}:
+                new_row['Events'].set('yes')
             return new_row, None, -1
     
     def _edit_row(self): # open window for editing subject/session/load data on double click
@@ -287,11 +289,12 @@ class LoadTemplate(TopWindow):
         for k,v in attr_list_tmp.items():
             # events
             if self.type_ctrl.get()=='epochs': # epochs
-                if self.event_ids_var.get() == 'None':
+                if self.event_ids_var.get() == 'None' and data_list_tmp[k].event_id !={'1':1}:
                     self.event_ids = data_list_tmp[k].event_id
-                else:
+                elif data_list_tmp[k].event_id !={'1':1}:
                     self.event_ids.update(data_list_tmp[k].event_id)
-                self.event_ids_var.set(str(self.event_ids))
+                if self.event_ids!={}:
+                    self.event_ids_var.set(str(self.event_ids))
             
             elif k in raw_event_tmp.keys(): # raw with event
                 if self.event_ids_var.get() == 'None':
@@ -318,6 +321,7 @@ class LoadTemplate(TopWindow):
             self.type_epoch.config(state="disabled")
 
     def _data_from_array(self, data_array, data_info, attr_info_tmp, selected_data): # for .mat & .np
+        event_label = []
         if self.type_ctrl.get() == 'raw':
             selected_data_tmp = mne.io.RawArray(data_array, data_info)
             if attr_info_tmp['event key'] != []:
@@ -326,6 +330,7 @@ class LoadTemplate(TopWindow):
                 for k in attr_info_tmp['event key']:
                     if k in selected_data.keys():
                         event_label = selected_data[k]
+                        break
                 event_label = list(set(event_label.flatten()))
                 event_id = {str(i): event_label[i] for i in range(len(event_label))}
                 return selected_data_tmp, (event_label, event_id)
@@ -338,9 +343,10 @@ class LoadTemplate(TopWindow):
                 for k in attr_info_tmp['event key']:
                     if k in selected_data.keys():
                         event_label = selected_data[k]
-                selected_data_tmp.events[:,2] = np.squeeze(event_label)
-                event_label = list(set(event_label.flatten()))
-                selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
+                        selected_data_tmp.events[:,2] = np.squeeze(event_label)
+                        event_label = list(set(event_label.flatten()))
+                        selected_data_tmp.event_id = {str(i): event_label[i] for i in range(len(event_label))}
+                        return selected_data_tmp, (event_label, selected_data_tmp.event_id)
             selected_data = selected_data_tmp
         return selected_data, None
             
@@ -366,9 +372,9 @@ class LoadTemplate(TopWindow):
             return np.transpose(target, (3-dim_ch-dim_time, dim_ch, dim_time))
             
     def _clear_key(self):
-        # TODO: key handler
-        self.attr_info['data key'] = []
-        self.attr_info['event key'] = []
+        w = _key_handler(self,self.attr_info).get_result()
+        if w != self.attr_info:
+            self.attr_info = w
     
     def _confirm(self):
         # TODO: prevent adding data with different channel number
@@ -501,7 +507,7 @@ class _loadmat(TopWindow):
         check_bools = [type(fp)==str, type(attr_info_tmp)==dict, type(loaded_mat)==dict]
         if not all(check_bools):
             raise InitWindowValidateException(self, 'Invalid data type passed to _loadmat on index{}'.format(\
-                ','.join([idx for idx in np.where(check_bools)])))
+                ','.join([str(idx) for idx in np.where(check_bools)])))
 
     def _shape_view_update(self, var, id, mode): # on spinbox change
         self.data_shape_view.set(str(self.loaded_mat[self.data_key_trace.get()].shape)) 
@@ -537,10 +543,78 @@ class _loadmat(TopWindow):
     def _get_result(self):
         return self.ret_key
 
-class _keyhandler(TopWindow):
+class _key_handler(TopWindow):
     # TODO
-    def __init__(self, parent):
+    def __init__(self, parent, attr_info):
         super().__init__(parent, "Selected keys")
+        self.ret_attr = deepcopy(attr_info)
+        self.attr = deepcopy(attr_info)
+
+        self.dk_bools = {dk:tk.BooleanVar() for dk in self.attr['data key']}
+        self.ek_bools = {ek:tk.BooleanVar() for ek in self.attr['event key']}
+
+        self.data_key_frame = tk.LabelFrame(self, text="Data keys")
+        self.data_key_frame.grid(row=0, column=0, columnspan=3, sticky='w')
+        self.event_key_frame = tk.LabelFrame(self, text="Event keys")
+        self.event_key_frame.grid(row=1, column=0, columnspan=3, sticky='w')
+        self._front_update()
+
+        tk.Button(self, text="Delete", command=lambda:self._delete_key()).grid(row=2, column=0, sticky='w')
+        tk.Button(self, text="Reset", command=lambda:self._reset_key()).grid(row=2, column=1, sticky='w')
+        tk.Button(self, text="Confirm", command=lambda:self._confirm_key()).grid(row=2, column=2, sticky='w')
+    
+    def _frame_forget(self):
+        for stuff in self.data_key_frame.winfo_children():
+            stuff.destroy()
+        for stuff in self.event_key_frame.winfo_children():
+            stuff.destroy()
+    
+    def _front_update(self):
+        self._frame_forget()
+        i = 0
+        if len(self.attr['data key'])==0:
+            tk.Label(self.data_key_frame, text="No key selected for data.").grid(row=0, column=0, sticky='w')
+        for dk in self.attr['data key']:
+            if dk=='None':
+                continue
+            tk.Checkbutton(self.data_key_frame, text=dk, variable=self.dk_bools[dk]).grid(row=i, column=0, sticky='w')
+            i+=1
+
+        if len(self.attr['event key'])==0:
+            tk.Label(self.event_key_frame, text="No key selected for event.").grid(row=0, column=0, sticky='w')
+        i = 0
+        for ek in self.attr['event key']:
+            if ek =='None':
+                continue
+            tk.Checkbutton(self.event_key_frame, text=ek, variable=self.ek_bools[ek]).grid(row=i, column=0, sticky='w')
+            i+=1
+
+    def _get_result(self):
+        return self.ret_attr
+
+    def _delete_key(self):
+        for k,v in self.dk_bools.copy().items():
+            if v.get():
+                self.attr['data key'].pop(self.attr['data key'].index(k))
+                self.dk_bools.pop(k)
+        for k,v in self.ek_bools.copy().items():
+            if v.get():
+                self.attr['event key'].pop(self.attr['event key'].index(k))
+                self.ek_bools.pop(k)
+        self._front_update()
+
+    def _confirm_key(self):
+        self.ret_attr = deepcopy(self.attr)
+        self.destroy()
+
+    def _reset_key(self):
+        self.attr = deepcopy(self.ret_attr)
+        print(self.attr)
+        self.dk_bools = {dk:tk.BooleanVar() for dk in self.attr['data key']}
+        self.ek_bools = {ek:tk.BooleanVar() for ek in self.attr['event key']}
+        self._front_update()
+
+
 
 class LoadMat(LoadTemplate):
     command_label = "Import MAT file (Matlab array)"
@@ -557,7 +631,7 @@ class LoadMat(LoadTemplate):
         tk.Label(self.stat_frame, textvariable=self.nch).grid(row=3, column=1, sticky='w')
         tk.Label(self.stat_frame, text="Sampling rate: ").grid(row=4, column=0, sticky='w')
         tk.Label(self.stat_frame, textvariable=self.srate).grid(row=4, column=1, sticky='w')
-        tk.Button(self.stat_frame, text="Clear selected keys", command=lambda:self._clear_key()).grid(row=5, column=0)
+        tk.Button(self.stat_frame, text="Edit selected keys", command=lambda:self._clear_key()).grid(row=5, column=0)
 
     def _load(self):
         selected_tuple = filedialog.askopenfilenames (
@@ -707,7 +781,7 @@ class _loadnpy(TopWindow):
         check_bools = [type(fp)==str, type(attr_info_tmp)==dict, type(loaded_array).__module__ == np.__name__]
         if not all(check_bools):
             raise InitWindowValidateException(self, 'Invalid data type passed to _loadnpy on index{}'.format(\
-                ','.join([idx for idx in np.where(check_bools)])))
+                ','.join([str(idx) for idx in np.where(check_bools)])))
 
     def _confirm(self):
         check_bools = np.array([self.attr_var['nchan'].get() in self.loaded_array.shape,\
