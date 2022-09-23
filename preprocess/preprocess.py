@@ -1,5 +1,6 @@
 from ..base import TopWindow, ValidateException, InitWindowValidateException
 from ..dataset.data_holder import Raw, Epochs
+from copy import deepcopy
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -11,8 +12,10 @@ class Channel(TopWindow):
         self.check_data()
 
         self.return_data = None
-        self.mne_data = self.preprocessed_data.data if type(self.preprocessed_data) == Raw else self.preprocessed_data.epoch_data.values()
-        ch_names = self.preprocessed_data.data[0].ch_names if type(self.preprocessed_data) == Raw else self.preprocessed_data.channel_map
+        self.mne_data = deepcopy(self.preprocessed_data.mne_data)
+        for k in self.mne_data.keys():
+            ch_names = self.preprocessed_data.mne_data[k].ch_names
+            break
 
         tk.Label(self, text="Choose Channels: ").pack()
         scrollbar = tk.Scrollbar(self).pack(side="right", fill="y")
@@ -35,18 +38,13 @@ class Channel(TopWindow):
         if len(self.select_channels) == 0:
             raise InitWindowValidateException(window=self, message="No Channel is Selected")
 
-        self.data_list = []
-        for data in self.mne_data:
-            self.data_list.append(data.copy().pick_channels(self.select_channels))
+        for fn,mne_data in self.mne_data.items():
+            self.mne_data[fn] = mne_data.pick_channels(self.select_channels)
 
         if type(self.preprocessed_data) == Raw:
-            self.return_data = self.preprocessed_data
-            self.return_data.data = self.data_list
+            self.return_data = Raw(self.preprocessed_data.raw_attr, self.mne_data, self.preprocessed_data.raw_events, self.preprocessed_data.event_id)
         else:
-            epoch_data = {}
-            for filename, data in zip(self.preprocessed_data.epoch_attr, self.data_list):
-                epoch_data[filename] = data
-            self.return_data = Epochs(self.preprocessed_data.epoch_attr, epoch_data, self.preprocessed_data.label_map)
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data, self.preprocessed_data.label_map)
         self.destroy()
 
     def _get_result(self):
@@ -62,7 +60,7 @@ class Filtering(TopWindow):
         self.return_data = None
         data_field = ["l_freq", "h_freq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
-        self.mne_data = self.preprocessed_data.data if type(self.preprocessed_data) == Raw else self.preprocessed_data.epoch_data.values()
+        self.mne_data = deepcopy(self.preprocessed_data.mne_data)
 
         tk.Label(self, text="Lower pass-band edge: ").grid(row=2, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['l_freq'], bg="White").grid(row=2, column=1, sticky="w")
@@ -79,20 +77,16 @@ class Filtering(TopWindow):
         if self.field_var['l_freq'].get() == "" and self.field_var['h_freq'].get() == "":
             raise InitWindowValidateException(window=self, message="No Input")
 
-        self.data_list = []
-        for data in self.mne_data:
+        
+        for fn, mne_data in self.mne_data.items():
             l_freq = float(self.field_var['l_freq'].get()) if self.field_var['l_freq'].get() != "" else None
             h_freq = float(self.field_var['h_freq'].get()) if self.field_var['h_freq'].get() != "" else None
-            self.data_list.append(data.copy().filter(l_freq=l_freq, h_freq=h_freq))
+            self.mne_data[fn] = mne_data.filter(l_freq=l_freq, h_freq=h_freq)
 
         if type(self.preprocessed_data) == Raw:
-            self.return_data = self.preprocessed_data
-            self.return_data.data = self.data_list
+            self.return_data = Raw(self.preprocessed_data.raw_attr, self.mne_data, self.preprocessed_data.raw_ecents, self.preprocessed_data.event_id)
         else:
-            epoch_data = {}
-            for filename, data in zip(self.preprocessed_data.epoch_attr, self.data_list):
-                epoch_data[filename] = data
-            self.return_data = Epochs(self.preprocessed_data.epoch_attr, epoch_data, self.preprocessed_data.label_map)
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data, self.preprocessed_data.label_map)
         self.destroy()
 
     def _get_result(self):
@@ -108,7 +102,7 @@ class Resample(TopWindow):
         self.return_data = None
         data_field = ["sfreq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
-        self.mne_data = self.preprocessed_data.data if type(self.preprocessed_data) == Raw else self.preprocessed_data.epoch_data.values()
+        self.mne_data = deepcopy(self.preprocessed_data.mne_data)
 
         tk.Label(self, text="Sampling Rate: ").grid(row=6, column=0, sticky="w")
         tk.Entry(self, textvariable=self.field_var['sfreq'], bg="White").grid(row=6, column=1, sticky="w")
@@ -124,20 +118,16 @@ class Resample(TopWindow):
             raise InitWindowValidateException(window=self, message="No Input")
         elif float(self.field_var['sfreq'].get()) < 0.0:
             raise InitWindowValidateException(window=self, message="Input value invalid")
-
-        self.data_list = []
-        for data in self.mne_data:
-            self.data_list.append(data.copy().resample(sfreq=float(self.field_var['sfreq'].get())))
-
+        
         if type(self.preprocessed_data) == Raw:
-            self.return_data = self.preprocessed_data
-            self.return_data.sfreq = self.field_var['sfreq'].get()
-            self.return_data.data = self.data_list
+            new_events = {}
+            for fn,mne_data in self.mne_data.items():
+                self.mne_data[fn],new_events[fn]  = mne_data.resample(sfreq=float(self.field_var['sfreq'].get()), events=self.preprocessed_data.raw_events[fn])
+            self.return_data = Raw(self.preprocessed_data.raw_attr, self.mne_data, new_events, self.preprocessed_data.event_id)
         else:
-            epoch_data = {}
-            for filename, data in zip(self.preprocessed_data.epoch_attr, self.data_list):
-                epoch_data[filename] = data
-            self.return_data = Epochs(self.preprocessed_data.epoch_attr, epoch_data, self.preprocessed_data.label_map)
+            for fn,mne_data in self.mne_data.items():
+                self.mne_data[fn]  = mne_data.resample(sfreq=float(self.field_var['sfreq'].get()))
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data, self.preprocessed_data.label_map)
         self.destroy()
 
     def _get_result(self):
@@ -155,12 +145,13 @@ class EditEvent(TopWindow):
         self.new_event = {}
         self.check_data()
 
-        eventidframe = tk.LabelFrame(self, text="Event ids:").grid(row=0, column=0, columnspan=2, sticky='w')
+        eventidframe = tk.LabelFrame(self, text="Event ids:")
+        eventidframe.grid(row=0, column=0, columnspan=2, sticky='w')
         i = 0
         for k,v in self.old_event.items():
             self.new_event_name[k].set(k)
-            tk.Entry(eventidframe, textvariable=self.new_event_name[k]).grid(row=i, column=0)
-            tk.Label(eventidframe, text=str(v)).grid(row=i, column=1)
+            tk.Entry(eventidframe, textvariable=self.new_event_name[k], width=10).grid(row=i, column=0)
+            tk.Label(eventidframe, text=str(v), width=10).grid(row=i, column=1)
             i += 1
         
         tk.Button(self, text="Cancel", command=lambda:self._confirm(0)).grid(row=1, column=0)
@@ -169,7 +160,7 @@ class EditEvent(TopWindow):
     def check_data(self):
         if not any([ isinstance(self.preprocessed_data, Raw), isinstance(self.preprocessed_data, Epochs)]):
             raise InitWindowValidateException(self, 'No valid data were loaded.')
-        if self.preprocessed_data.event_ids == {}:
+        if self.preprocessed_data.event_id == {}:
             raise InitWindowValidateException(self, 'Lacking events in loaded data.')
     
     def _confirm(self, confirm_bool=0):
@@ -187,10 +178,9 @@ class EditEvent(TopWindow):
             if isinstance(self.preprocessed_data, Raw): # Raw
                 self.preprocessed_data.event_id = self.new_event
             else:
-                for mne_struct in self.preprocessed_data.epoch_data:
+                for mne_struct in self.preprocessed_data.mne_data.values():
                     mne_struct.event_id = self.new_event
-        
-        #self.preprocessed_data.inspect()
+                self.preprocessed_data.label_map.make_label_map()
         self.destroy()
     def _get_result(self):
         return self.preprocessed_data

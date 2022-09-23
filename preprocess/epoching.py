@@ -7,7 +7,7 @@ class TimeEpoch(TopWindow):
     command_label = "Time Epoch"
     def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Time Epoch")
-        self.preprocessed_data = preprocessed_data
+        self.preprocessed_data = preprocessed_data.copy()
         self.check_data()
 
         data_field = ["select_events", "epoch_tmin", "epoch_tmax", "baseline_tmin", "baseline_tmax", "doRemoval"]
@@ -49,7 +49,7 @@ class TimeEpoch(TopWindow):
             self.max_entry.config(state="disabled")
 
     def _choose_events(self):
-        self.new_data = SelectEvents(self, self.preprocessed_data).get_result()
+        self.selectedEvents, self.new_data = SelectEvents(self, self.preprocessed_data).get_result()
 
         # Check if event is selected
         if self.new_data is None:
@@ -66,23 +66,12 @@ class TimeEpoch(TopWindow):
         # Check input value
         if self.field_var['epoch_tmin'].get() == "" or self.field_var['epoch_tmax'].get() == "":
             raise InitWindowValidateException(window=self, message="Invalid Value")
-
-        self.data_list = []
-        for data, label in zip(self.new_data.data, self.new_data.label):
-            self.data_list.append(mne.Epochs(data, label, tmin=float(self.field_var['epoch_tmin'].get()), tmax=float(self.field_var['epoch_tmax'].get()), baseline=self.baseline, preload=True, event_id=self.new_data.event_id))
-
-        # epoch_attr, epoch_data
-        epoch_attr, epoch_data = {}, {}
-        for filename in self.preprocessed_data.id_map:
-            idx = self.preprocessed_data.id_map[filename]
-            epoch_attr[filename] = [self.preprocessed_data.subject[idx], self.preprocessed_data.session[idx]]
-            epoch_data[filename] = self.data_list[idx]
-
-        # label_map
-        label_map = {}
-        for event in self.new_data.event_id:
-            label_map[self.new_data.event_id[event]] = event
-        self.return_data = Epochs(epoch_attr, epoch_data, label_map)
+        
+        self.data_list = {}
+        for fn, mne_data in self.new_data.mne_data.items():
+            self.data_list[fn] = mne.Epochs(self.new_data.mne_data[fn], self.selectedEvents[fn], tmin=float(self.field_var['epoch_tmin'].get()), tmax=float(self.field_var['epoch_tmax'].get()), baseline=self.baseline, preload=True)
+            self.data_list[fn].event_id = self.new_data.event_id
+        self.return_data = Epochs(self.new_data.raw_attr, self.data_list)
         self.destroy()
 
     def _get_result(self):
@@ -92,7 +81,7 @@ class WindowEpoch(TopWindow):
     command_label = "Window Epoch"
     def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Window Epoch")
-        self.preprocessed_data = preprocessed_data
+        self.preprocessed_data = preprocessed_data.copy()
         self.check_data()
 
         self.return_data = None
@@ -134,24 +123,18 @@ class WindowEpoch(TopWindow):
         if self.field_var['duration'].get() == "":
             raise InitWindowValidateException(window=self, message="No Input")
 
-        self.data_list = []
-        for data in self.preprocessed_data.data:
+        self.data_list = {}
+        for fn,mne_data in self.preprocessed_data.mne_data.items():
             overlap = 0.0 if self.field_var['overlap'].get() == "" else float(self.field_var['overlap'].get())
-            epoch = mne.make_fixed_length_epochs(data, duration=float(self.field_var['duration'].get()), overlap=overlap, preload=True)
+            epoch = mne.make_fixed_length_epochs(mne_data, duration=float(self.field_var['duration'].get()), overlap=overlap, preload=True)
             if self.field_var['doRemoval'].get() == "1":
                 baseline_tmin = float(self.field_var['baseline_tmin'].get()) if self.field_var['baseline_tmin'].get() != "" else None
                 baseline_tmax = float(self.field_var['baseline_tmax'].get()) if self.field_var['baseline_tmax'].get() != "" else None
                 epoch.average().apply_baseline((baseline_tmin, baseline_tmax))
-            self.data_list.append(epoch)
+            self.data_list[fn] = epoch
 
-        # epoch_attr, epoch_data, label_map
-        epoch_attr, epoch_data, label_map = {}, {}, {}
-        for filename in self.preprocessed_data.id_map:
-            idx = self.preprocessed_data.id_map[filename]
-            epoch_attr[filename] = [self.preprocessed_data.subject[idx], self.preprocessed_data.session[idx]]
-            epoch_data[filename] = self.data_list[idx]
 
-        self.return_data = Epochs(epoch_attr, epoch_data, label_map)
+        self.return_data = Epochs(self.preprocessed_data.raw_attr, self.data_list)
         self.destroy()
 
     def _get_result(self):
@@ -160,7 +143,7 @@ class WindowEpoch(TopWindow):
 class SelectEvents(TopWindow):
     def __init__(self, parent, preprocessed_data):
         super().__init__(parent, "Select Events")
-        self.preprocessed_data = preprocessed_data
+        self.preprocessed_data = preprocessed_data.copy()
         self.check_data()
 
         self.return_data = None
@@ -191,12 +174,11 @@ class SelectEvents(TopWindow):
         for idx in self.listbox_idx:
             new_event_id[self.listbox.get(idx)] = self.preprocessed_data.event_id[self.listbox.get(idx)]
 
-        self.new_events = []
-        for data in self.preprocessed_data.label:
-            self.new_events.append(mne.pick_events(data, include=list(new_event_id.values())))
+        self.new_events = {}
+        for filename in self.preprocessed_data.raw_events.keys():
+            self.new_events[filename] = mne.pick_events(self.preprocessed_data.raw_events[filename], include=list(new_event_id.values()))
 
         self.return_data = self.preprocessed_data
-        self.return_data.label = self.new_events
         self.return_data.event_id = new_event_id
         self.destroy()
 
