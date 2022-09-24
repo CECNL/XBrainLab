@@ -44,7 +44,7 @@ class Channel(TopWindow):
         if type(self.preprocessed_data) == Raw:
             self.return_data = Raw(self.preprocessed_data.raw_attr, self.mne_data, self.preprocessed_data.raw_events, self.preprocessed_data.event_id)
         else:
-            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data, self.preprocessed_data.label_map)
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data)
         self.destroy()
 
     def _get_result(self):
@@ -86,7 +86,7 @@ class Filtering(TopWindow):
         if type(self.preprocessed_data) == Raw:
             self.return_data = Raw(self.preprocessed_data.raw_attr, self.mne_data, self.preprocessed_data.raw_ecents, self.preprocessed_data.event_id)
         else:
-            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data, self.preprocessed_data.label_map)
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data)
         self.destroy()
 
     def _get_result(self):
@@ -127,7 +127,7 @@ class Resample(TopWindow):
         else:
             for fn,mne_data in self.mne_data.items():
                 self.mne_data[fn]  = mne_data.resample(sfreq=float(self.field_var['sfreq'].get()))
-            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data, self.preprocessed_data.label_map)
+            self.return_data = Epochs(self.preprocessed_data.epoch_attr, self.mne_data)
         self.destroy()
 
     def _get_result(self):

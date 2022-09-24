@@ -4,18 +4,16 @@ from ..option import SplitUnit
 from copy import deepcopy
 
 class Epochs:
-    def __init__(self, epoch_attr={}, mne_data={}, label_map={}):
+    def __init__(self, epoch_attr={}, mne_data={}):
         self.epoch_attr = epoch_attr # {'filename': (subject, session)}
         self.mne_data = mne_data # {'filename': mne structure}
-        if label_map=={}:
-            self.make_label_map()
-        else:
-            self.label_map = label_map   # {int(event_id): 'description'}
+        
         #
         self.sfreq = None
         self.subject_map = {} # index: subject name
         self.session_map = {} # index: session name
         self.event_id = {}    # {'event_name': int(event_id)}
+        self.label_map = {}   # {int(event_id): 'description'}
         self.channel_map = []
         self.channel_position = None
 
@@ -28,49 +26,40 @@ class Epochs:
         self.data = []
         
         self.update()
-    def make_label_map(self):
-        self.label_map={}
-        event_ids_collect = {}
-        event_ids_map  = {}
-        for mne_data in self.mne_data.values():
-            event_ids_collect.update(mne_data.event_id)
-        if min(event_ids_collect.items()) != 0 or (max(event_ids_collect.items()) + 1 != len(event_ids_collect)):
-            i = 0
-            event_id_map = {}
-            for name, idx in event_ids_collect.items():
-                event_ids_collect[name] = i
-                event_ids_map[idx] = i
-                i += 1
-        self.event_id = event_ids_collect
-        for k, v in self.mne_data.items():
-            self.mne_data[k].event_id = event_ids_collect
-            for old_e, new_e in event_id_map.items():
-                self.mne_data[k].events[:,2][self.mne_data[k].events[:,2]==old_e] = new_e
-              
-        i = 0
-        for v in event_ids_collect.items():
-            self.label_map[i] = v
-            i+=1
+    
+    def fix_event_id(self):
+        # fix
+        fixed_event_id  = {}
+        for event_name in self.event_id:
+            fixed_event_id[event_name] = len(fixed_event_id)
+        # update
+        self.event_id = fixed_event_id
+        for filename in self.mne_data:
+            data = self.mne_data[filename]
+            old_event_id = data.event_id.copy()
+            old_events = data.events[:,2].copy()
+            for old_event_name, old_event_label in old_event_id.items():
+                data.events[:,2][ old_events == old_event_label ] = fixed_event_id[old_event_name]
+                data.event_id[old_event_name] = fixed_event_id[old_event_name]
+        self.label_map = {}
+        for event_name, event_label in fixed_event_id.items():
+            self.label_map[event_label] = event_name
 
     def check_data(self):
-        event_ids = self.event_id.values()
-        if min(event_ids) != 0 or (max(event_ids) + 1 != len(event_ids)):
-            raise ValueError("Invalid event_id")
-        for i in event_ids:
-            if i not in self.label_map:
-                self.label_map[i] = '(Empty)'
-        for i in self.label_map:
-            if i not in event_ids:
-                del self.label_map[i]
+        event_id_labels = self.event_id.values()
+        if min(event_id_labels) != 0 or (max(event_id_labels) + 1 != len(event_id_labels)):
+            self.fix_event_id()
+            event_id_labels = self.event_id.values()
 
     def copy(self):
-        return Epochs(self.epoch_attr.copy(), deepcopy(self.mne_data), self.label_map.copy())
+        return Epochs(self.epoch_attr.copy(), deepcopy(self.mne_data))
 
     def reset(self):
         self.sfreq = None
         self.subject_map = {} # index: subject name
         self.session_map = {} # index: session name
         self.event_id = {}    # {'event_name': int(event_id)}
+        self.label_map = {}   # {int(event_id): 'description'}
         self.channel_map = []
         self.channel_position = None
 
@@ -81,12 +70,13 @@ class Epochs:
         self.idx = []
 
         self.data = []
+        # init
+        for filename in self.mne_data.keys():
+            self.event_id.update(self.mne_data[filename].event_id)
 
     # make sure to call this on every preprocessing
     def update(self):
         self.reset()
-        for filename in self.mne_data.keys():
-            self.event_id.update(self.mne_data[filename].event_id)
         self.check_data()
         
         map_subject = {}
@@ -116,7 +106,10 @@ class Epochs:
 
         self.session_map = {map_session[i]:i for i in map_session}
         self.subject_map = {map_subject[i]:i for i in map_subject}
-    
+
+        for event_name, event_label in self.event_id.items():
+            self.label_map[event_label] = event_name
+        
     # data splitting
     ## get list
     def get_subject_list(self):
