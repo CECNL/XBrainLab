@@ -20,7 +20,7 @@ class Raw:
         self.mne_data = raw_data
         for fn in raw_attr.keys():
             self.sfreq = raw_data[fn].info['sfreq']
-            self.raw_events[fn] = raw_event[fn][0] 
+            self.raw_events[fn] = raw_event[fn][0] if type(raw_event[fn]) == tuple else raw_event[fn]
 
     def copy(self):
         copy_event = {}
