@@ -52,8 +52,8 @@ class _attr_table(TopWindow):
         else:
             self.subjects = preprocessed_data.subject_map.copy()
             self.sessions = {k:0 for k in self.subjects.values()}
-            for fn in self.preprocess_data.epoch_attr.keys():
-                self.sessions[self.preprocess_data.epoch_attr[fn][0]] += 1
+            for fn in preprocessed_data.epoch_attr.keys():
+                self.sessions[preprocessed_data.epoch_attr[fn][0]] += 1
         
         tk.Label(self, text="Subject").grid(row=0, column=0, sticky='w')
         tk.Label(self, text="No. Sessions").grid(row=0, column=1, sticky='w')

@@ -149,9 +149,9 @@ class _editrow(TopWindow): # called when double click on treeview
                     self.parent.event_ids.update(self.parent.raw_events[target['Filename'].get()][1])
             else:
                 if self.parent.event_ids_var.get()=='None':
-                    self.parent.event_ids = self.parent.data[target['Filename'].get()][1]
+                    self.parent.event_ids = self.parent.data_list[target['Filename'].get()].event_id
                 else:
-                    self.parent.event_ids.update(self.parent.data[target['Filename'].get()][1])
+                    self.parent.event_ids.update(self.parent.data_list[target['Filename'].get()].event_id)
             self.parent.event_ids_var.set(str(self.parent.event_ids))
         for h in target.keys():
             target[h].set(target[h].get())

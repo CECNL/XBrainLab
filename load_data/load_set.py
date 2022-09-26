@@ -18,9 +18,20 @@ class LoadSet(LoadTemplate):
         for fn in selected_tuple:
             if fn.split('/')[-1] not in self.attr_list.keys():
                 if self.type_ctrl.get() == 'raw':
-                    selected_data = mne.io.read_raw_eeglab(fn, uint16_codec='latin1', preload=True)
+                    try:
+                        selected_data = mne.io.read_raw_eeglab(fn, uint16_codec='latin1', preload=True)
+                    except (TypeError):
+                        tk.messagebox.showwarning(parent=self, title="Warning", message="Detected multiple epochs, switch to epochs loading")
+                        self.type_ctrl.set('epochs')
+                        selected_data = mne.io.read_epochs_eeglab(fn, uint16_codec='latin1')
                 else:
-                    selected_data = mne.io.read_epochs_eeglab(fn, uint16_codec='latin1')
+                    try:
+                        selected_data = mne.io.read_epochs_eeglab(fn, uint16_codec='latin1')
+                    except (ValueError):
+                        tk.messagebox.showwarning(parent=self, title="Warning", message="Detected number of trial < 2, switch to epochs loading")
+                        self.type_ctrl.set('raw')
+                        selected_data = mne.io.read_raw_eeglab(fn, uint16_codec='latin1', preload=True)
+                    
                 new_row, new_event, new_event_src = self._make_row(fn, selected_data)
                 if new_event != None and new_event_src>=0:
                     raw_event_tmp[fn.split('/')[-1]] = new_event
