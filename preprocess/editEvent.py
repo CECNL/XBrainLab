@@ -48,7 +48,7 @@ class EditEvent(TopWindow):
 			else:
 				for mne_struct in self.preprocessed_data.mne_data.values():
 					mne_struct.event_id = self.new_event
-				self.preprocessed_data.label_map.make_label_map()
+				self.preprocessed_data.fix_event_id()
 		self.destroy()
 
 	def _get_result(self):

@@ -8,6 +8,9 @@ class Raw:
         self.raw_attr = {} # {'filename': (subject, session)}
         self.raw_events = {} # {'filename': label of (n_events, 3)}
         self.mne_data = {} # {'filename': mne struct}
+
+        self.subjects = {} # index: subject name
+        self.sessions = {} # subject name: session numbers
         
         self.sfreq = 0
         self.event_id = {}
@@ -21,6 +24,12 @@ class Raw:
         for fn in raw_attr.keys():
             self.sfreq = raw_data[fn].info['sfreq']
             self.raw_events[fn] = raw_event[fn][0] if type(raw_event[fn]) == tuple else raw_event[fn]
+            if raw_attr[fn][0] not in self.subjects.values():
+                self.subjects[len(self.subjects)] = raw_attr[fn][0]
+                self.sessions[raw_attr[fn][0]] = 1
+            else:
+                self.sessions[raw_attr[fn][0]] += 1
+            
 
     def copy(self):
         copy_event = {}
