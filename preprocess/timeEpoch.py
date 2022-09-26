@@ -91,7 +91,8 @@ class SelectEvents(TopWindow):
         self.return_data = None
 
         tk.Label(self, text="Choose Events: ").pack()
-        scrollbar  = tk.Scrollbar(self).pack(side="right", fill="y")
+        scrollbar  = tk.Scrollbar(self)
+        scrollbar.pack(side="right", fill="y")
         self.listbox = tk.Listbox(self, selectmode="multiple", yscrollcommand=scrollbar)
         events_keys = list(self.preprocessed_data.event_id.keys())
         if len(events_keys) == 0:
@@ -99,6 +100,7 @@ class SelectEvents(TopWindow):
         for each_item in range(len(events_keys)):
             self.listbox.insert(tk.END, events_keys[each_item])
         self.listbox.pack(padx=10, pady=10, expand=True, fill="both")
+        scrollbar.config(command=self.listbox.yview)
         tk.Button(self, text="Confirm", command=lambda: self._getEventID(), width=8).pack()
 
     def check_data(self):

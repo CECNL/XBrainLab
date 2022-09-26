@@ -17,11 +17,13 @@ class Channel(TopWindow):
             break
 
         tk.Label(self, text="Choose Channels: ").pack()
-        scrollbar = tk.Scrollbar(self).pack(side="right", fill="y")
-        self.listbox = tk.Listbox(self, selectmode="extended", yscrollcommand=scrollbar)
+        scrollbar = tk.Scrollbar(self)
+        scrollbar.pack(side="right", fill="y")
+        self.listbox = tk.Listbox(self, selectmode="extended", yscrollcommand=scrollbar.set)
         for each_item in range(len(ch_names)):
             self.listbox.insert(tk.END, ch_names[each_item])
         self.listbox.pack(padx=10, pady=10, expand=True, fill="both")
+        scrollbar.config(command = self.listbox.yview)
         tk.Button(self, text="Confirm", command=lambda win=self: self._data_preprocess(), width=8).pack()
 
     def check_data(self):
