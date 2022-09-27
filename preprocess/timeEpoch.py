@@ -91,9 +91,9 @@ class SelectEvents(TopWindow):
         self.return_data = None
 
         tk.Label(self, text="Choose Events: ").pack()
-        scrollbar  = tk.Scrollbar(self)
+        scrollbar = tk.Scrollbar(self)
         scrollbar.pack(side="right", fill="y")
-        self.listbox = tk.Listbox(self, selectmode="multiple", yscrollcommand=scrollbar)
+        self.listbox = tk.Listbox(self, selectmode="extended", yscrollcommand=scrollbar.set)
         events_keys = list(self.preprocessed_data.event_id.keys())
         if len(events_keys) == 0:
             raise InitWindowValidateException(window=self, message="No Event")
