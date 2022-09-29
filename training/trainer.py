@@ -254,7 +254,10 @@ class Trainer:
             for i in range(self.option.repeat_num):
                 self.status = Status.INIT.value.format(self.train_record_list[i].get_name())
                 self.train_one_repeat( self.train_record_list[i] )
-            self.status = Status.DONE.value
+            if self.is_finished():
+                self.status = Status.DONE.value
+            else:
+                self.status = Status.PENDING.value
         except Exception as e:
             traceback.print_exc()
             self.error = str(e)

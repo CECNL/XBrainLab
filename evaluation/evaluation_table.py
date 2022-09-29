@@ -75,6 +75,8 @@ class EvaluationTableWindow(TopWindow):
                         values_list.append(values[i])
                 if len(values_list) > 0:
                     avg_values.append(sum(values_list) / len(values_list))
+                else:
+                    avg_values.append(None)
         self.tree.item(self.tree.get_children()[-1], values=avg_values)
         if loop:
             self.after(1000, self.update_loop)

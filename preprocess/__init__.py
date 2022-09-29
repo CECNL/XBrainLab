@@ -1,8 +1,8 @@
-from .channel import Channel
+from .channel_selection import ChannelSelection
 from .filtering import Filtering
 from .resample import Resample
-from .timeEpoch import TimeEpoch
-from .windowEpoch import WindowEpoch
-from .editEvent import EditEvent
+from .time_epoch import TimeEpoch
+from .window_epoch import WindowEpoch
+from .edit_event import EditEvent
 
-PREPROCESS_MODULE_LIST = [Channel, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent]
+PREPROCESS_MODULE_LIST = [ChannelSelection, Filtering, Resample, TimeEpoch, WindowEpoch, EditEvent]

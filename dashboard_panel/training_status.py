@@ -19,15 +19,15 @@ class TrainingStatusPanel(PanelBase):
 
     def show_panel(self):
         self.clear_panel()
-        self.tree.pack(expand=True)
+        self.tree.pack(expand=True,fill=tk.BOTH)
         self.is_setup = True
 
     def update_panel(self, trainers):
-        if not trainers:
-            return self.show_instruction()
-        elif not self.is_setup:
+        if not self.is_setup:
             self.show_panel()
         self.tree.delete(*self.tree.get_children())
+        if not trainers:
+            return
         for trainer in trainers:
             dataset = trainer.get_dataset()
             self.tree.insert("", 'end', values=[trainer.get_name(), dataset.get_train_len(), dataset.get_val_len(), dataset.get_test_len()])

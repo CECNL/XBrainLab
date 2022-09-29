@@ -36,22 +36,27 @@ class TrainingSchemePanel(PanelBase):
         self.is_setup = True
 
     def update_panel(self, datasets):
-        if not datasets:
-            return self.show_instruction()
-        elif not self.is_setup:
+        if not self.is_setup:
             self.show_panel()
 
         training_label = self.training_label
         validation_frame = self.validation_frame
         testing_frame = self.testing_frame
+        # clear
+        training_label.config(text='Not set')
+        for child in validation_frame.winfo_children():
+            child.destroy()
+        for child in testing_frame.winfo_children():
+            child.destroy()
+        if not datasets:
+            return
+
         config = datasets[0].config
         
         training_label.config(text=config.train_type.value)
         val_splitter_list, test_splitter_list = config.get_splitter_option()
         
         # val frame
-        for child in validation_frame.winfo_children():
-            child.destroy()
         row = 0
         for val_splitter in val_splitter_list:
             if val_splitter.is_option:
@@ -68,8 +73,6 @@ class TrainingSchemePanel(PanelBase):
                 tk.Label(validation_frame, text=val_splitter.text).grid(row=row, column=0, columnspan=2, pady=5)
 
         # test frame
-        for child in testing_frame.winfo_children():
-            child.destroy()
         row = 0
         if config.is_cross_validation:
             tk.Label(testing_frame, text='Cross Validation').grid(row=row, column=0, columnspan=2)

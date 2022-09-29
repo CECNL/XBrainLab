@@ -1,3 +1,3 @@
-from .dataset_holder import DataSet
-from .raw_holder import Raw
-from .epochs_holder import Epochs
+from .dataset import DataSet
+from .raw import Raw
+from .epochs import Epochs

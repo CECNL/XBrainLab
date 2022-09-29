@@ -1,65 +1,95 @@
 from .base import PanelBase
 from ..dataset.data_holder import Raw, Epochs
 from ..base import TopWindow
+from ..load_data.base import DataType
 import tkinter as tk
 
 class DatasetPanel(PanelBase):
     def __init__(self, parent, **args):
         super().__init__(parent, text='Dataset', **args)
-
-        self.preprocessed_data = None
-        self.row_label = ["Data sessions: ","Session Details: ","Classes: "]
-        self.row_var = {k:tk.StringVar() for k in self.row_label}
-        [self.row_var[k].set('None') for k in self.row_var.keys()]
-        self.btn = tk.Button(self, text="View", command=lambda:self.attr_detail(), state=tk.DISABLED)
+        frame = tk.Frame(self)
         
+        tk.Label(frame, text='Type').grid(row=0, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Subject').grid(row=1, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Session').grid(row=2, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Epochs').grid(row=3, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Channel').grid(row=4, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Sample rate').grid(row=5, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='tmin (sec.)').grid(row=6, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='duration (sec.)').grid(row=7, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Highpass').grid(row=8, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Lowpass').grid(row=9, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Classes').grid(row=10, column=0, sticky='e', padx=10)
+
+        self.type_label = tk.Label(frame, text='None')
+        self.subject_label = tk.Label(frame, text='None')
+        self.session_label = tk.Label(frame, text='None')
+        self.epochs_label = tk.Label(frame, text='None')
+        self.channel_label = tk.Label(frame, text='None')
+        self.sfreq_label = tk.Label(frame, text='None')
+        self.tmin_label = tk.Label(frame, text='None')
+        self.duration_label = tk.Label(frame, text='None')
+        self.highpass_label = tk.Label(frame, text='None')
+        self.lowpass_label = tk.Label(frame, text='None')
+        self.classes_label = tk.Label(frame, text='None')
+
+        self.type_label.grid(row=0, column=1)
+        self.subject_label.grid(row=1, column=1)
+        self.session_label.grid(row=2, column=1)
+        self.epochs_label.grid(row=3, column=1)
+        self.channel_label.grid(row=4, column=1)
+        self.sfreq_label.grid(row=5, column=1)
+        self.tmin_label.grid(row=6, column=1)
+        self.duration_label.grid(row=7, column=1)
+        self.highpass_label.grid(row=8, column=1)
+        self.lowpass_label.grid(row=9, column=1)
+        self.classes_label.grid(row=10, column=1)
+        frame.pack(expand=True)
+
+    def reset(self):
+        self.type_label.config(text='None')
+        self.subject_label.config(text='None')
+        self.session_label.config(text='None')
+        self.epochs_label.config(text='None')
+        self.channel_label.config(text='None')
+        self.sfreq_label.config(text='None')
+        self.tmin_label.config(text='None')
+        self.duration_label.config(text='None')
+        self.highpass_label.config(text='None')
+        self.lowpass_label.config(text='None')
+        self.classes_label.config(text='None')
+
+    def update_panel(self, preprocessed_data_list):
+        self.reset()
+        if not preprocessed_data_list:
+            return
         
-        for i in range(len(self.row_label)):
-            tk.Label(self, text = self.row_label[i]).grid(row=i, column=0, sticky='w')
-            if i != 1:
-                tk.Label(self, textvariable= self.row_var[self.row_label[i]]).grid(row=i, column=1)
-            else:
-                self.btn.grid(row=i, column=1)
-        self.update_panel(self.preprocessed_data)
-    
-    def attr_detail(self):
-        win = _attr_table(self, self.preprocessed_data)
+        subject_set = set()
+        session_set = set()
+        classes_set = set()
+        epoch_length = 0
+        for preprocessed_data in preprocessed_data_list:
+            subject_set.update(preprocessed_data.get_subject_name())
+            session_set.update(preprocessed_data.get_session_name())
+            _, event_id = preprocessed_data.get_event_list()
+            if event_id:
+                classes_set.update(event_id)
+            epoch_length += preprocessed_data.get_epochs_length()
+        tmin = None
+        duration = None
+        if not preprocessed_data.is_raw():
+            tmin = None
+            duration = preprocessed_data.get_epoch_duration() / preprocessed_data.get_sfreq()
+        highpass, lowpass = preprocessed_data.get_filter_range()
 
-    def update_panel(self, preprocessed_data):
-        self.preprocessed_data = preprocessed_data
-        if preprocessed_data!= None:  
-            self.btn['state'] = tk.NORMAL
-            row_value = [len(self.preprocessed_data.mne_data),\
-                0,\
-                len(self.preprocessed_data.event_id)]
-            for i in range(len(self.row_label)):
-                self.row_var[self.row_label[i]].set(str(row_value[i])) 
-        else:
-            for i in range(len(self.row_label)):
-                self.row_var[self.row_label[i]].set('None')
-
-class _attr_table(TopWindow):
-    def __init__(self, parent, preprocessed_data):
-        super().__init__(parent, "Subjects and sessions")
-        self.subjects = {}
-        self.sessions = {}
-        if preprocessed_data == None:
-            return False
-
-        if isinstance(preprocessed_data, Raw):
-            self.subjects = preprocessed_data.subjects.copy()
-            self.sessions = preprocessed_data.sessions.copy()
-        else:
-            self.subjects = preprocessed_data.subject_map.copy()
-            self.sessions = {k:0 for k in self.subjects.values()}
-            for fn in preprocessed_data.epoch_attr.keys():
-                self.sessions[preprocessed_data.epoch_attr[fn][0]] += 1
-        
-        tk.Label(self, text="Subject").grid(row=0, column=0, sticky='w')
-        tk.Label(self, text="No. Sessions").grid(row=0, column=1, sticky='w')
-        for i in range(len(self.subjects)):
-            tk.Label(self, text= self.subjects[i]).grid(row=i+1, column=0)
-            tk.Label(self, text= str(self.sessions[self.subjects[i]])).grid(row=i+1, column=1)
-    def _get_result(self):
-        return True
-
+        self.type_label.config(text=DataType.RAW.value if preprocessed_data.is_raw() else DataType.EPOCH.value)
+        self.subject_label.config(text=len(subject_set))
+        self.session_label.config(text=len(session_set))
+        self.epochs_label.config(text=epoch_length)
+        self.channel_label.config(text=preprocessed_data.get_nchan())
+        self.sfreq_label.config(text=preprocessed_data.get_sfreq())
+        self.tmin_label.config(text=tmin)
+        self.duration_label.config(text=duration)
+        self.highpass_label.config(text=highpass)
+        self.lowpass_label.config(text=lowpass)
+        self.classes_label.config(text=len(classes_set))

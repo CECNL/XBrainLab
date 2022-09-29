@@ -4,11 +4,7 @@ from ..option import SplitUnit
 from copy import deepcopy
 
 class Epochs:
-    def __init__(self, epoch_attr={}, mne_data={}):
-        self.epoch_attr = epoch_attr # {'filename': (subject, session)}
-        self.mne_data = mne_data # {'filename': mne structure}
-        
-        #
+    def __init__(self, preprocessed_data_list):
         self.sfreq = None
         self.subject_map = {} # index: subject name
         self.session_map = {} # index: session name
@@ -24,68 +20,39 @@ class Epochs:
         self.idx = []
 
         self.data = []
-        
-        self.update()
-    
-    def fix_event_id(self):
-        # fix
+
+        # event_id
+        for preprocessed_data in preprocessed_data_list:
+            _, event_id = preprocessed_data.get_event_list()
+            self.event_id.update(event_id)
+        ## fix
         fixed_event_id  = {}
         for event_name in self.event_id:
             fixed_event_id[event_name] = len(fixed_event_id)
-        # update
+        ## update
         self.event_id = fixed_event_id
-        for filename in self.mne_data:
-            data = self.mne_data[filename]
+        for preprocessed_data in preprocessed_data_list:
+            data = preprocessed_data.get_mne()
             old_event_id = data.event_id.copy()
             old_events = data.events[:,2].copy()
             for old_event_name, old_event_label in old_event_id.items():
                 data.events[:,2][ old_events == old_event_label ] = fixed_event_id[old_event_name]
                 data.event_id[old_event_name] = fixed_event_id[old_event_name]
+        # label map
         self.label_map = {}
         for event_name, event_label in fixed_event_id.items():
             self.label_map[event_label] = event_name
 
-    def check_data(self):
-        event_id_labels = self.event_id.values()
-        if min(event_id_labels) != 0 or (max(event_id_labels) + 1 != len(event_id_labels)):
-            self.fix_event_id()
-            event_id_labels = self.event_id.values()
-
-    def copy(self):
-        return Epochs(self.epoch_attr.copy(), deepcopy(self.mne_data))
-
-    def reset(self):
-        self.sfreq = None
-        self.subject_map = {} # index: subject name
-        self.session_map = {} # index: session name
-        self.event_id = {}    # {'event_name': int(event_id)}
-        self.label_map = {}   # {int(event_id): 'description'}
-        self.channel_map = []
-        self.channel_position = None
-
-        # 1D np array
-        self.subject = []
-        self.session = []
-        self.label = []
-        self.idx = []
-
-        self.data = []
-        # init
-        for filename in self.mne_data.keys():
-            self.event_id.update(self.mne_data[filename].event_id)
-
-    # make sure to call this on every preprocessing
-    def update(self):
-        self.reset()
-        self.check_data()
-        
+        # info
         map_subject = {}
         map_session = {}
         map_label = {}
         
-        for filename in self.epoch_attr.keys():
-            epoch_len = len(self.mne_data[filename].events)
-            subject_name, session_name = self.epoch_attr[filename]
+        for preprocessed_data in preprocessed_data_list:
+            data = preprocessed_data.get_mne()
+            epoch_len = preprocessed_data.get_epochs_length()
+            subject_name = preprocessed_data.get_subject_name()
+            session_name = preprocessed_data.get_session_name()
             if subject_name not in map_subject:
                 map_subject[subject_name] = len(map_subject)
             if session_name not in map_session:
@@ -95,21 +62,24 @@ class Epochs:
 
             self.subject = np.concatenate((self.subject, [subject_idx] * epoch_len))
             self.session = np.concatenate((self.session, [session_idx] * epoch_len))
-            self.label   = np.concatenate((self.label,   self.mne_data[filename].events[:,2]))
+            self.label   = np.concatenate((self.label,   data.events[:,2]))
             self.idx     = np.concatenate((self.idx,     range(epoch_len)))
             if self.data == []:
-                self.data = self.mne_data[filename].get_data()
+                self.data = data.get_data()
             else:
-                self.data    = np.concatenate((self.data,    self.mne_data[filename].get_data()))
-            self.sfreq = self.mne_data[filename].info['sfreq']
-            self.channel_map = self.mne_data[filename].info.ch_names.copy()
+                self.data    = np.concatenate((self.data,    data.get_data()))
+            self.sfreq = data.info['sfreq']
+            self.channel_map = data.info.ch_names.copy()
 
         self.session_map = {map_session[i]:i for i in map_session}
         self.subject_map = {map_subject[i]:i for i in map_subject}
 
         for event_name, event_label in self.event_id.items():
             self.label_map[event_label] = event_name
-        
+
+    def copy(self):
+        return deepcopy(self)
+       
     # data splitting
     ## get list
     def get_subject_list(self):

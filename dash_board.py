@@ -10,13 +10,14 @@ from .visualization import PickMontageWindow, VISUALIZATION_MODULE_LIST
 from .dataset.data_holder import Epochs
 from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel, TrainingSettingPanel, TrainingStatusPanel
 from .base import ValidateException
+from copy import deepcopy
 
 class DashBoard(tk.Tk):
     def __init__(self):
         super().__init__()
         # window
         self.child_list = []
-        self.minsize(800, 400)
+        self.minsize(900, 400)
         self.title('Dashboard')
         self.init_menu()
         # panel
@@ -30,8 +31,9 @@ class DashBoard(tk.Tk):
         self.trainin_status_panel = TrainingStatusPanel(self, row=1, column=2)
 
         # raw data
-        self.loaded_data = None
-        self.preprocessed_data = None
+        self.loaded_data_list = None
+        self.preprocessed_data_list = None
+        self.epoch_data = None
         # datasets
         self.datasets = None
         # training
@@ -39,16 +41,16 @@ class DashBoard(tk.Tk):
         self.training_option = None
         self.trainers = None
 
-        self.update_dashboard()
+        self.after(1, self.update_dashboard)
     
     def update_dashboard(self):
         if not self.winfo_exists():
             return
 
         self.update_idletasks()
-        self.dataset_panel.update_panel(self.preprocessed_data)
+        self.dataset_panel.update_panel(self.preprocessed_data_list)
         self.update_idletasks()
-        self.preprocess_panel.update_panel(self.preprocessed_data)
+        self.preprocess_panel.update_panel(self.preprocessed_data_list)
         self.update_idletasks()
         self.training_scheme_panel.update_panel(self.datasets)
         self.update_idletasks()
@@ -105,14 +107,21 @@ class DashBoard(tk.Tk):
         return False
 
     # data
+    def set_preprocessed_data_list(self, preprocessed_data_list):
+        self.preprocessed_data_list = preprocessed_data_list
+        if not preprocessed_data_list[0].is_raw():
+            self.epoch_data = Epochs(preprocessed_data_list)
+        else:
+            self.epoch_data = None
+
     def import_data(self, import_module):
-        if self.preprocessed_data:
+        if self.preprocessed_data_list:
             if not self.warn_flow_cleaning():
                 return
-        loaded_data = import_module(self).get_result()
-        if loaded_data:
-            self.loaded_data = loaded_data
-            self.preprocessed_data = loaded_data.copy()
+        loaded_data_list = import_module(self).get_result()
+        if loaded_data_list:
+            self.loaded_data_list = loaded_data_list
+            self.set_preprocessed_data_list(deepcopy(loaded_data_list))
             self.clean_datasets()
             self.update_dashboard()
 
@@ -120,9 +129,9 @@ class DashBoard(tk.Tk):
         if self.datasets:
             if not self.warn_flow_cleaning():
                 return
-        preprocessed_data = preprocess_module(self, self.preprocessed_data).get_result()
-        if preprocessed_data:
-            self.preprocessed_data = preprocessed_data
+        preprocessed_data_list = preprocess_module(self, self.preprocessed_data_list).get_result()
+        if preprocessed_data_list:
+            self.set_preprocessed_data_list(preprocessed_data_list)
             self.clean_datasets()
             self.update_dashboard()
 
@@ -130,11 +139,11 @@ class DashBoard(tk.Tk):
         if self.datasets:
             if not self.warn_flow_cleaning():
                 return
-        if self.loaded_data:
-            self.preprocessed_data = self.loaded_data.copy()
+        if self.loaded_data_list:
+            self.set_preprocessed_data_list(deepcopy(self.loaded_data_list))
             tk.messagebox.showinfo(parent=self, title='Success', message='OK')
         else:
-            raise ValidateException(window=self, message='No valid data is loaded')
+            raise ValidateException(window=self, message='No valid data has been loaded')
         self.clean_datasets()
         self.update_dashboard()
     
@@ -143,11 +152,11 @@ class DashBoard(tk.Tk):
         if self.trainers:
             if not self.warn_flow_cleaning():
                 return
-        datasets = DataSplittingSettingWindow(self, self.preprocessed_data).get_result()
+        datasets = DataSplittingSettingWindow(self, self.epoch_data).get_result()
         if datasets:
             self.datasets = datasets
-        self.clean_trainer()
-        self.update_dashboard()
+            self.clean_trainer()
+            self.update_dashboard()
 
     def select_model(self):
         if self.trainers:
@@ -156,8 +165,8 @@ class DashBoard(tk.Tk):
         model_holder = ModelSelectionWindow(self).get_result()
         if model_holder:
             self.model_holder = model_holder
-        self.clean_trainer()
-        self.update_dashboard()
+            self.clean_trainer()
+            self.update_dashboard()
 
     def training_setting(self):
         if self.trainers:
@@ -166,8 +175,8 @@ class DashBoard(tk.Tk):
         training_option = TrainingSettingWindow(self).get_result()
         if training_option:
             self.training_option = training_option
-        self.clean_trainer()
-        self.update_dashboard()
+            self.clean_trainer()
+            self.update_dashboard()
 
     def generate_plan(self):
         if self.trainers:
@@ -188,7 +197,6 @@ class DashBoard(tk.Tk):
 
     def open_training_manager(self):
         TrainingManagerWindow(self, self.trainers)
-        self.update_dashboard()
 
     # eval
     def evaluate(self, evaluation_module):
@@ -196,7 +204,7 @@ class DashBoard(tk.Tk):
     
     # visualize
     def set_montage(self):
-        if type(self.preprocessed_data) != Epochs:
+        if type(self.epoch_data) != Epochs:
             raise ValidateException(window=self, message='No valid epoch data is generated')
             return
         chs, positions = PickMontageWindow(self, self.preprocessed_data.get_channel_names()).get_result()

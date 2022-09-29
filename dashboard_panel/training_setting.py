@@ -52,9 +52,7 @@ class TrainingSettingPanel(PanelBase):
         self.is_setup = True
 
     def update_panel(self, model_holder, training_option):
-        if not model_holder and not training_option:
-            return self.show_instruction()
-        elif not self.is_setup:
+        if not self.is_setup:
             self.show_panel()
 
         self.epoch_label.config(text='Not set')
@@ -67,7 +65,7 @@ class TrainingSettingPanel(PanelBase):
         self.eval_label.config(text='Not set')
         self.repeat_label.config(text='Not set')
         self.model_label.config(text='Not set')
-
+        
         if model_holder:
             self.model_label.config(text=model_holder.get_model_desc_str())
         

@@ -1,7 +1,7 @@
-from .load_set import LoadSet
-from .load_mat import LoadMat
-from .load_edf import LoadEdf
-from .load_cnt import LoadCnt
-from .load_np import LoadNp
+from .set import LoadSet
+from .mat import LoadMat
+from .edf import LoadEdf
+from .cnt import LoadCnt
+from .np import LoadNp
 
 IMPORT_TYPE_MODULE_LIST = [LoadSet, LoadMat, LoadEdf, LoadCnt, LoadNp]
