@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import filedialog
 from enum import Enum
+import re, os
 
 from ...base import TopWindow, ValidateException, InitWindowValidateException
 from ...dataset.data_holder import Raw
@@ -12,6 +13,8 @@ class EditRaw(TopWindow): # called when double click on treeview
         super().__init__(parent, "Edit data attribute")
         self.raw = raw
         self.check_data()
+        self.columnconfigure([1], weight=1)
+        self.rowconfigure(list(range(8)), weight=1)
 
         # ==== init
         self.delete_row = False
@@ -19,14 +22,14 @@ class EditRaw(TopWindow): # called when double click on treeview
         self.subject_var = tk.StringVar(self)
         self.session_var = tk.StringVar(self)
 
-        tk.Label(self, text="Filepath: ").grid(row=0, column=0, sticky='w')
-        tk.Label(self, text="Filename: ").grid(row=1, column=0, sticky='w')
-        tk.Label(self, text="Subject: ").grid(row=2, column=0, sticky='w')
-        tk.Label(self, text="Session: ").grid(row=3, column=0, sticky='w')
-        tk.Label(self, text="Channels: ").grid(row=4, column=0, sticky='w')
-        tk.Label(self, text="Sampling Rate: ").grid(row=5, column=0, sticky='w')
-        tk.Label(self, text="Epochs: ").grid(row=6, column=0, sticky='w')
-        tk.Label(self, text="Events: ").grid(row=7, column=0, sticky='w')
+        tk.Label(self, text="Filepath: ").grid(row=0, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Filename: ").grid(row=1, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Subject: ").grid(row=2, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Session: ").grid(row=3, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Channels: ").grid(row=4, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Sampling Rate: ").grid(row=5, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Epochs: ").grid(row=6, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Events: ").grid(row=7, column=0, sticky='w', padx=10, pady=2)
 
         tk.Label(self, text=raw.get_filepath()).grid(row=0, column=1, sticky='w')
         tk.Label(self, text=raw.get_filename()).grid(row=1, column=1, sticky='w')
@@ -81,6 +84,10 @@ class DataType(Enum):
     RAW = 'raw'
     EPOCH = 'epochs'
 
+class FilenameGroupKey(Enum):
+    SUBJECT = 'subject'
+    SESSION = 'session'
+
 class LoadBase(TopWindow):
     def __init__(self, parent, title, lock_config_status=False):
         # ==== initialize ====
@@ -88,6 +95,11 @@ class LoadBase(TopWindow):
         self.ret_val = None
         self.filetypes = ()
         self.lock_config_status = lock_config_status
+
+        self.columnconfigure([0], weight=2)
+        self.columnconfigure([1], weight=1)
+        self.rowconfigure([1], weight=1)
+
 
         # ==== type selection ==== 
         type_frame = ttk.LabelFrame(self, text="Data type")
@@ -105,31 +117,38 @@ class LoadBase(TopWindow):
         for h in attr_header:
             self.data_attr_treeview.column(h, width=len(h)*8+10, anchor=tk.CENTER) # for setting width
             self.data_attr_treeview.heading(h, text=h, anchor=tk.CENTER)
-        self.data_attr_treeview.grid(row=0, column=0)
+        self.data_attr_treeview.pack(expand=True, fill=tk.BOTH)
         self.data_attr_treeview.bind('<Double-Button-1>', self.edit)
 
         # ==== status table ==== 
         # channels, events
         stat_frame = ttk.LabelFrame(self, text="Current Status")
+        stat_frame.columnconfigure([1], weight=1)
         self.raw_data_len_var = tk.IntVar()
         self.event_ids_var = tk.StringVar()
+        self.filename_template_var = tk.StringVar(self)
         tk.Label(stat_frame, text="Dataset loaded: ").grid(row=0, column=0, sticky='w')
         tk.Label(stat_frame, textvariable=self.raw_data_len_var).grid(row=0, column=1, sticky='w')
         tk.Label(stat_frame, text="Loaded type: ").grid(row=1, column=0, sticky='w')
         tk.Label(stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1, sticky='w')
         tk.Label(stat_frame, text="Event name: ").grid(row=2, column=0, sticky='w')
         tk.Label(stat_frame, textvariable=self.event_ids_var, wraplength=175).grid(row=2, column=1, sticky='w')
+        tk.Label(stat_frame, text="Filename template: ").grid(row=3, column=0, sticky='w')
+        tk.Entry(stat_frame, textvariable=self.filename_template_var).grid(row=4, column=0, columnspan=2, sticky='ew')
+        self.stat_frame_row_count = 5
 
         # ==== functional buttons ====
-        add_btn = tk.Button(self, text="Add", command=self.load)
-        confirm_btn = tk.Button(self, text="Confirm", command=self.confirm)
+        btn_frame = tk.Frame(self)
+        add_btn = tk.Button(btn_frame, text="Add", command=self.load)
+        confirm_btn = tk.Button(btn_frame, text="Confirm", command=self.confirm)
+        add_btn.pack(side=tk.LEFT)
+        confirm_btn.pack(side=tk.LEFT)
         
         # ==== pack ====
-        type_frame.grid(row=0, column=0, columnspan=2, sticky='w')
-        stat_frame.grid(row=0, column=2, rowspan=2)
-        attr_frame.grid(row=1, column=0, columnspan=2, sticky='w')
-        add_btn.grid(row=2, column=0, ipadx=3, sticky='e')
-        confirm_btn.grid(row=2, column=1, ipadx=3, sticky='w')
+        type_frame.grid(row=0, column=0, columnspan=2, sticky='w', padx=10, pady=10)
+        attr_frame.grid(row=1, column=0, sticky='news')
+        stat_frame.grid(row=1, column=1, sticky='ew', padx=10)
+        btn_frame.grid(row=2, column=0,  columnspan=2)
         
         self.stat_frame = stat_frame
         self.reset()
@@ -184,16 +203,27 @@ class LoadBase(TopWindow):
         for filepath in selected_files:
             if self.get_loaded_raw(filepath):
                 continue
-            mne_data = self._load(filepath)
-            if mne_data is None:
+            data = self._load(filepath)
+            if data is None:
                 raise ValidateException(self, f'Unable to load {filepath}.')
-            if mne_data is False:
+            if data is False:
                 return
-            if not isinstance(mne_data, Raw):
-                raw_data = Raw(filepath, mne_data)
+            if not isinstance(data, Raw):
+                raw_data = Raw(filepath, data)
             else:
-                raw_data = mne_data
+                raw_data = data
             self.check_loaded_data_consistency(raw_data)
+            try:
+                regex = self.filename_template_var.get()
+                filename = os.path.basename(filepath)
+                m = re.match(regex, filename)
+                groupdict = m.groupdict()
+                if FilenameGroupKey.SESSION.value in groupdict:
+                    raw_data.set_session_name(groupdict[FilenameGroupKey.SESSION.value])
+                if FilenameGroupKey.SUBJECT.value in groupdict:
+                    raw_data.set_subject_name(groupdict[FilenameGroupKey.SUBJECT.value])
+            except:
+                    pass
             self.data_attr_treeview.insert('', iid=filepath, index="end", values=raw_data.get_row_info())
             self.raw_data_list.append(raw_data)
 

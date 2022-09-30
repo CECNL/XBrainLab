@@ -9,9 +9,12 @@ class Resample(PreprocessBase):
 		data_field = ["sfreq"]
 		self.field_var = {key: tk.StringVar() for key in data_field}
 
-		tk.Label(self, text="Sampling Rate: ").grid(row=6, column=0, sticky="w")
-		tk.Entry(self, textvariable=self.field_var['sfreq']).grid(row=6, column=1, sticky="w")
-		tk.Button(self, text="Confirm", command=lambda win=self: self._data_preprocess(), width=8).grid(row=7, columnspan=2)
+		self.rowconfigure([0,1], weight=1)
+		self.columnconfigure([0,1], weight=1)
+
+		tk.Label(self, text="Sampling Rate: ").grid(row=0, column=0, pady=10, padx=5)
+		tk.Entry(self, textvariable=self.field_var['sfreq']).grid(row=0, column=1, pady=10, padx=5)
+		tk.Button(self, text="Confirm", command=lambda win=self: self._data_preprocess(), width=8).grid(row=1, columnspan=2)
 
 	def get_preprocess_desc(self, sfreq):
 		return f"Resample to {sfreq}"

@@ -64,10 +64,10 @@ class ArrayInfoSetter(TopWindow):
         tk.Label(attr_frame, textvariable=self.time_trace).grid(row=3, column=1, sticky='w')
 
         # pack
-        tk.Label(self, text="Filename: " + os.path.basename(fp)).grid(row=0, column=0, sticky='w')
-        data_key_frame.grid(row=1, column=0, columnspan=2, sticky='w')
-        attr_frame.grid(row=2, column=0, columnspan=2, sticky='w')
-        tk.Button(self, text="Confirm",command=self.confirm).grid(row=3, column=0)
+        tk.Label(self, text="Filename: " + os.path.basename(fp)).pack(padx=5, pady=10, expand=True)
+        data_key_frame.pack(padx=5, pady=10, expand=True)
+        attr_frame.pack(padx=5, pady=10, expand=True)
+        tk.Button(self, text="Confirm", command=self.confirm).pack(padx=5, pady=10, expand=True)
 
         # init
         self.OPTION = OPTION

@@ -10,7 +10,7 @@ class LoadDict(LoadArray):
         # ==== status table ====
         self.clear_btn = tk.Button(self.stat_frame, text="Clear selected keys", command=self._clear_key)
         self.clear_btn.config(state='disabled')
-        self.clear_btn.grid(row=5, column=0)
+        self.clear_btn.grid(row=self.stat_frame_row_count, column=0)
 
     def reset(self):
         super().reset()

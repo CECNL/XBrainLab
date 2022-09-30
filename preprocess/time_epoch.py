@@ -13,25 +13,26 @@ class TimeEpoch(PreprocessBase):
         self.event_id = None
         self.return_data = None
 
-        tk.Label(self, text="Choose Events: ").grid(row=1, column=0, sticky="w")
-        tk.Label(self, textvariable=self.field_var['select_events']).grid(row=1, column=1, sticky="w")
-        tk.Button(self, text="...", command=self._choose_events, width=8).grid(row=1, column=2)
-        tk.Label(self, text="Epoch limit start: ").grid(row=2, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.field_var['epoch_tmin']).grid(row=2, column=1, sticky="w")
-        tk.Label(self, text="Epoch limit end: ").grid(row=3, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.field_var['epoch_tmax']).grid(row=3, column=1, sticky="w")
-        tk.Label(self, text="").grid(row=4, columnspan=2, sticky="w")
+        self.rowconfigure(list(range(6)), weight=1)
+        self.columnconfigure([1], weight=1)
 
-        tk.Checkbutton(self, text='Do Baseline Removal', variable=self.field_var['doRemoval'], onvalue=1, offvalue=0, command=self._click_checkbox).grid(row=5, columnspan=2, sticky="w")
-        tk.Label(self, text="latency range").grid(row=6, column=0, sticky="w")
-        tk.Label(self, text="min: ").grid(row=7, column=0, sticky="w")
+        tk.Label(self, text="Choose Events: ").grid(row=0, column=0, sticky="w", padx=5)
+        tk.Label(self, textvariable=self.field_var['select_events']).grid(row=0, column=1, sticky="w", padx=5, pady=5)
+        tk.Button(self, text="...", command=self._choose_events, width=8).grid(row=0, column=2, padx=5, pady=5)
+        tk.Label(self, text="Epoch limit start: ").grid(row=1, column=0, sticky="w", padx=5)
+        tk.Entry(self, textvariable=self.field_var['epoch_tmin']).grid(row=1, column=1, sticky="ew", padx=5)
+        tk.Label(self, text="Epoch limit end: ").grid(row=2, column=0, sticky="w", padx=5)
+        tk.Entry(self, textvariable=self.field_var['epoch_tmax']).grid(row=2, column=1, sticky="ew", padx=5)
+
+        tk.Checkbutton(self, text='Do Baseline Removal', variable=self.field_var['doRemoval'], onvalue=1, offvalue=0, command=self._click_checkbox).grid(row=3, columnspan=3, sticky="w", pady=(15, 2))
+        tk.Label(self, text="min: ").grid(row=4, column=0, sticky="w", padx=5)
         self.min_entry = tk.Entry(self, textvariable=self.field_var['baseline_tmin'])
-        self.min_entry.grid(row=7, column=1, sticky="w")
-        tk.Label(self, text="max: ").grid(row=8, column=0, sticky="w")
+        self.min_entry.grid(row=4, column=1, sticky="ew", padx=5)
+        tk.Label(self, text="max: ").grid(row=5, column=0, sticky="w", padx=5)
         self.max_entry = tk.Entry(self, textvariable=self.field_var['baseline_tmax'])
-        self.max_entry.grid(row=8, column=1, sticky="w")
+        self.max_entry.grid(row=5, column=1, sticky="ew", padx=5)
         self.field_var['doRemoval'].set(1)
-        tk.Button(self, text="Confirm", command=self._extract_epoch, width=8).grid(row=9, columnspan=3)
+        tk.Button(self, text="Confirm", command=self._extract_epoch, width=8).grid(row=6, columnspan=3)
 
     def check_data(self):
         super().check_data()
@@ -99,22 +100,26 @@ class SelectEvents(TopWindow):
         super().__init__(parent, "Select Events")
         self.preprocessed_data_list = preprocessed_data_list
         self.event_id = None
+
+        self.rowconfigure([1], weight=1)
+        self.columnconfigure([0], weight=1)
+
         event_id_set = set()
         for preprocessed_data in preprocessed_data_list:
             _, event_id = preprocessed_data.get_raw_event_list()
             event_id_set.update(event_id)
         event_id_set = list(event_id_set)
 
-        tk.Label(self, text="Choose Events: ").pack()
         scrollbar = tk.Scrollbar(self)
-        scrollbar.pack(side="right", fill="y")
-        self.listbox = tk.Listbox(self, selectmode="multiple", yscrollcommand=scrollbar.set)
-        
+        self.listbox = tk.Listbox(self, selectmode="multiple", yscrollcommand=scrollbar.set)        
         for event_name in event_id_set:
             self.listbox.insert(tk.END, event_name)
-        self.listbox.pack(padx=10, pady=10, expand=True, fill="both")
         scrollbar.config(command=self.listbox.yview)
-        tk.Button(self, text="Confirm", command=self._getEventID, width=8).pack()
+        
+        tk.Label(self, text="Choose Events: ").grid(row=0, column=0, columnspan=2)
+        self.listbox.grid(row=1, column=0, padx=10, pady=10, sticky='news')
+        scrollbar.grid(row=1, column=1, pady=10, sticky='news')
+        tk.Button(self, text="Confirm", command=self._getEventID, width=8).grid(row=2, column=0, columnspan=2)
         
         self.event_id_set = event_id_set
 

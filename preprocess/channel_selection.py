@@ -8,16 +8,21 @@ class ChannelSelection(PreprocessBase):
         super().__init__(parent, "Select Channel", preprocessed_data_list)
         mne_data = self.preprocessed_data_list[0].get_mne()
         ch_names = mne_data.ch_names
+        
+        self.rowconfigure([1], weight=1)
+        self.columnconfigure([0], weight=1)
 
-        tk.Label(self, text="Choose Channels: ").pack()
         scrollbar = tk.Scrollbar(self)
-        scrollbar.pack(side="right", fill="y")
         self.listbox = tk.Listbox(self, selectmode="extended", yscrollcommand=scrollbar.set)
+        
         for ch in ch_names:
             self.listbox.insert(tk.END, ch)
-        self.listbox.pack(padx=10, pady=10, expand=True, fill="both")
         scrollbar.config(command=self.listbox.yview)
-        tk.Button(self, text="Confirm", command=self._data_preprocess, width=8).pack()
+        
+        tk.Label(self, text="Choose Channels: ").grid(row=0, column=0, columnspan=2)
+        self.listbox.grid(row=1, column=0, padx=10, pady=10, sticky='news')
+        scrollbar.grid(row=1, column=1, pady=10, sticky='news')
+        tk.Button(self, text="Confirm", command=self._data_preprocess, width=8).grid(row=2, column=0, columnspan=2)
 
     def get_preprocess_desc(self, selected_channels):
         return f"Select {len(selected_channels)} Channel"

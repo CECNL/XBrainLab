@@ -13,18 +13,19 @@ class LoadEvent(TopWindow):
         self.events = None
         self.event_id = None
         self.label_list = None
-        
-        # ==== for viewing event loaded
-        self.event_num = tk.StringVar()
-        # ==== view event loaded
-        tk.Button(self, text="Load file", command=self._load_event_file).grid(row=0, column=0, columnspan=2)
-        tk.Label(self, text="Event numbers: ").grid(row=1, column=0, sticky='w')
-        tk.Label(self, textvariable=self.event_num).grid(row=1, column=1, sticky='w')
+        self.minsize(260, 210)
+        self.columnconfigure([0, 1], weight=1)
+        self.rowconfigure([2], weight=1)
 
+        self.event_num = tk.StringVar()
         self.new_event_name = {}
         self.eventidframe = tk.LabelFrame(self, text="Event ids:")
-        self.eventidframe.grid(row=2, column=0, columnspan=2)
-        tk.Button(self, text="Confirm", command=self._confirm).grid(row=3, column=0, columnspan=2)
+
+        tk.Button(self, text="Load file", command=self._load_event_file).grid(row=0, column=0, columnspan=2)
+        tk.Label(self, text="Event numbers: ").grid(row=1, column=0, sticky='w', padx=5, pady=5)
+        tk.Label(self, textvariable=self.event_num).grid(row=1, column=1, sticky='w', padx=5, pady=5)
+        self.eventidframe.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+        tk.Button(self, text="Confirm", command=self._confirm).grid(row=3, column=0, columnspan=2, padx=5)
     
     def _load_event_file(self):
         selected_file = filedialog.askopenfilename(

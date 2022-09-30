@@ -8,12 +8,15 @@ class Filtering(PreprocessBase):
         super().__init__(parent, "Filtering", preprocessed_data_list)
         data_field = ["l_freq", "h_freq"]
         self.field_var = {key: tk.StringVar() for key in data_field}
+        
+        self.rowconfigure([0,1], weight=1)
+        self.columnconfigure([0,1], weight=1)
 
-        tk.Label(self, text="Lower pass-band edge: ").grid(row=2, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.field_var['l_freq']).grid(row=2, column=1, sticky="w")
-        tk.Label(self, text="Upper pass-band edge: ").grid(row=3, column=0, sticky="w")
-        tk.Entry(self, textvariable=self.field_var['h_freq']).grid(row=3, column=1, sticky="w")
-        tk.Button(self, text="Confirm", command=self._data_preprocess, width=8).grid(row=7, columnspan=2)
+        tk.Label(self, text="Lower pass-band edge: ").grid(row=0, column=0, padx=5, pady=5)
+        tk.Entry(self, textvariable=self.field_var['l_freq']).grid(row=0, column=1, padx=5)
+        tk.Label(self, text="Upper pass-band edge: ").grid(row=1, column=0, padx=5, pady=10)
+        tk.Entry(self, textvariable=self.field_var['h_freq']).grid(row=1, column=1, padx=5)
+        tk.Button(self, text="Confirm", command=self._data_preprocess, width=8).grid(row=2, columnspan=2)
 
     def get_preprocess_desc(self, l_freq, h_freq):
         return f"Filtering {l_freq} ~ {h_freq}"

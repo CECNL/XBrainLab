@@ -77,7 +77,7 @@ class DictInfoSetter(TopWindow):
             tk.Entry(attr_frame, textvariable=self.sfreq_trace).grid(row=0, column=1, sticky='w')    
         if type_ctrl == DataType.EPOCH.value:
             tk.Label(attr_frame, text='tmin').grid(row=1, column=0, sticky='w')
-            if self.dict_info.get_tmin():
+            if self.dict_info.get_tmin() is not None:
                 self.tmin_trace.set(self.dict_info.get_tmin())
                 tk.Label(attr_frame, textvariable=self.tmin_trace).grid(row=1, column=1, sticky='w')
             else:
@@ -88,11 +88,11 @@ class DictInfoSetter(TopWindow):
         tk.Label(attr_frame, textvariable=self.time_trace).grid(row=3, column=1, sticky='w')
 
         # pack
-        tk.Label(self, text="Filename: " + os.path.basename(fp)).grid(row=0, column=0, sticky='w')
-        data_key_frame.grid(row=1, column=0, columnspan=2, sticky='w')
-        event_key_frame.grid(row=2, column=0, columnspan=2, sticky='w')
-        attr_frame.grid(row=3, column=0, columnspan=2, sticky='w')
-        tk.Button(self, text="Confirm",command=self._key_confirm).grid(row=4, column=0)
+        tk.Label(self, text="Filename: " + os.path.basename(fp)).pack(padx=5, pady=10, expand=True)
+        data_key_frame.pack(padx=5, pady=10, expand=True)
+        event_key_frame.pack(padx=5, pady=10, expand=True)
+        attr_frame.pack(padx=5, pady=10, expand=True)
+        tk.Button(self, text="Confirm", command=self._key_confirm).pack(padx=5, pady=10, expand=True)
 
         # init
         self.OPTION = OPTION

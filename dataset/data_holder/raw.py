@@ -50,7 +50,15 @@ class Raw:
                 assert len(self.raw_events) == len(data.events)
                 data.events = self.raw_events
                 data.event_id = self.raw_event_id
+                self.raw_events = None
+                self.raw_event_id = None
         self.mne_data = data
+    
+    def set_mne_and_wipe_events(self, data):
+        self.raw_events = None
+        self.raw_event_id = None
+        self.mne_data = data
+
     #
     def get_mne(self):
         return self.mne_data
