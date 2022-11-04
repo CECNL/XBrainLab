@@ -35,18 +35,18 @@ class DataSet:
     def get_remaining_mask(self):
         return self.remaining_mask.copy()
 
-    def get_all_trail_numbers(self):
+    def get_all_trial_numbers(self):
         train_number = sum(self.train_mask)
         val_number = sum(self.val_mask)
         test_number = sum(self.test_mask)
         return train_number, val_number, test_number
     
     def has_set_empty(self):
-        train_number, val_number, test_number = self.get_all_trail_numbers()
+        train_number, val_number, test_number = self.get_all_trial_numbers()
         return train_number == 0 or val_number == 0 or test_number == 0
 
     def get_treeview_row_info(self):
-        train_number, val_number, test_number = self.get_all_trail_numbers()
+        train_number, val_number, test_number = self.get_all_trial_numbers()
         selected = 'O' if self.is_selected else 'X'
         name = self.get_name()
         return selected, name, train_number, val_number, test_number

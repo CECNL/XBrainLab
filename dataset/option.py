@@ -13,14 +13,14 @@ class SplitByType(Enum):
     DISABLE = 'Disable'
     SESSION = 'By Session'
     SESSION_IND = 'By Session (Independent)'
-    TRAIL = 'By Trail'
-    TRAIL_IND = 'By Trail (Independent)'
+    TRIAL = 'By Trial'
+    TRIAL_IND = 'By Trial (Independent)'
     SUBJECT = 'By Subject'
     SUBJECT_IND = 'By Subject (Independent)'
 
 class ValSplitByType(Enum):
     DISABLE = 'Disable'
     SESSION = 'By Session'
-    TRAIL = 'By Trail'
+    TRIAL = 'By Trial'
     SUBJECT = 'By Subject'
    

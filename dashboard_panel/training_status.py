@@ -5,7 +5,7 @@ import tkinter.ttk as ttk
 class TrainingStatusPanel(PanelBase):
     def __init__(self, parent, **args):
         super().__init__(parent, text='Training Status', **args)
-        columns = ('Plan name', 'training trails', 'validation trails', 'testing trails')
+        columns = ('Plan name', 'training trials', 'validation trials', 'testing trials')
         tree = ttk.Treeview(self, columns=columns, show='headings', selectmode=tk.BROWSE)
         for i in columns:
             tree.heading(i, text=i)

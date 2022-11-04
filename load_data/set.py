@@ -8,7 +8,7 @@ class LoadSet(LoadBase):
     command_label = "Import SET file (EEGLAB toolbox)"
     def __init__(self, parent):
         super().__init__(parent, "Load data from .set files")
-        self.filetypes = (('.set files', '*.set'),)
+        self.filetypes = [('eeg files (.set)', '*.set'),]
 
     def _load(self, fn):
         data_type = None

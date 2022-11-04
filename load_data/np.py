@@ -8,7 +8,7 @@ class LoadNp(LoadDict):
     command_label = "Import NPY/NPZ file (Numpy array)"
     def __init__(self, parent):
         super().__init__(parent, "Load data from .npy/.npz files")
-        self.filetypes = (('.npy files', '*.npy'), ('.npz files', '*.npz'))
+        self.filetypes = (('eeg files (.npy, .npz)', '*.npy *.npz'))
 
     def _load(self, filepath):
         selected_data = np.load(filepath)
