@@ -194,15 +194,15 @@ class DataSplittingSettingWindow(TopWindow):
                 if idx == 0:
                     self.train_region.to_x -= 1
             # label
-            elif testing_var.get() == SplitByType.TRAIL.value or testing_var.get() == SplitByType.TRAIL_IND.value:
+            elif testing_var.get() == SplitByType.TRIAL.value or testing_var.get() == SplitByType.TRIAL_IND.value:
                 # independent, remove last target
-                if testing_var.get() == SplitByType.TRAIL_IND.value:
+                if testing_var.get() == SplitByType.TRIAL_IND.value:
                     tmp = DrawRegion(ref.w, ref.h)
                     tmp.copy(ref)
                     tmp.set_w(0, ref.from_w + (ref.to_w - ref.from_w) * 0.8)
                 self.test_region.copy(ref)
                 self.test_region.set_w(self.test_region.from_w + (self.test_region.to_w - self.test_region.from_w) * 0.8, self.test_region.to_w)
-                if testing_var.get() == SplitByType.TRAIL_IND.value:
+                if testing_var.get() == SplitByType.TRIAL_IND.value:
                     self.train_region.mask(tmp)
             # subject
             elif testing_var.get() == SplitByType.SUBJECT.value or testing_var.get() == SplitByType.SUBJECT_IND.value:
@@ -231,7 +231,7 @@ class DataSplittingSettingWindow(TopWindow):
                     self.train_region.to_x -= 1
                     self.val_region.set_from(self.train_region.to_x - 1, self.train_region.from_y)
                     self.val_region.set_to(self.train_region.to_x, self.train_region.to_y)
-            elif validation_var.get() == ValSplitByType.TRAIL.value:
+            elif validation_var.get() == ValSplitByType.TRIAL.value:
                 self.val_region.copy(self.train_region)
                 self.val_region.fix()
                 self.val_region.set_w(self.train_region.to_w - 0.2, self.train_region.to_w)

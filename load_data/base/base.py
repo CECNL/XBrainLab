@@ -114,10 +114,13 @@ class LoadBase(TopWindow):
         attr_frame = ttk.LabelFrame(self, text="Data attributes")
         attr_header = ["Filename", "Subject", "Session", "Channels", "Sampling Rate", "Epochs", "Events"]
         self.data_attr_treeview = ttk.Treeview(attr_frame, columns=attr_header, show='headings', selectmode="browse") # filepath not displayed
+        self.data_attr_scrollbar = tk.Scrollbar(attr_frame, orient ="vertical",command = self.data_attr_treeview.yview)
         for h in attr_header:
             self.data_attr_treeview.column(h, width=len(h)*8+10, anchor=tk.CENTER) # for setting width
             self.data_attr_treeview.heading(h, text=h, anchor=tk.CENTER)
-        self.data_attr_treeview.pack(expand=True, fill=tk.BOTH)
+        self.data_attr_treeview.grid(row=0, column=0)
+        self.data_attr_scrollbar.grid(row=0, column=1, sticky='nse')
+        self.data_attr_treeview.configure(yscrollcommand=self.data_attr_scrollbar.set)
         self.data_attr_treeview.bind('<Double-Button-1>', self.edit)
 
         # ==== status table ==== 
@@ -176,7 +179,7 @@ class LoadBase(TopWindow):
         # check same data type
         if self.raw_data_list[-1].is_raw() != raw.is_raw():
             raise ValidateException(window=self, message=f'Dataset type inconsistent.')
-        # check epoch trail size
+        # check epoch trial size
         if not raw.is_raw():
             if self.raw_data_list[-1].get_epoch_duration() != raw.get_epoch_duration():
                 raise ValidateException(window=self, message=f'Epoch duration inconsistent (got {raw.get_epoch_duration()}).')

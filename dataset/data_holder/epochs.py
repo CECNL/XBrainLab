@@ -213,7 +213,7 @@ class Epochs:
         
         return ret, mask
     
-    def pick_trail(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
+    def pick_trial(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
         ret = mask & False
         if not mask.any():
             return ret, mask

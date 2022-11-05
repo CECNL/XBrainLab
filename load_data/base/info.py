@@ -64,6 +64,12 @@ class DictInfo(RawInfo):
         self.data_keys = set()
         self.event_keys = set()
 
+    def copy(self):
+        new_dict_info = DictInfo()
+        new_dict_info.data_keys = self.data_keys.copy()
+        new_dict_info.event_keys = self.event_keys.copy()
+        return new_dict_info
+
     def reset(self):
         super().reset()
         self.reset_keys()

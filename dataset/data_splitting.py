@@ -45,7 +45,7 @@ class DataSplittingWindow(TopWindow):
         tk.Label(dataset_frame, text=len(data_holder.session_map)).grid(row=1, column=1, padx=5)
         tk.Label(dataset_frame, text='Label: ')                          .grid(row=2, column=0, sticky='e', padx=3)
         tk.Label(dataset_frame, text=len(data_holder.label_map))  .grid(row=2, column=1, padx=5)
-        tk.Label(dataset_frame, text='Trail: ')                          .grid(row=3, column=0, sticky='e', padx=3)
+        tk.Label(dataset_frame, text='Trial: ')                          .grid(row=3, column=0, sticky='e', padx=3)
         tk.Label(dataset_frame, text=len(data_holder.data))              .grid(row=3, column=1, padx=5)
         # training
         training_frame = tk.LabelFrame(self, text ='Training type')
@@ -199,8 +199,8 @@ class DataSplittingWindow(TopWindow):
                                 # filter out first option from validation data
                                 dataset.kept_training_session(mask)
                         # label
-                        elif test_splitter.split_type == SplitByType.TRAIL or test_splitter.split_type == SplitByType.TRAIL_IND:
-                            mask, exclude = self.data_holder.pick_trail(mask, num=test_splitter.get_value(), group_idx=group_idx, split_unit=test_splitter.get_split_unit(), ref_exclude=ref_exclude if (idx == 0) else None)
+                        elif test_splitter.split_type == SplitByType.TRIAL or test_splitter.split_type == SplitByType.TRIAL_IND:
+                            mask, exclude = self.data_holder.pick_trial(mask, num=test_splitter.get_value(), group_idx=group_idx, split_unit=test_splitter.get_split_unit(), ref_exclude=ref_exclude if (idx == 0) else None)
                             # save for next cross validation
                             if idx == 0:
                                 ref_mask = exclude.copy()
@@ -210,7 +210,7 @@ class DataSplittingWindow(TopWindow):
                                 has_next = False
                                 break
                             # independent
-                            if test_splitter.split_type == SplitByType.TRAIL_IND:
+                            if test_splitter.split_type == SplitByType.TRIAL_IND:
                                 dataset.discard(exclude)
                         # subject
                         elif test_splitter.split_type == SplitByType.SUBJECT or test_splitter.split_type == SplitByType.SUBJECT_IND:
@@ -251,8 +251,8 @@ class DataSplittingWindow(TopWindow):
                         if val_splitter.split_type == ValSplitByType.SESSION:
                             mask, exclude = self.data_holder.pick_session(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
                         # label
-                        elif val_splitter.split_type == ValSplitByType.TRAIL:
-                            mask, exclude = self.data_holder.pick_trail(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
+                        elif val_splitter.split_type == ValSplitByType.TRIAL:
+                            mask, exclude = self.data_holder.pick_trial(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
                         # subject
                         elif val_splitter.split_type == ValSplitByType.SUBJECT:
                             mask, exclude = self.data_holder.pick_subject(mask, num=val_splitter.get_value(), split_unit=val_splitter.get_split_unit())
@@ -414,11 +414,11 @@ class DataSplittingInfoWindow(TopWindow):
                             start_idx = i
                             continue
                         if last_idx + 1 != i:
-                            tree.insert(label_root, 'end', text=f"Trail {start_idx}~{last_idx}")
+                            tree.insert(label_root, 'end', text=f"Trial {start_idx}~{last_idx}")
                             start_idx = i
                         last_idx = i
                     if last_idx:
-                        tree.insert(label_root, 'end', text=f"Trail {start_idx}~{idx_list[-1]}")
+                        tree.insert(label_root, 'end', text=f"Trial {start_idx}~{idx_list[-1]}")
     
     def confirm(self):
         self.dataset.set_name(self.name_var.get())
@@ -549,8 +549,8 @@ if __name__ == '__main__':
     data_holder.session_map = {i:i for i in np.unique(data_holder.session)}
     data_holder.subject_map = {i:f"S{i+1}" for i in np.unique(data_holder.subject)}
     train = TrainingType.IND
-    val = [ValSplitByType.TRAIL]
-    test = [SplitByType.TRAIL]
+    val = [ValSplitByType.TRIAL]
+    test = [SplitByType.TRIAL]
     config = DataSplittingConfig(train, val, test, True)
 
     root = tk.Tk()
