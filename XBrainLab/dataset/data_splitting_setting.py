@@ -156,99 +156,78 @@ class DataSplittingSettingWindow(TopWindow):
         self.fix_window_size()
         self.draw_preview()
     #
-    # TODO code review
     def handle_data(self, training_type):
         # set init region based on training type
         if training_type == TrainingType.FULL:
-            self.train_region.set_to(self.session_num, self.subject_num)
+            self.train_region.set_to(self.session_num, self.subject_num, from_w=0, to_w=1)
         elif training_type == TrainingType.IND:
-            self.train_region.set_to(self.session_num, 1)
+            self.train_region.set_to(self.session_num, y=1, from_w=0, to_w=1)
         #
         self.handle_testing()
         self.train_region.mask(self.test_region)
-
+        
         self.handle_validation()
-        self.val_region.mask_intersect(self.train_region)
-
         self.train_region.mask(self.val_region)
-    # TODO code review
+    
     def handle_testing(self):
         for idx, testing_var in enumerate(self.testing_var_list):
             # reference region
+            ref = DrawRegion(self.train_region.w, self.train_region.h)
             if idx == 0:
-                ref = self.train_region
+                ref.copy(self.train_region)
             else:
-                ref = self.test_region
+                ref.copy(self.test_region)
             # session
             if testing_var.get() == SplitByType.SESSION.value or testing_var.get() == SplitByType.SESSION_IND.value:
                 # independent, remove last target
-                if testing_var.get() == SplitByType.SESSION_IND.value:
+                is_independent = testing_var.get() == SplitByType.SESSION_IND.value
+                if is_independent:
                     tmp = DrawRegion(self.train_region.w, self.train_region.h)
                     tmp.copy(ref)
-                    tmp.set_to(ref.to_x - 1, ref.to_y)
+                    tmp.change_to(ref.to_x - 1, ref.to_y)
                 self.test_region.set_from(ref.to_x - 1, ref.from_y)
-                self.test_region.set_to(ref.to_x, ref.to_y)
-                if testing_var.get() == SplitByType.SESSION_IND.value:
+                self.test_region.set_to_ref(ref.to_x, ref.to_y, ref)
+                if is_independent:
                     self.train_region.mask(tmp)
-                # avoid being used by validation set
-                if idx == 0:
-                    self.train_region.to_x -= 1
             # label
             elif testing_var.get() == SplitByType.TRIAL.value or testing_var.get() == SplitByType.TRIAL_IND.value:
                 # independent, remove last target
-                if testing_var.get() == SplitByType.TRIAL_IND.value:
+                is_independent = testing_var.get() == SplitByType.TRIAL_IND.value
+                if is_independent:
                     tmp = DrawRegion(ref.w, ref.h)
                     tmp.copy(ref)
-                    tmp.set_w(0, ref.from_w + (ref.to_w - ref.from_w) * 0.8)
+                    tmp.decrease_w_tail(0.8)
                 self.test_region.copy(ref)
-                self.test_region.set_w(self.test_region.from_w + (self.test_region.to_w - self.test_region.from_w) * 0.8, self.test_region.to_w)
-                if testing_var.get() == SplitByType.TRIAL_IND.value:
+                self.test_region.decrease_w_head(0.8)
+                if is_independent:
                     self.train_region.mask(tmp)
             # subject
             elif testing_var.get() == SplitByType.SUBJECT.value or testing_var.get() == SplitByType.SUBJECT_IND.value:
                 # independent, remove last target
-                if testing_var.get() == SplitByType.SUBJECT_IND.value:
+                is_independent = testing_var.get() == SplitByType.SUBJECT_IND.value
+                if is_independent:
                     tmp = DrawRegion(self.train_region.w, self.train_region.h)
                     tmp.copy(ref)
-                    tmp.set_from(ref.from_x, ref.from_y)
-                    tmp.set_to(ref.to_x, ref.to_y - 1)
+                    tmp.change_to(ref.to_x, ref.to_y - 1)
                 self.test_region.set_from(ref.from_x, ref.to_y - 1)
-                self.test_region.set_to(ref.to_x, ref.to_y)
-                if testing_var.get() == SplitByType.SUBJECT_IND.value:
+                self.test_region.set_to_ref(ref.to_x, ref.to_y, ref)
+                if is_independent:
                     self.train_region.mask(tmp)
-                # avoid being used by validation set
-                if idx == 0:
-                    self.train_region.to_y -= 1
-    # TODO code review
+                # avoid being used by validation
+
     def handle_validation(self):
         for idx, validation_var in enumerate(self.validation_var_list):
             if validation_var.get() == ValSplitByType.SESSION.value:
                 self.val_region.copy(self.train_region)
                 self.val_region.set_from(self.train_region.to_x - 1, self.train_region.from_y)
-                self.val_region.set_to(self.train_region.to_x, self.train_region.to_y)
-                # fix overlapped with testing set
-                if self.val_region.intersect(self.test_region):
-                    self.train_region.to_x -= 1
-                    self.val_region.set_from(self.train_region.to_x - 1, self.train_region.from_y)
-                    self.val_region.set_to(self.train_region.to_x, self.train_region.to_y)
+                self.val_region.set_to_ref(self.train_region.to_x, self.train_region.to_y, self.train_region)
             elif validation_var.get() == ValSplitByType.TRIAL.value:
                 self.val_region.copy(self.train_region)
-                self.val_region.fix()
-                self.val_region.set_w(self.train_region.to_w - 0.2, self.train_region.to_w)
-                # fix overlapped with testing set
-                if self.val_region.intersect(self.test_region):
-                    self.train_region.to_w = self.test_region.from_w
-                    self.val_region.set_w(self.train_region.to_w - 0.2, self.train_region.to_w)
-                self.val_region.fix_intersect(self.test_region)
+                self.val_region.decrease_w_head(0.8)
             elif validation_var.get() == ValSplitByType.SUBJECT.value:
                 self.val_region.copy(self.train_region)
                 self.val_region.set_from(self.train_region.from_x, self.train_region.to_y - 1)
-                self.val_region.set_to(self.train_region.to_x, self.train_region.to_y)
-                # fix overlapped with testing set
-                if self.val_region.intersect(self.test_region):
-                    self.train_region.to_y -= 1
-                    self.val_region.set_from(self.train_region.from_x, self.train_region.to_y - 1)
-                    self.val_region.set_to(self.train_region.to_x, self.train_region.to_y)
+                self.val_region.set_to_ref(self.train_region.to_x, self.train_region.to_y, self.train_region)
     #
     def draw_preview(self):
         # preview region padding
@@ -270,8 +249,8 @@ class DataSplittingSettingWindow(TopWindow):
         canvas.delete("all")
         # draw area
         for var, color in zip([self.train_region, self.val_region, self.test_region], [DrawColor.TRAIN, DrawColor.VAL, DrawColor.TEST]):
-            for i in range(var.w):
-                for j in range(var.h):
+            for i in range(var.from_x, var.to_x):
+                for j in range(var.from_y, var.to_y):
                     if var.from_canvas[i, j] == var.to_canvas[i, j]:
                         continue
                     canvas.create_rectangle(left + delta_x * (i + var.from_canvas[i, j]), top + delta_y * j, 
@@ -339,102 +318,54 @@ class DrawRegion():
         self.from_y = 0
         self.to_x = 0
         self.to_y = 0
-        self.from_w = 0
-        self.to_w = 1
 
+    def reset(self):
+        self.from_canvas *= 0
+        self.to_canvas *= 0
+        
     def set_from(self, x, y):
         self.reset()
         self.from_x = x
         self.from_y = y
     
-    def set_to(self, x, y):
+    def set_to_ref(self, x, y, ref):
         self.to_x = x
         self.to_y = y
-        self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = self.from_w
-        self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = self.to_w
+        self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = ref.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
+        self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = ref.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
+    
+    def set_to(self, x, y, from_w, to_w):
+        self.to_x = x
+        self.to_y = y
+        self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = from_w
+        self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = to_w
+    
+    def change_to(self, x, y):
+        self.to_x = x
+        self.to_y = y
 
     def mask(self, rhs):
         # clear masking region
-        idx = rhs.from_canvas != rhs.to_canvas
-
-        filter_idx = idx & (self.from_canvas < rhs.from_canvas) & (rhs.from_canvas < self.to_canvas)
-        self.to_canvas[ filter_idx ] = rhs.from_canvas[ filter_idx ].copy()
+        idx = rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] != rhs.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]
+        filter_idx = idx & (self.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] <= rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]) & (rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] <= self.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y])
         
-        filter_idx = idx & (self.from_canvas <= rhs.to_canvas) & (rhs.to_canvas <= self.to_canvas)
-        self.from_canvas[filter_idx] = rhs.to_canvas[ filter_idx ].copy()
-        
-        filter_idx = idx & (rhs.from_canvas <= self.from_canvas) & (self.to_canvas <= rhs.to_canvas)
-        self.to_canvas[filter_idx] = self.from_canvas[filter_idx].copy()
+        self.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] *= np.logical_not(filter_idx)
+        self.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] += filter_idx * rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]
+        if (self.to_canvas[ self.to_x - 1 , self.from_y:self.to_y ] == self.from_canvas[ self.to_x - 1 , self.from_y:self.to_y ]).all():
+            self.to_x -= 1
+        if (self.to_canvas[ self.from_x:self.to_x, self.to_y - 1 ] == self.from_canvas[ self.from_x:self.to_x, self.to_y - 1]).all():
+            self.to_y -= 1
     
-    def mask_intersect(self, rhs):
-        # remove if rhs is not included
-        idx = (rhs.to_canvas != 1) & (rhs.from_canvas != rhs.to_canvas) & (self.from_canvas != self.to_canvas)
-        self.to_canvas[idx] = rhs.to_canvas[idx].copy()
+    def decrease_w_tail(self, w):
+        self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = (self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] - self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]) * w + self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
 
-        idx = (rhs.from_canvas == rhs.to_canvas) & (self.from_canvas != self.to_canvas)
-        self.to_canvas[idx] = self.from_canvas[idx].copy()
-        
-    def intersect(self, rhs):
-        # check if all region is intersected
-        idx = self.from_canvas != self.to_canvas
-        return ((rhs.from_canvas[idx] != rhs.to_canvas[idx]) & (rhs.from_canvas[idx] == self.from_canvas[idx]) & (rhs.to_canvas[idx] == self.to_canvas[idx])).all()
-    
-    def fix_intersect(self, rhs):
-        for i in range(self.w):
-            for j in range(self.h):
-                if (rhs.from_canvas[i, j] != rhs.to_canvas[i, j] ) and (rhs.from_canvas[i, j] == self.from_canvas[i, j]) and (rhs.to_canvas[i, j] == self.to_canvas[i, j]):
-                    self.from_canvas[i, j] = np.maximum(self.from_canvas[i, j] - 0.2, 0)
-                    self.to_canvas[i, j] = np.minimum(self.to_canvas[i, j] - 0.2, rhs.from_canvas[i, j])
-
-    def set_w(self, a, b):
-        self.from_w = a
-        self.to_w = b
-        idx = self.from_canvas != self.to_canvas
-        self.from_canvas[idx] = self.from_w
-        self.to_canvas[idx] = self.to_w
-    
-    def reset(self):
-        self.from_canvas *= 0
-        self.to_canvas *= 0
+    def decrease_w_head(self, w):
+        self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = (self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] - self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]) * w + self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
 
     def copy(self, rhs):
         self.from_x = rhs.from_x
         self.from_y = rhs.from_y
         self.to_x = rhs.to_x
         self.to_y = rhs.to_y
-        self.from_w = rhs.from_w
-        self.to_w = rhs.to_w
         self.from_canvas = rhs.from_canvas.copy()
         self.to_canvas = rhs.to_canvas.copy()
-
-    def fix(self):
-        self.to_canvas[self.to_x:, :] = self.from_canvas[self.to_x:, :]
-        self.to_canvas[:, self.to_y:] = self.from_canvas[:, self.to_y:]
-
-###
-
-if __name__ == '__main__':
-    import numpy as np
-
-    from data_holder import Epochs
-    data_holder = Epochs()
-    # BCI 4 2a
-    data_holder.label = np.array([l for i in range(9) for k in range(2) for l in range(4) for j in range(72)])
-    data_holder.session = np.array([k for i in range(9) for k in range(2) for j in range(288)])
-    data_holder.subject = np.array([i for i in range(9) for k in range(2) for j in range(288)])
-    data_holder.idx = np.array([j for i in range(9) for k in range(2) for j in range(288)])
-    data_holder.data = np.random.rand(288*2*9, 22, 1)
-
-    # dementia
-    # data_holder.label = np.array([l for l in range(3) for i in range(30) for k in range(2) for j in range(24)])
-    # data_holder.session = np.array([k for l in range(3) for i in range(30) for k in range(2) for j in range(24)])
-    # data_holder.subject = np.array([l * 30 + i for l in range(3) for i in range(30) for k in range(2) for j in range(24)])
-    # data_holder.idx = np.array([j for l in range(3) for i in range(30) for k in range(2) for j in range(24)])
-    # data_holder.data = np.random.rand(24*30*2*3, 22, 1)
-
-    root = tk.Tk()
-    root.withdraw()
-    window = DataSplittingSettingWindow(root, data_holder)
-
-    print (window.get_result())
-    root.destroy()

@@ -138,7 +138,6 @@ class DataSplittingWindow(TopWindow):
         self.preview_worker = threading.Thread(target=self.handle_data, args=(self.last_update, ))
         self.preview_worker.start()
     
-    # TODO code review
     def handle_data(self, checker):
         # for loop for individual scheme
         # break at the end if not individual scheme
@@ -195,9 +194,6 @@ class DataSplittingWindow(TopWindow):
                             # independent
                             if test_splitter.split_type == SplitByType.SESSION_IND:
                                 dataset.discard(exclude)
-                            elif idx == 0:
-                                # filter out first option from validation data
-                                dataset.kept_training_session(mask)
                         # label
                         elif test_splitter.split_type == SplitByType.TRIAL or test_splitter.split_type == SplitByType.TRIAL_IND:
                             mask, exclude = self.data_holder.pick_trial(mask, num=test_splitter.get_value(), group_idx=group_idx, split_unit=test_splitter.get_split_unit(), ref_exclude=ref_exclude if (idx == 0) else None)
@@ -226,8 +222,6 @@ class DataSplittingWindow(TopWindow):
                             # independent
                             if test_splitter.split_type == SplitByType.SUBJECT_IND:
                                 dataset.discard(exclude)
-                            elif idx == 0:
-                                dataset.kept_training_subject(mask)
                         idx += 1
 
                 # set result as mask if available
@@ -414,11 +408,11 @@ class DataSplittingInfoWindow(TopWindow):
                             start_idx = i
                             continue
                         if last_idx + 1 != i:
-                            tree.insert(label_root, 'end', text=f"Trial {start_idx}~{last_idx}")
+                            tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}~{int(last_idx)}")
                             start_idx = i
                         last_idx = i
                     if last_idx:
-                        tree.insert(label_root, 'end', text=f"Trial {start_idx}~{idx_list[-1]}")
+                        tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}~{int(idx_list[-1])}")
     
     def confirm(self):
         self.dataset.set_name(self.name_var.get())
