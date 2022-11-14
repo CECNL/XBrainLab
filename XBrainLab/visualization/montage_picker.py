@@ -80,6 +80,8 @@ class PickMontageWindow(TopWindow):
         for ch in self.channel_names:
             if ch in options:
                 self.seleced_list.insert(tk.END, ch)
+            else:
+                break
         self.selected_label.config(text=f'{self.seleced_list.size()} Selected')
     
     def confirm(self):

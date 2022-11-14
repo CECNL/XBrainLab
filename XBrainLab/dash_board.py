@@ -207,9 +207,9 @@ class DashBoard(tk.Tk):
         if type(self.epoch_data) != Epochs:
             raise ValidateException(window=self, message='No valid epoch data is generated')
             return
-        chs, positions = PickMontageWindow(self, self.preprocessed_data_list.get_channel_names()).get_result()
+        chs, positions = PickMontageWindow(self, self.epoch_data.get_channel_names()).get_result()
         if chs is not None and positions is not None:
-            self.preprocessed_data_list.set_channels(chs, positions)
+            self.epoch_data.set_channels(chs, positions)
             self.update_dashboard()
 
     def visualize(self, visualization_module):
