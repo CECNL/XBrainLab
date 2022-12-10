@@ -1,5 +1,7 @@
 import tkinter as tk
-from ..widget import PlotFigureWindow, PlotType
+from ..widget import PlotFigureWindow
+
+from XBrainLab.utils import PlotType
 
 class ConfusionMatrixWindow(PlotFigureWindow):
     command_label = 'Confusion matrix'

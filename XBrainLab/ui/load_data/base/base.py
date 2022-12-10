@@ -184,6 +184,7 @@ class LoadBase(TopWindow):
         self.script_history.add_import('import mne')
         self.script_history.add_import('from XBrainLab.load_data import Raw')
         self.script_history.add_cmd('data_loader = study.get_raw_data_loader()')
+        self.script_history.newline()
 
         self.raw_data_len_var.set(0)
         self.event_ids_var.set('None')
@@ -208,9 +209,10 @@ class LoadBase(TopWindow):
             filetypes = self.filetypes
         )
         for filepath in selected_files:
-            self.script_history.add_cmd('filepath = ' + repr(filepath))
             if self.data_loader.get_loaded_raw(filepath):
                 continue
+            self.script_history.newline()
+            self.script_history.add_cmd('filepath = ' + repr(filepath))
             data = self._load(filepath)
             if data is None:
                 raise ValidateException(self, f'Unable to load {filepath}.')
@@ -226,13 +228,13 @@ class LoadBase(TopWindow):
                 self.data_loader.check_loaded_data_consistency(raw_data)
             except Exception as e:
                 raise ValidateException(window=self, message=str(e))
-            raw_data.parse_filename(regex=self.filename_template_var.get())
-            self.script_history.add_cmd(f"raw_data.parse_filename(regex={repr(self.filename_template_var.get())})")
+            if self.filename_template_var.get():
+                raw_data.parse_filename(regex=self.filename_template_var.get())
+                self.script_history.add_cmd(f"raw_data.parse_filename(regex={repr(self.filename_template_var.get())})")
             
             self.data_attr_treeview.insert('', iid=filepath, index="end", values=raw_data.get_row_info())
             self.data_loader.append(raw_data)
             self.script_history.add_cmd("data_loader.append(raw_data)")
-            self.script_history.newline()
 
         self.update_panel()
     #
@@ -272,6 +274,7 @@ class LoadBase(TopWindow):
         raw_data = self.data_loader.get_loaded_raw(selected_row)
         if not raw_data:
             return
+        self.script_history.newline()
         self.script_history.add_cmd(f"raw_data = data_loader.get_loaded_raw({repr(selected_row)})")
         edit_module = EditRaw(self, raw_data)
         del_row = edit_module.get_result()
@@ -283,7 +286,7 @@ class LoadBase(TopWindow):
         else:
             if not self.window_exist:
                 return
-            self.script_history += edit_script_history
+            self.script_history.add_script(edit_script_history)
             self.data_attr_treeview.item(selected_row, values=raw_data.get_row_info())
         self.update_panel()
 
@@ -291,7 +294,7 @@ class LoadBase(TopWindow):
         # check all data with labels
         try:
             self.data_loader.validate()
-            self.script_history.add_cmd('data_loader.validate()')
+            self.script_history.add_cmd('data_loader.validate()', newline=True)
         except ValueError as e:
             raise ValidateException(self, str(e))
         self.ret_val = self.data_loader

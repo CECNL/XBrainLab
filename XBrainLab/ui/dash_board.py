@@ -11,7 +11,7 @@ from .dataset import DataSplittingSettingWindow
 from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow
 from .evaluation import EVALUATION_MODULE_LIST
 from .visualization import PickMontageWindow, VISUALIZATION_MODULE_LIST
-from .script import Script, ScriptPreview
+from .script import Script, ScriptType, ScriptPreview
 
 from XBrainLab.dataset import Epochs
 
@@ -35,7 +35,9 @@ class DashBoard(tk.Tk):
         self.training_status_panel = TrainingStatusPanel(self, row=1, column=2)
 
         self.study = study
-        self.clear_script()
+        self.script_history = self.study.get_script()
+        if not self.script_history:
+            self.clear_script()
         
         self.after(1, self.update_dashboard)
         self.after(1, lambda: self.update_dashboard(loop=True))
@@ -102,7 +104,9 @@ class DashBoard(tk.Tk):
             visualization_menu.add_command(label=visualization_module.command_label, command=lambda var=visualization_module:self.visualize(var))
 
         # script
-        script_menu.add_command(label='Show script', command=self.show_script)
+        script_menu.add_command(label='Show command script', command=lambda :self.show_script(ScriptType.CLI))
+        script_menu.add_command(label='Show ui script', command=lambda :self.show_script(ScriptType.UI))
+        script_menu.add_command(label='Show all script', command=lambda :self.show_script(ScriptType.ALL))
         script_menu.add_command(label='Clear script', command=self.clear_script)
 
         self.config(menu=menu)
@@ -119,6 +123,7 @@ class DashBoard(tk.Tk):
                 return
             self.study.clean_raw_data(force_update=True)
             self.script_history.add_cmd('study.clean_raw_data(force_update=True)')
+            self.update_dashboard()
 
         current_import_module = import_module(self)
         data_loader = current_import_module.get_result()
@@ -161,7 +166,7 @@ class DashBoard(tk.Tk):
             datasets_generator.apply(self.study)
             data_splitting_script = data_splitting_module.get_script_history()
             self.script_history += data_splitting_script
-            self.script_history.add_cmd('datasets_generator.apply(study)')
+            self.script_history.add_cmd('datasets_generator.apply(study)', newline=True)
             self.update_dashboard()
 
     def select_model(self):
@@ -200,7 +205,7 @@ class DashBoard(tk.Tk):
         
         try:
             self.study.generate_plan()
-            self.script_history.add_cmd('study.generate_plan()')
+            self.script_history.add_cmd('study.generate_plan()', newline=True)
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
         
@@ -237,20 +242,32 @@ class DashBoard(tk.Tk):
             training_plan_holders = self.study.trainer.get_training_plan_holders()
         self.script_history += visualization_module(self, training_plan_holders).get_script_history()
         
+    def show_script(self, script_type, target=None):
+        if target == None:
+            target = self
+            ui_script = deepcopy(target.script_history)
+        else:
+            ui_script = Script()
 
-    def show_script(self):
-        ui_script = deepcopy(self.script_history)
-        for child in self.child_list:
+        for child in target.child_list:
             if child.window_exist:
                 ui_script += child._get_script_history()
-        
-        ScriptPreview(self, ui_script)
+                ui_script += self.show_script(script_type, target=child)
+
+        if target == self:
+            ScriptPreview(self, ui_script, script_type)
+        else:
+            return ui_script
 
     def clear_script(self):
         self.script_history = Script()
-        if not self.study.loaded_data_list:
+        if self.study.loaded_data_list:
+            self.script_history.add_cmd('# study = XBrainLab()')  
+        else:
             self.script_history.add_import('from XBrainLab import XBrainLab')
-            self.script_history.add_cmd('study = XBrainLab()')  
+            self.script_history.add_cmd('study = XBrainLab()')
+        self.script_history.add_ui_cmd('# study = XBrainLab()')  
+        self.study.set_script(self.script_history)
 
     # clean
     def clean_datasets(self):

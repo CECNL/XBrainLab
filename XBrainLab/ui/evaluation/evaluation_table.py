@@ -1,17 +1,14 @@
+import numpy as np 
 import tkinter as tk
 import tkinter.ttk as ttk
 from ..base import TopWindow
-from enum import Enum
-import numpy as np 
 from ..base import InitWindowValidateException
-
-class Metric(Enum):
-    ACC = 'Accuracy (%)'
-    KAPPA = 'kappa value'
+from ..script import Script
+from XBrainLab.evaluation import Metric
 
 class EvaluationTableWindow(TopWindow):
     command_label = 'Performance Table'
-    def __init__(self, parent, trainers):
+    def __init__(self, parent, trainers, metric=None):
         super().__init__(parent, self.command_label)
         self.trainers = trainers
         self.check_data()
@@ -42,7 +39,11 @@ class EvaluationTableWindow(TopWindow):
 
         self.selected_metric = selected_metric
         self.tree = tree
+        self.script_history = Script()
+
         self.update_loop()
+        if metric:
+            self.selected_metric.set(metric.value)
 
     def check_data(self):
         if type(self.trainers) != list or len(self.trainers) == 0:
@@ -52,12 +53,17 @@ class EvaluationTableWindow(TopWindow):
         if not self.window_exist:
             return
         total_values = []
+        metric = None
         for trainer in self.trainers:
             values = ()
             if self.selected_metric.get() == Metric.ACC.value:
+                metric = Metric.ACC
                 values = [plan.get_acc() for plan in trainer.get_plans()]
             elif self.selected_metric.get() == Metric.KAPPA.value:
+                metric = Metric.KAPPA
                 values = [plan.get_kappa() for plan in trainer.get_plans()]
+            else:
+                raise NotImplementedError
             values_list = [i for i in values if i is not None]
             if len(values_list) > 0:
                 values = values + [sum(values_list) / len(values_list)]
@@ -80,3 +86,9 @@ class EvaluationTableWindow(TopWindow):
         self.tree.item(self.tree.get_children()[-1], values=avg_values)
         if loop:
             self.after(1000, self.update_loop)
+        if not loop:
+            self.script_history.add_import("from XBrainLab.evaluation import Metric")
+            self.script_history.add_ui_cmd(f"study.show_performance(metric=Metric.{metric.name})")
+
+    def _get_script_history(self):
+        return self.script_history

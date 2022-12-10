@@ -31,7 +31,11 @@ class EvalRecord:
             'gradient': self.gradient,
         }
         torch.save(record, os.path.join(target_path, 'eval'))
-        # 
+    
+    def export_csv(self, target_path):
+        data = np.c_[self.output, self.label, self.output.argmax(axis=1)]
+        np.savetxt(target_path, data, delimiter=',', newline='\n', header=f'{",".join([str(i) for i in range(self.output.shape[1])])},ground_truth,predict', comments='')
+    #
         
     def get_acc(self):
         return sum(self.output.argmax(axis=1) == self.label) / len(self.label)
@@ -219,7 +223,7 @@ class TrainRecord:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
         
-        lr_list = self.lr
+        lr_list = self.train['lr']
         if len(lr_list) == 0:
             return None
 

@@ -1,18 +1,11 @@
 import tkinter as tk
-from enum import Enum
 from . import SinglePlotWindow
 from ..base import InitWindowValidateException
+from ..script import Script
+from XBrainLab.utils import PlotType
 
-class PlotType(Enum):
-    LOSS = 'get_loss_figure'
-    ACCURACY = 'get_acc_figure'
-    LR = 'get_lr_figure'
-    CONFUSION = 'get_confusion_figure'
-    SALIENCY_TOPOMAP = 'get_eval_record'
-    SALIENCY_MAP = 'get_eval_record'
-    
 class PlotFigureWindow(SinglePlotWindow):
-    def __init__(self, parent, trainers, plot_type, figsize=None, title='Plot'):
+    def __init__(self, parent, trainers, plot_type, figsize=None, title='Plot', plan_name=None, real_plan_name=None):
         super().__init__(parent, figsize, title=title)
         self.trainers = trainers
         self.trainer = None
@@ -20,6 +13,8 @@ class PlotFigureWindow(SinglePlotWindow):
         self.plot_type = plot_type
         self.plan_to_plot = None
         self.current_plot = None
+        self.script_history = Script()
+        self.script_history.add_import("from XBrainLab.utils import PlotType")
         self.plot_gap = 0
 
         # init data
@@ -54,13 +49,21 @@ class PlotFigureWindow(SinglePlotWindow):
         self.real_plan_map = {}
         self.selected_plan_name = selected_plan_name
         self.selected_real_plan_name = selected_real_plan_name
-
+        
         self.drawCounter = 0
         self.update_loop()
+        if plan_name:
+            self.selected_plan_name.set(plan_name)
+        if real_plan_name:
+            self.selected_real_plan_name.set(real_plan_name)
+
 
     def check_data(self):
         if type(self.trainers) != list or len(self.trainers) == 0:
             raise InitWindowValidateException(self, 'No valid training plan is generated')
+
+    def add_plot_command(self):
+        self.script_history.add_ui_cmd(f"study.show_plot(plot_type={self.plot_type.__class__.__name__}.{self.plot_type.name}, plan_name={repr(self.selected_plan_name.get())}, real_plan_name={repr(self.selected_real_plan_name.get())})")
 
     def on_plan_select(self, var_name, *args):
         self.set_selection(False)
@@ -86,7 +89,8 @@ class PlotFigureWindow(SinglePlotWindow):
             return
         real_plan = self.real_plan_map[self.getvar(var_name)]
         self.plan_to_plot = real_plan
-        self.plot_gap = 100
+        self.add_plot_command()
+        self.recreate_fig()
 
     def _create_figure(self):
         target_func = getattr(self.plan_to_plot, self.plot_type.value)
@@ -142,4 +146,10 @@ class PlotFigureWindow(SinglePlotWindow):
         if state:
             self.plan_opt.config(state=state)
             self.real_plan_opt.config(state=state)
-        
+    
+    def recreate_fig(self, *args, current_plot=True):
+        self.current_plot = current_plot
+        self.plot_gap = 100
+
+    def _get_script_history(self):
+        return self.script_history

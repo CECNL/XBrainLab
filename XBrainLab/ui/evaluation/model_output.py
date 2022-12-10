@@ -1,8 +1,9 @@
 import tkinter as tk
 import tkinter.filedialog
-from ..base import TopWindow, InitWindowValidateException, ValidateException
 import os
 import numpy as np
+from ..base import TopWindow, InitWindowValidateException, ValidateException
+from ..script import Script
 
 class ModelOutputWindow(TopWindow):
     command_label = 'Export Model Output (csv)'
@@ -47,7 +48,7 @@ class ModelOutputWindow(TopWindow):
 
         self.selected_plan_name = selected_plan_name
         self.selected_real_plan_name = selected_real_plan_name
-
+        self.script_history = Script()
 
     def check_data(self):
         if type(self.trainers) != list or len(self.trainers) == 0:
@@ -74,11 +75,18 @@ class ModelOutputWindow(TopWindow):
         record = real_plan.get_eval_record()
         if not record:
             raise ValidateException(window=self, message='No evaluation record for this training plan')
+        
         plan_name = self.training_plan_map[self.selected_plan_name.get()].get_name()
         plan_name += '-'+real_plan.get_name()+'.csv'
-        filename = tk.filedialog.asksaveasfilename(parent=self, initialfile=plan_name, filetypes = (("csv files","*.csv"),))
+        filename = tk.filedialog.asksaveasfilename(parent=self, initialdir=real_plan.target_path, initialfile=plan_name, filetypes = (("csv files","*.csv"),))
         if filename:
-            data = np.c_[record.output, record.label, record.output.argmax(axis=1)]
-            np.savetxt(filename, data, delimiter=',', newline='\n', header=f'{",".join([str(i) for i in range(record.output.shape[1])])},ground_truth,predict', comments='')
-            tk.messagebox.showinfo(parent=self, title='Success', message='Done')
+            record.export_csv(filename)
+            self.script_history.add_cmd(f"filepath={repr(filename)}", newline=True)
+            self.script_history.add_cmd(f"plan_name={repr(self.selected_plan_name.get())}")
+            self.script_history.add_cmd(f"real_plan_name={repr(self.selected_real_plan_name.get())}")
+            self.script_history.add_cmd(f"study.export_output_csv(filepath, plan_name, real_plan_name)")
             
+            tk.messagebox.showinfo(parent=self, title='Success', message='Done')
+    
+    def _get_script_history(self):
+        return self.script_history

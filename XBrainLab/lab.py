@@ -23,6 +23,8 @@ class XBrainLab:
         self.model_holder = None
         self.training_option = None
         self.trainer = None
+        #
+        self.script_history = None
 
     # load data
     def get_raw_data_loader(self):
@@ -115,6 +117,26 @@ class XBrainLab:
     def set_channels(self, chs, positions):
         self.epoch_data.set_channels(chs, positions)
 
+    # eval
+    def export_output_csv(self, filepath, plan_name, real_plan_name):
+        training_plan_holders = None
+        if self.trainer:
+            training_plan_holders = self.trainer.get_training_plan_holders()
+        if not training_plan_holders:
+            raise ValueError("No valid training plan is generated")
+        record = None
+        for training_plan_holder in training_plan_holders:
+            if training_plan_holder.get_name() == plan_name:
+                for plan in training_plan_holder.get_plans():
+                    if plan.get_name() == real_plan_name:
+                        record = plan.get_eval_record()
+                        if not record:
+                            raise ValueError('No evaluation record for this training plan')
+                        record.export_csv(filepath)
+                        return
+                raise ValueError(f'No real plan named "{real_plan_name}" for "{plan_name}"')
+        raise ValueError(f'No training plan named "{plan_name}"')
+
     # clean work flow
     def should_clean_raw_data(self, interact=True):
         response = self.loaded_data_list is not None or self.should_clean_datasets(interact)
@@ -154,6 +176,12 @@ class XBrainLab:
         if self.trainer:
             self.trainer.clean(force_update=force_update)
         self.trainer = None
+    #
+    def get_script(self):
+        return self.script_history
+
+    def set_script(self, script_history):
+        self.script_history = script_history
 
     def show_ui(self, interact=False):
         try:
@@ -190,3 +218,35 @@ class XBrainLab:
         else:
             self.ui.mainloop()
             self.ui = None
+
+    def ui_func_wrapper(func):
+        def wrap(*args, **kwargs):
+            win = args[0]
+            trainers = None
+            if win.trainer:
+                trainers = win.trainer.get_training_plan_holders()
+            if not win.ui:
+                win.show_ui(interact=True)
+            func(*args, **kwargs, trainers=trainers)
+            win.ui_loop()
+
+        return wrap
+
+    @ui_func_wrapper
+    def show_plot(self, plot_type, plan_name, real_plan_name, trainers):
+        from .ui.widget import PlotFigureWindow
+        PlotFigureWindow(parent=self.ui, trainers=trainers,
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name)
+
+    @ui_func_wrapper
+    def show_grad_plot(self, plot_type, plan_name, real_plan_name, absolute, trainers):
+        from .ui.visualization import SaliencyMapWindow, SaliencyTopographicMapWindow
+
+        plot_type(parent=self.ui, trainers=trainers,
+            plan_name=plan_name, real_plan_name=real_plan_name, absolute=absolute)
+
+    @ui_func_wrapper
+    def show_performance(self, metric, trainers):
+        from .ui.evaluation import EvaluationTableWindow
+        EvaluationTableWindow(self.ui, trainers, metric)
+    

@@ -22,6 +22,7 @@ class DatasetGenerator:
     def generate(self):
         if self.datasets:
             return self.datasets
+        Dataset.SEQ = 0
         # for loop for individual scheme
         # break at the end if not individual scheme
         for subject_idx in range(len(self.epoch_data.get_subject_index_list())):
@@ -120,7 +121,7 @@ class DatasetGenerator:
                     if val_splitter.is_option:
                         # check job interrupt
                         if self.interrupted:
-                            return
+                            raise KeyboardInterrupt
                         if not val_splitter.is_valid():
                             self.preview_failed = True
                             return

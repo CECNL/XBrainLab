@@ -1,9 +1,10 @@
 import tkinter as tk
 import tkinter.messagebox
-from ..widget import EditableTreeView, PlotFigureWindow, PlotType
+from ..widget import EditableTreeView, PlotFigureWindow
 from ..base import TopWindow, InitWindowValidateException, ValidateException
 from ..script import Script
 from XBrainLab.training import Trainer
+from XBrainLab.utils import PlotType
 
 ##
 class TrainingManagerWindow(TopWindow):
@@ -57,13 +58,16 @@ class TrainingManagerWindow(TopWindow):
         menu.add_cascade(label='Plot', menu=plot_menu)
 
     def plot_loss(self):
-        PlotFigureWindow(self, self.training_plan_holders, PlotType.LOSS)
+        moduel = PlotFigureWindow(self, self.training_plan_holders, PlotType.LOSS)
+        self.script_history += moduel.get_script_history()
 
     def plot_acc(self):
-        PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
+        moduel = PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
+        self.script_history += moduel.get_script_history()
 
     def plot_lr(self):
-        PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)
+        moduel = PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)
+        self.script_history += moduel.get_script_history()
 
     # train
     def start_training(self):

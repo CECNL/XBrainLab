@@ -206,10 +206,10 @@ class DataSplittingWindow(TopWindow):
         idx = int(self.tree.focus())
         target = self.datasets[idx]
         window = DataSplittingInfoWindow(self, target)
-        show_info_script = window._get_script_history()
+        show_info_script = window.get_script_history()
         if show_info_script:
-            self.script_history.add_cmd(f"dataset = dataset[{repr(idx)}]")
-            self.script_history += show_info_script
+            self.script_history.add_cmd(f"dataset = dataset[{repr(idx)}]", newline=True)
+            self.script_history.add_script(show_info_script)
         
         # update tree
         if len(self.datasets) > idx:
@@ -325,11 +325,17 @@ class DataSplittingInfoWindow(TopWindow):
                             start_idx = i
                             continue
                         if last_idx + 1 != i:
-                            tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}~{int(last_idx)}")
+                            if start_idx == last_idx:
+                                tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}")
+                            else:
+                                tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}~{int(last_idx)}")
                             start_idx = i
                         last_idx = i
                     if last_idx:
-                        tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}~{int(idx_list[-1])}")
+                        if start_idx == last_idx:
+                            tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}")
+                        else:
+                            tree.insert(label_root, 'end', text=f"Trial {int(start_idx)}~{int(idx_list[-1])}")
     
     def confirm(self):
         self.script_history = Script()
