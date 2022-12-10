@@ -2,7 +2,9 @@ from ..utils import validate_type, validate_list_type
 from . import Raw
 
 class RawDataLoader(list):
-    def __init__(self, raw_data_list=[]):
+    def __init__(self, raw_data_list=None):
+        if raw_data_list is None:
+            raw_data_list = []
         validate_list_type(raw_data_list, Raw, "raw_data_list")
         super().__init__(raw_data_list)
         if raw_data_list:

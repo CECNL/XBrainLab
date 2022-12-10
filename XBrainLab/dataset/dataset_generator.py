@@ -7,7 +7,7 @@ from . import DataSplittingConfig, Epochs
 from ..utils import validate_type
 
 class DatasetGenerator:
-    def __init__(self, epoch_data, config, datasets=[]):
+    def __init__(self, epoch_data, config, datasets=None):
         validate_type(epoch_data, Epochs ,"epoch_data")
         validate_type(config, DataSplittingConfig ,"config")
         self.epoch_data = epoch_data
@@ -15,6 +15,8 @@ class DatasetGenerator:
         self.test_splitter_list = config.test_splitter_list
         self.val_splitter_list = config.val_splitter_list
         
+        if datasets is None:
+            datasets = []
         self.datasets = datasets
         self.interrupted = False
         self.preview_failed = False

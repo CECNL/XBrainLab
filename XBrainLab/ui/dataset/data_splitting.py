@@ -157,12 +157,14 @@ class DataSplittingWindow(TopWindow):
 
         self.script_history.add_cmd("test_splitter_list = [")
         for test_splitter in self.test_splitter_list:
-            self.script_history.add_cmd(f"DataSplitter(split_type={test_splitter.get_split_type_repr()}, value_var={repr(test_splitter.get_raw_value())}, split_unit={test_splitter.get_split_unit_repr()}),")
+            if test_splitter.is_option:
+                self.script_history.add_cmd(f"DataSplitter(split_type={test_splitter.get_split_type_repr()}, value_var={repr(test_splitter.get_raw_value())}, split_unit={test_splitter.get_split_unit_repr()}),")
         self.script_history.add_cmd("]")
 
         self.script_history.add_cmd("val_splitter_list = [")
         for val_splitter in self.val_splitter_list:
-            self.script_history.add_cmd(f"DataSplitter(split_type={val_splitter.get_split_type_repr()}, value_var={repr(val_splitter.get_raw_value())}, split_unit={val_splitter.get_split_unit_repr()}),")
+            if val_splitter.is_option:
+                self.script_history.add_cmd(f"DataSplitter(split_type={val_splitter.get_split_type_repr()}, value_var={repr(val_splitter.get_raw_value())}, split_unit={val_splitter.get_split_unit_repr()}),")
         self.script_history.add_cmd("]")
 
         self.script_history.add_cmd(f"datasets_config = DataSplittingConfig(train_type={self.config.get_train_type_repr()}, is_cross_validation={repr(self.config.is_cross_validation)}, " + 
