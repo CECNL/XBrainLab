@@ -18,7 +18,6 @@ class DataSplitter():
         if self.split_unit is None:
             return False
         
-        
         if self.split_unit == SplitUnit.RATIO:
             try:
                 val = float(self.value_var)

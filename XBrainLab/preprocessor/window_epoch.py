@@ -23,7 +23,7 @@ class WindowEpoch(PreprocessBase):
         overlap = 0.0 if overlap == "" else float(overlap)
         FIXED_ID = 0
         epoch = mne.make_fixed_length_epochs(mne_data, duration=duration, overlap=overlap, preload=True, id=FIXED_ID)
-        _, event_id = preprocessed_data.get_raw_event_list()
+        _, event_id = preprocessed_data.get_event_list()
         epoch.event_id = {list(event_id.keys())[0]: FIXED_ID}
         try:
             preprocessed_data.set_mne_and_wipe_events(epoch)

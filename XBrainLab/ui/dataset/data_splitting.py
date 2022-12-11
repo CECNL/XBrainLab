@@ -171,7 +171,6 @@ class DataSplittingWindow(TopWindow):
         f"val_splitter_list=val_splitter_list, test_splitter_list=test_splitter_list)")
 
         self.script_history.add_cmd("datasets_generator = study.get_datasets_generator(config=datasets_config)")
-
         self.dataset_generator = DatasetGenerator(self.epoch_data, config=self.config, datasets=self.datasets)
         self.preview_worker = threading.Thread(target=self.dataset_generator.generate)
         self.preview_worker.start()

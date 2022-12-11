@@ -20,8 +20,6 @@ class Dataset:
         self.remaining_mask = np.ones(data_length, dtype=bool)
 
         self.train_mask = np.zeros(data_length, dtype=bool)
-        self.kept_training_session_list = []
-        self.kept_training_subject_list = []
         self.val_mask = np.zeros(data_length, dtype=bool)
         self.test_mask = np.zeros(data_length, dtype=bool)
         self.is_selected = True
@@ -38,20 +36,12 @@ class Dataset:
     def get_ori_name(self):
         return self.name
 
-    ### mask
-    def get_remaining_mask(self):
-        return self.remaining_mask.copy()
-
     def get_all_trial_numbers(self):
         train_number = sum(self.train_mask)
         val_number = sum(self.val_mask)
         test_number = sum(self.test_mask)
         return train_number, val_number, test_number
     
-    def has_set_empty(self):
-        train_number, val_number, test_number = self.get_all_trial_numbers()
-        return train_number == 0 or val_number == 0 or test_number == 0
-
     def get_treeview_row_info(self):
         train_number, val_number, test_number = self.get_all_trial_numbers()
         selected = 'O' if self.is_selected else 'X'
@@ -65,38 +55,31 @@ class Dataset:
     def set_name(self, name):
         self.name = name
     
+    def has_set_empty(self):
+        train_number, val_number, test_number = self.get_all_trial_numbers()
+        return train_number == 0 or val_number == 0 or test_number == 0
+
+    ### mask
+    def get_remaining_mask(self):
+        return self.remaining_mask.copy()
+
     ## picker
-    def discard(self, mask):
+    def discard_remaining_mask(self, mask):
         self.remaining_mask &= np.logical_not(mask)
 
     def set_remaining_by_subject_idx(self, idx):
         self.remaining_mask = self.epoch_data.pick_subject_mask_by_idx(idx)
 
-    ## keep from validation
-    def kept_training_session(self, mask):
-        self.kept_training_session_list = np.unique(self.epoch_data.session[mask])
-
-    def kept_training_subject(self, mask):
-        self.kept_training_subject_list = np.unique(self.epoch_data.subject[mask])
-    
     ## set result
     def set_test(self, mask):
         self.test_mask = mask.copy()
         self.remaining_mask &= np.logical_not(mask)
-        for kept_training_session in self.kept_training_session_list:
-            target = self.epoch_data.get_session_list() == kept_training_session
-            self.train_mask |= (self.remaining_mask & target)
-            self.remaining_mask &= np.logical_not(target)
-        for kept_training_subject in self.kept_training_subject_list:
-            target = self.epoch_data.subject == kept_training_subject
-            self.train_mask |= (self.remaining_mask & target)
-            self.remaining_mask &= np.logical_not(target)
     
     def set_val(self, mask):
         self.val_mask = mask.copy()
         self.remaining_mask &= np.logical_not(mask)
 
-    def set_train(self):
+    def set_remaining_to_train(self):
         self.train_mask |= self.remaining_mask
         self.remaining_mask &= False
 

@@ -41,10 +41,11 @@ class XBrainLab:
         self.clean_datasets(force_update=force_update)
         
         self.preprocessed_data_list = preprocessed_data_list
-        if preprocessed_data_list[0].is_raw():
-            self.epoch_data = None
-        else:
-            self.epoch_data = Epochs(preprocessed_data_list)
+        for preprocessed_data in preprocessed_data_list:
+            if preprocessed_data_list[0].is_raw():
+                self.epoch_data = None
+                return
+        self.epoch_data = Epochs(preprocessed_data_list)
 
     def reset_preprocess(self, force_update=False):
         if self.loaded_data_list:
@@ -195,7 +196,7 @@ class XBrainLab:
             self.ui = DashBoard(study=self)
             if not interact:
                 self.ui_loop()
-            return
+            return self.ui
         except Exception as e:
             traceback.print_exc()
             try:

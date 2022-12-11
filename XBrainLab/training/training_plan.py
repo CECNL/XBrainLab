@@ -155,7 +155,8 @@ class TrainingPlanHolder:
                 target = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.LAST_EPOCH:
             target.load_state_dict(train_record.model.state_dict())
-        target = target.eval()
+        if target:
+            target = target.eval()
         return target, target_loader
 
     def train_one_repeat(self, train_record):

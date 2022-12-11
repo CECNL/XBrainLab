@@ -7,11 +7,17 @@ from ..load_data import Raw
 class Epochs:
     def __init__(self, preprocessed_data_list):
         validate_list_type(preprocessed_data_list, Raw, 'preprocessed_data_list')
+        for preprocessed_data in preprocessed_data_list:
+            if preprocessed_data_list[0].is_raw():
+                raise ValueError(f"Items of preprocessed_data_list must be {Raw.__module__}.Raw of type epoch.")
+        
         self.sfreq = None
+        # maps
         self.subject_map = {} # index: subject name
         self.session_map = {} # index: session name
-        self.event_id = {}    # {'event_name': int(event_id)}
         self.label_map = {}   # {int(event_id): 'description'}
+        self.event_id = {}    # {'event_name': int(event_id)}
+        #
         self.channel_map = []
         self.channel_position = None
 
@@ -34,21 +40,27 @@ class Epochs:
         ## update
         self.event_id = fixed_event_id
         for preprocessed_data in preprocessed_data_list:
-            data = preprocessed_data.get_mne()
-            old_event_id = data.event_id.copy()
-            old_events = data.events[:,2].copy()
+            old_events, old_event_id = preprocessed_data.get_event_list()
+            
+            old_event_id = old_event_id.copy()
+            
+            events = old_events.copy()
+            event_id = old_event_id.copy()
+            old_labels = old_events[:,2].copy()
+
             for old_event_name, old_event_label in old_event_id.items():
-                data.events[:,2][ old_events == old_event_label ] = fixed_event_id[old_event_name]
-                data.event_id[old_event_name] = fixed_event_id[old_event_name]
+                events[:,2][ old_labels == old_event_label ] = fixed_event_id[old_event_name]
+                event_id[old_event_name] = fixed_event_id[old_event_name]
+            preprocessed_data.set_event(events, event_id)
+
         # label map
         self.label_map = {}
-        for event_name, event_label in fixed_event_id.items():
+        for event_name, event_label in self.event_id.items():
             self.label_map[event_label] = event_name
-
+        
         # info
         map_subject = {}
         map_session = {}
-        map_label = {}
         
         for preprocessed_data in preprocessed_data_list:
             data = preprocessed_data.get_mne()
@@ -74,10 +86,7 @@ class Epochs:
             self.channel_map = data.info.ch_names.copy()
 
         self.session_map = {map_session[i]:i for i in map_session}
-        self.subject_map = {map_subject[i]:i for i in map_subject}
-
-        for event_name, event_label in self.event_id.items():
-            self.label_map[event_label] = event_name
+        self.subject_map = {map_subject[i]:i for i in map_subject}        
 
     def copy(self):
         return deepcopy(self)
@@ -138,138 +147,131 @@ class Epochs:
         return len(self.data)
 
     ## picker
-    def pick_subject(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
-        """ pick trails by subject
+    def convert_list_to_counter(self, list_map, target):
+        unique_idx, counts = np.unique(target, return_counts=True)
+        idx_count = {i: 0 for i in set(list_map.keys())}
+        for idx, count in zip(unique_idx, counts):
+            idx_count[idx] = count
+        idx_count = list(idx_count.items())
+        idx_count.sort(key=lambda i: -i[1])
         
-        Parameters
-        ----------
-        mask: 
-            
-        num : 
-            
-        split_unit:
+        return idx_count
 
-        ref_exclude:
+    def get_mask_target(self, mask):
+        filter_preview_mask = {}
+        unique_label_idx = np.unique(self.get_label_list())
+        unique_subject_idx = np.unique(self.get_subject_list())
+        unique_session_idx = np.unique(self.get_session_list())
+        for label_idx in unique_label_idx:
+            if label_idx not in filter_preview_mask:
+                filter_preview_mask[label_idx] = {}
+            for subject_idx in unique_subject_idx:
+                if subject_idx not in filter_preview_mask[label_idx]:
+                    filter_preview_mask[label_idx][subject_idx] = {}
+                for session_idx in unique_session_idx:
+                    if session_idx in filter_preview_mask[label_idx][subject_idx]:
+                        continue
+                    filter_mask = (self.label == label_idx) & (self.subject == subject_idx) & (self.session == session_idx)
+                    target_filter_mask = filter_mask & mask 
+                    filter_preview_mask[label_idx][subject_idx][session_idx] = [target_filter_mask, 0]
+        return filter_preview_mask
 
-        group_idx:
+    def get_filtered_mask_pair(self, filter_preview_mask):
+        min_count = self.get_data_length()
+        filtered_mask_pair = None
+        for label_idx in filter_preview_mask:
+            unique_subject_idx = filter_preview_mask[label_idx]
+            for subject_idx in unique_subject_idx:
+                unique_session_idx = unique_subject_idx[subject_idx]
+                for session_idx in unique_session_idx:
+                    if unique_session_idx[session_idx][0].any() and unique_session_idx[session_idx][1] < min_count:
+                        min_count = unique_session_idx[session_idx][1]
+                        filtered_mask_pair = unique_session_idx[session_idx]
+        return filtered_mask_pair
 
-        Returns
-        -------
-        ret : 
-            
-        mask:
+    def update_mask_target(self, filter_preview_mask, pos):
+        for label_idx in filter_preview_mask:
+            unique_subject_idx = filter_preview_mask[label_idx]
+            for subject_idx in unique_subject_idx:
+                unique_session_idx = unique_subject_idx[subject_idx]
+                for session_idx in unique_session_idx:
+                    filtered_mask_pair = unique_session_idx[session_idx]
+                    filtered_mask_pair[1] += sum(filtered_mask_pair[0] & pos)
+                    filtered_mask_pair[0] &= np.logical_not(pos)
+        return filter_preview_mask
 
-        """
-        target_type = self.subject
-        target_type_map = self.subject_map
-        ret = mask & False
+
+    def get_real_num(self, target_type, value, split_unit, mask, clean_mask, group_idx):
+        if clean_mask is None:
+            target = len(np.unique( target_type[mask] ))
+        else:
+            target = len(np.unique( target_type[clean_mask] ))
         if split_unit == SplitUnit.KFOLD:
-            if ref_exclude is None:
-                target = len( np.unique( target_type[mask]) )
-            else:
-                target = len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
-            inc = target % num
-            num = target // num
+            inc = target % value
+            num = target // value
             if inc > group_idx:
                 num += 1
         elif split_unit == SplitUnit.RATIO:
-            if ref_exclude is None:
-                num *= len(np.unique( target_type[mask]) )
-            else:
-                num *= len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
+            num = value * target
+        elif split_unit == SplitUnit.NUMBER:
+            num = value
+        else:
+            raise NotImplementedError
         num = int(num)
-        while num > 0:
-            for label in list(self.label_map.keys())[::-1]:
-                for subject in list(self.subject_map.keys())[::-1]:
-                    if num == 0:
-                        break
-                    if not mask.any():
-                        return ret, mask
-                    filtered_mask = (self.label == label) & (self.subject == subject)
-                    filtered_mask = filtered_mask & mask
-                    target = target_type[filtered_mask]
-                    if len(target) > 0:
-                        pos = (mask & (target_type == target[-1]))
-                        ret |= pos
-                        mask &= np.logical_not(pos)
-                        num -= 1
-                        break
+        return num
 
+    def pick(self, target_type, mask, clean_mask, value, split_unit, group_idx):
+        num = self.get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
+        ret = mask & False
+        filter_preview_mask = self.get_mask_target(mask)
+        while num > 0:
+            filtered_mask_pair = self.get_filtered_mask_pair(filter_preview_mask)
+            if filtered_mask_pair is None:
+                return ret, mask
+            target = target_type[filtered_mask_pair[0]]
+            if len(target) > 0:
+                pos = (mask & (target_type == target[-1]))
+                ret |= pos
+                mask &= np.logical_not(pos)
+                self.update_mask_target(filter_preview_mask, pos)
+                filtered_mask_pair[0] &= np.logical_not(pos)
+                filtered_mask_pair[1] += sum(pos)
+                num -= 1
         return ret, mask
-    
-    def pick_session(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
-        target_type = self.get_session_list()
-        target_type_map = self.get_session_map()
-        ret = mask & False
-        if split_unit == SplitUnit.KFOLD:
-            if ref_exclude is None:
-                target = len( np.unique( target_type[mask]) )
-            else:
-                target = len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
-            inc = target % num
-            num = target // num
-            if inc > group_idx:
-                num += 1
-        elif split_unit == SplitUnit.RATIO:
-            if ref_exclude is None:
-                num *= len(np.unique( target_type[mask]) )
-            else:
-                num *= len(np.unique( np.concatenate([target_type[mask], target_type[ref_exclude]]) ))
-        num = int(num)
-        while num > 0:
-            for label in list(self.label_map.keys())[::-1]:
-                for session in list(self.session_map.keys())[::-1]:
-                    if num == 0:
-                        break
-                    if not mask.any():
-                        return ret, mask
-                    filtered_mask = (self.label == label) & (self.session == session)
-                    filtered_mask = filtered_mask & mask
-                    target = target_type[filtered_mask]
-                    if len(target) > 0:
-                        pos = (mask & (target_type == target[-1]))
-                        ret |= pos
-                        mask &= np.logical_not(pos)
-                        num -= 1
-                        break
+
+    def pick_subject(self, mask, clean_mask, value, split_unit, group_idx):
+        return self.pick(self.get_subject_list(), mask, clean_mask, value, split_unit, group_idx)
+
+    def pick_session(self, mask, clean_mask, value, split_unit, group_idx):
+        return self.pick(self.get_session_list(), mask, clean_mask, value, split_unit, group_idx)
         
-        return ret, mask
-    
-    def pick_trial(self, mask, num, split_unit, ref_exclude=None, group_idx=None):
+    def pick_trial(self, mask, clean_mask, value, split_unit, group_idx):
+        if clean_mask is None:
+            target = sum(mask)
+        else:
+            target = sum(clean_mask)
         ret = mask & False
-        if not mask.any():
-            return ret, mask
         if split_unit == SplitUnit.KFOLD:
-            if ref_exclude is None:
-                target = sum(mask)
-            else:
-                target = sum(mask) + sum(ref_exclude)
-            inc = target % num
-            num = target // num
+            inc = target % value
+            num = target // value
             if inc > group_idx:
                 num += 1
         elif split_unit == SplitUnit.RATIO:
-            if ref_exclude is None:
-                num *= sum(mask)
-            else:
-                num *= (sum(mask) + sum(ref_exclude))
+                num = value * target
         num = int(num)
+
+        filter_preview_mask = self.get_mask_target(mask)
         while num > 0:
-            for label in list(self.label_map.keys())[::-1]:
-                for session in list(self.session_map.keys())[::-1]:
-                    for subject in list(self.subject_map.keys())[::-1]:
-                        if num == 0:
-                            break
-                        if not mask.any():
-                            return ret, mask
-                        filtered_mask = (self.label == label) & (self.session == session) & (self.subject == subject)
-                        filtered_mask = filtered_mask & mask
-                        if filtered_mask.any():
-                            pos = filtered_mask.nonzero()[0][-1]
-                            if mask[pos]:
-                                ret[pos] = True
-                                mask[pos] = False
-                            num -= 1
+            filtered_mask_pair = self.get_filtered_mask_pair(filter_preview_mask)
+            if filtered_mask_pair is None:
+                return ret, mask
+            pos = filtered_mask_pair[0].nonzero()[0][-1]
+            if mask[pos]:
+                ret[pos] = True
+                mask[pos] = False
+                filtered_mask_pair[0][pos] = False
+                filtered_mask_pair[1] += 1
+                num -= 1
         return ret, mask
 
     # train
