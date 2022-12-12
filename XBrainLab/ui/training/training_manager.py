@@ -4,7 +4,7 @@ from ..widget import EditableTreeView, PlotFigureWindow
 from ..base import TopWindow, InitWindowValidateException, ValidateException
 from ..script import Script
 from XBrainLab.training import Trainer
-from XBrainLab.utils import PlotType
+from XBrainLab.visualization import PlotType
 
 ##
 class TrainingManagerWindow(TopWindow):

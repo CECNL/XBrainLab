@@ -23,7 +23,9 @@ class SinglePlotWindow(TopWindow):
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
-
+        
+        self.figure_canvas = None
+        self.plot_number = None
         self.init_figure()
 
         # resize to figure size
@@ -39,6 +41,11 @@ class SinglePlotWindow(TopWindow):
         plt.figure(self.plot_number)
 
     def init_figure(self):
+        # could crash system called in threads
+        # if self.plot_number is not None:
+        #     self.active_figure()
+        #     plt.close()
+
         self.plot_number = f'SinglePlotWindow-{SinglePlotWindow.PLOT_COUNTER}'
         SinglePlotWindow.PLOT_COUNTER += 1
         # create dummy figure
@@ -48,6 +55,7 @@ class SinglePlotWindow(TopWindow):
 
 
     def get_figure_parms(self):
+        self.init_figure()
         return self.fig_parm
     
     def clear_figure(self):
@@ -65,6 +73,9 @@ class SinglePlotWindow(TopWindow):
         self.redraw()
 
     def set_figure(self, figure, figsize, dpi):
+        if self.figure_canvas:
+            self.figure_canvas.get_tk_widget().destroy()
+
         fig_frame = tk.Frame(self)
         # create Figure_to_CanvasTkAgg object
         figure_canvas = FigureCanvasTkAgg(figure, fig_frame)
@@ -75,8 +86,9 @@ class SinglePlotWindow(TopWindow):
         fig_frame.grid(row=1, column=0, sticky='news')
 
         self.figure_canvas = figure_canvas
-        if hasattr(self, 'fig_parm'):
-            plt.close(self.fig_parm['fig'])
+        # could crash system called in threads
+        # if hasattr(self, 'fig_parm'):
+        #     plt.close(self.fig_parm['fig'])
         self.fig_parm = {'fig': figure, 'figsize': figsize, 'dpi': dpi}
 
     def redraw(self):

@@ -2,7 +2,7 @@ import tkinter as tk
 from . import SinglePlotWindow
 from ..base import InitWindowValidateException
 from ..script import Script
-from XBrainLab.utils import PlotType
+from XBrainLab.visualization import PlotType
 
 class PlotFigureWindow(SinglePlotWindow):
     def __init__(self, parent, trainers, plot_type, figsize=None, title='Plot', plan_name=None, real_plan_name=None):
@@ -14,7 +14,7 @@ class PlotFigureWindow(SinglePlotWindow):
         self.plan_to_plot = None
         self.current_plot = None
         self.script_history = Script()
-        self.script_history.add_import("from XBrainLab.utils import PlotType")
+        self.script_history.add_import("from XBrainLab.visualization import PlotType")
         self.plot_gap = 0
 
         # init data
@@ -51,6 +51,7 @@ class PlotFigureWindow(SinglePlotWindow):
         self.selected_real_plan_name = selected_real_plan_name
         
         self.drawCounter = 0
+        self.update_progress = -1
         self.update_loop()
         if plan_name:
             self.selected_plan_name.set(plan_name)
@@ -112,10 +113,13 @@ class PlotFigureWindow(SinglePlotWindow):
                     self.current_plot = True
                 else:
                     self.plot_gap = 0
-                    self.show_drawing()
-                    figure = self._create_figure()
-                    if figure is None:
-                        self.empty_data_figure()
+                    update_progress = self.plan_to_plot.get_epoch()
+                    if update_progress != self.update_progress or self.plan_to_plot.is_finished():
+                        self.update_progress = update_progress
+                        self.show_drawing()
+                        figure = self._create_figure()
+                        if figure is None:
+                            self.empty_data_figure()
                     if not self.plan_to_plot.is_finished():
                         self.current_plot = True
                     self.redraw()
@@ -148,6 +152,7 @@ class PlotFigureWindow(SinglePlotWindow):
             self.real_plan_opt.config(state=state)
     
     def recreate_fig(self, *args, current_plot=True):
+        self.update_progress = -1
         self.current_plot = current_plot
         self.plot_gap = 100
 

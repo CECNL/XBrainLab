@@ -102,6 +102,7 @@ class DashBoard(tk.Tk):
         visualization_menu.add_command(label='Set Montage', command=self.set_montage)
         for visualization_module in VISUALIZATION_MODULE_LIST:
             visualization_menu.add_command(label=visualization_module.command_label, command=lambda var=visualization_module:self.visualize(var))
+        visualization_menu.add_command(label='clean plots', command=self.clean_plot)
 
         # script
         script_menu.add_command(label='Show command script', command=lambda :self.show_script(ScriptType.CLI))
@@ -235,6 +236,10 @@ class DashBoard(tk.Tk):
             self.script_history += pick_montage_module.get_script_history()
             self.script_history.add_cmd("study.set_channels(chs, positions)")
             self.update_dashboard()
+
+    def clean_plot(self):
+        # could crash system called in threads
+        plt.close('all')
 
     def visualize(self, visualization_module):
         training_plan_holders = None

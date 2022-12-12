@@ -115,6 +115,7 @@ class TrainingPlanHolder:
 
     # interact
     def train(self):
+        import threading
         try:
             for i in range(self.option.repeat_num):
                 self.status = Status.INIT.value.format(self.train_record_list[i].get_name())

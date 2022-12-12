@@ -241,10 +241,15 @@ class XBrainLab:
 
     @ui_func_wrapper
     def show_grad_plot(self, plot_type, plan_name, real_plan_name, absolute, trainers):
-        from .ui.visualization import SaliencyMapWindow, SaliencyTopographicMapWindow
-
-        plot_type(parent=self.ui, trainers=trainers,
-            plan_name=plan_name, real_plan_name=real_plan_name, absolute=absolute)
+        from .ui.visualization import PlotABSFigureWindow
+        PlotABSFigureWindow(parent=self.ui, trainers=trainers,
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name, absolute=absolute)
+    
+    @ui_func_wrapper
+    def show_grad_topo_plot(self, plot_type, plan_name, real_plan_name, absolute, trainers):
+        from .ui.visualization import PlotTopoABSFigureWindow
+        PlotTopoABSFigureWindow(parent=self.ui, trainers=trainers,
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name, absolute=absolute)
 
     @ui_func_wrapper
     def show_performance(self, metric, trainers):

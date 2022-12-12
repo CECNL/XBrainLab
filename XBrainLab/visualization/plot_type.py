@@ -5,6 +5,6 @@ class PlotType(Enum):
     ACCURACY = 'get_acc_figure'
     LR = 'get_lr_figure'
     CONFUSION = 'get_confusion_figure'
-    SALIENCY_TOPOMAP = 'get_eval_record'
-    SALIENCY_MAP = 'get_eval_record'
+    SALIENCY_TOPOMAP = 'get_saliency_topo_map'
+    SALIENCY_MAP = 'get_saliency_map'
     
