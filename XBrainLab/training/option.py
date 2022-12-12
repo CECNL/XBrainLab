@@ -42,7 +42,9 @@ class TrainingOption:
             reason = 'Output directory not set'
         if self.optim  is None or self.optim_parms is None:
             reason = 'Optimizer not set'
-        if self.use_cpu is None and self.gpu_idx is None:
+        if self.use_cpu is None:
+            reason = 'Device not set'
+        if not self.use_cpu and self.gpu_idx is None:
             reason = 'Device not set'
         if self.evaluation_option is None:
             reason = 'Evaluation option not set'
@@ -54,8 +56,9 @@ class TrainingOption:
             except:
                 return True
 
-        if check_num(self.gpu_idx):
-            reason = 'Invalid gpu_idx'
+        if self.gpu_idx is not None:
+            if check_num(self.gpu_idx):
+                reason = 'Invalid gpu_idx'
         if check_num(self.epoch):
             reason = 'Invalid epoch'
         if check_num(self.bs):
@@ -68,14 +71,15 @@ class TrainingOption:
             reason = 'Invalid repeat number'
         
         if reason:
-            raise ValueError(message=reason)
+            raise ValueError(reason)
         
         self.epoch = int(self.epoch)
         self.bs = int(self.bs) 
         self.lr = float(self.lr) 
         self.checkpoint_epoch = int(self.checkpoint_epoch)
         self.repeat_num = int(self.repeat_num)
-        self.gpu_idx = int(self.gpu_idx)
+        if self.gpu_idx is not None:
+            self.gpu_idx = int(self.gpu_idx)
     
     def get_optim(self, model):
         return self.optim(params=model.parameters(), lr=self.lr, **self.optim_parms)

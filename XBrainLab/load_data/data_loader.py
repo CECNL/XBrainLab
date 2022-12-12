@@ -23,6 +23,8 @@ class RawDataLoader(list):
             _, event_id = raw_data.get_event_list()
             if not event_id:
                 raise ValueError(f"No label has been loaded for {raw_data.get_filename()}")
+        if len(self) == 0:
+            raise ValueError(f"No dataset has been loaded")
         return True
 
     def check_loaded_data_consistency(self, raw, idx=-1):
@@ -37,7 +39,7 @@ class RawDataLoader(list):
             raise ValueError(f'Dataset sample frequency inconsistent (got {raw.get_sfreq()}).')
         # check same data type
         if self[idx].is_raw() != raw.is_raw():
-            raise ValueError(message=f'Dataset type inconsistent.')
+            raise ValueError(f'Dataset type inconsistent.')
         # check epoch trial size
         if not raw.is_raw():
             if self[idx].get_epoch_duration() != raw.get_epoch_duration():

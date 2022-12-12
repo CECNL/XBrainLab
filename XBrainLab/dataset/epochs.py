@@ -257,7 +257,11 @@ class Epochs:
             if inc > group_idx:
                 num += 1
         elif split_unit == SplitUnit.RATIO:
-                num = value * target
+            num = value * target
+        elif split_unit == SplitUnit.NUMBER:
+            num = value
+        else:
+            raise NotImplementedError
         num = int(num)
 
         filter_preview_mask = self.get_mask_target(mask)
