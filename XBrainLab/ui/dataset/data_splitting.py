@@ -6,6 +6,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox
 
+from .split_chooser import ManualSplitChooser
 from ..base import TopWindow, ValidateException
 from ..script import Script
 
@@ -32,7 +33,8 @@ class DataSplittingWindow(TopWindow):
         self.preview_failed = False
         self.last_update = time.time()
         #
-        split_unit_list = [i.value for i in SplitUnit if i != SplitUnit.KFOLD]
+
+        split_unit_list = [i.value for i in SplitUnit if i not in [SplitUnit.KFOLD, SplitUnit.MANUAL]]
         # preprocess
         val_splitter_list, test_splitter_list = self.config.generate_splitter_option()
         # treeview
@@ -64,14 +66,23 @@ class DataSplittingWindow(TopWindow):
         validation_frame = tk.LabelFrame(self, text ='Validation')
         validation_frame.grid_columnconfigure(0, weight=1)
         row = 0
+        idx = 0
         for val_splitter in val_splitter_list:
             if val_splitter.is_option:
+                idx += 1
                 ## init variables
                 val_splitter.set_split_unit_var(var=tk.StringVar(self), val=split_unit_list[0], callback=self.preview)
                 val_splitter.set_entry_var(var=tk.StringVar(self), val=DEFAULT_SPLIT_ENTRY_VALUE, callback=self.preview)
                 ## init widget
                 val_split_by_label = tk.Label(validation_frame, text=val_splitter.text)
-                val_split_type_option = tk.OptionMenu(validation_frame, val_splitter.split_var, *split_unit_list)
+                tmp_split_unit_list = split_unit_list
+                if config.is_cross_validation:
+                    if idx == 1:
+                        tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
+                else:
+                    tmp_split_unit_list = split_unit_list + [SplitUnit.MANUAL.value]
+                val_split_type_option = tk.OptionMenu(validation_frame, val_splitter.split_var, *tmp_split_unit_list)
+                val_splitter.split_var.trace("w", lambda *args: self.handle_split_type_option(val_splitter))
                 val_split_entry = tk.Entry(validation_frame, textvariable=val_splitter.entry_var)
                 ## pack
                 val_split_by_label.grid(row=row + 0, column=0, columnspan=2)
@@ -98,9 +109,13 @@ class DataSplittingWindow(TopWindow):
                 ## init widget
                 test_split_by_label = tk.Label(testing_frame, text=test_splitter.text)
                 tmp_split_unit_list = split_unit_list
-                if (config.is_cross_validation and idx == 1):
-                    tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
+                if config.is_cross_validation:
+                    if idx == 1:
+                        tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
+                else:
+                    tmp_split_unit_list = split_unit_list + [SplitUnit.MANUAL.value]
                 test_split_type_option = tk.OptionMenu(testing_frame, test_splitter.split_var, *tmp_split_unit_list)
+                test_splitter.split_var.trace("w", lambda *args: self.handle_split_type_option(test_splitter))
                 test_split_entry = tk.Entry(testing_frame, textvariable=test_splitter.entry_var)
                 ## pack
                 test_split_by_label.grid(row=row + 0, column=0, columnspan=2)
@@ -136,6 +151,36 @@ class DataSplittingWindow(TopWindow):
             raise InitWindowValidateException(self, 'No valid epoch data is generated')
         if type(self.config) != DataSplittingConfigHolder:
             raise InitWindowValidateException(self, 'No valid data splitting config is generated')
+
+    def handle_split_type_option(self, splitter):
+        if splitter.split_var.get() != SplitUnit.MANUAL.value:
+            return
+
+        by_session = [SplitByType.SESSION,
+            SplitByType.SESSION_IND,
+            ValSplitByType.SESSION]
+        
+        by_trial = [SplitByType.TRIAL,
+            SplitByType.TRIAL_IND,
+            ValSplitByType.TRIAL]
+
+        by_subject = [SplitByType.SUBJECT,
+            SplitByType.SUBJECT_IND,
+            ValSplitByType.SUBJECT]
+
+        
+        if splitter.split_type in by_session:
+            choice = list(self.epoch_data.get_session_map().items())
+        elif splitter.split_type in by_trial:
+            choice = list(range(self.epoch_data.get_data_length()))
+            choice = [(c,c) for c in choice]
+        elif splitter.split_type in by_subject:
+            choice = list(self.epoch_data.get_subject_map().items())
+        result = ManualSplitChooser(self, choice).get_result()
+        value = ''
+        for i in result:
+            value += str(i) + " "
+        splitter.entry_var.set(value)
 
     def preview(self, var=None, index=None, mode=None):
         # reset config
@@ -397,6 +442,13 @@ class DataSplitterHolder(DataSplitter):
             val = self.entry_var.get()
             if val.isdigit():
                 return 0 < int(val)
+        elif self.split_unit == SplitUnit.MANUAL:
+            val = str(self.value_var)
+            vals = val.split(' ')
+            for val in vals:
+                if len(val.strip()) > 0 and not val.isdigit():
+                    return False
+            return True
         return False
 
     def _get_value(self):

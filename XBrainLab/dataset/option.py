@@ -3,6 +3,7 @@ from enum import Enum
 class SplitUnit(Enum):
     RATIO = 'Ratio'
     NUMBER = 'Number'
+    MANUAL = 'Manual'
     KFOLD = 'K Fold'
     
 class TrainingType(Enum):

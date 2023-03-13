@@ -31,11 +31,22 @@ class DataSplitter():
             val = str(self.value_var)
             if val.isdigit():
                 return 0 < int(val)
+        elif self.split_unit == SplitUnit.MANUAL:
+            val = str(self.value_var).strip()
+            vals = val.split(' ')
+            for val in vals:
+                if len(val.strip()) > 0 and not val.isdigit():
+                    return False
+            return True
+
         return False
 
     # getter
     def get_value(self):
-        return float(self.value_var)
+        if self.split_unit == SplitUnit.MANUAL:
+            return [int(i) for i in self.value_var.strip().split(' ') if len(i.strip()) > 0]
+        else:
+            return float(self.value_var)
     
     def get_raw_value(self):
         return self.value_var

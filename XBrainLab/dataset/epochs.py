@@ -239,18 +239,40 @@ class Epochs:
                 num -= 1
         return ret, mask
 
+    def pick_manual(self, target_type, mask, value):
+        ret = mask & False
+        for v in value:
+            pos = (mask & (target_type == v))
+            ret |= pos
+            mask &= np.logical_not(pos)
+        return ret, mask
+
     def pick_subject(self, mask, clean_mask, value, split_unit, group_idx):
-        return self.pick(self.get_subject_list(), mask, clean_mask, value, split_unit, group_idx)
+        target_type = self.get_subject_list()
+        if split_unit == SplitUnit.MANUAL:
+            return self.pick_manual(target_type, mask, value)
+        else:
+            return self.pick(target_type, mask, clean_mask, value, split_unit, group_idx)
 
     def pick_session(self, mask, clean_mask, value, split_unit, group_idx):
-        return self.pick(self.get_session_list(), mask, clean_mask, value, split_unit, group_idx)
+        target_type = self.get_session_list()
+        if split_unit == SplitUnit.MANUAL:
+            return self.pick_manual(target_type, mask, value)
+        else:
+            return self.pick(target_type, mask, clean_mask, value, split_unit, group_idx)
         
     def pick_trial(self, mask, clean_mask, value, split_unit, group_idx):
+        ret = mask & False
+        if split_unit == SplitUnit.MANUAL:
+            ret[value] = True
+            ret &= mask
+            mask &= np.logical_not(ret)
+            return ret, mask
+        
         if clean_mask is None:
             target = sum(mask)
         else:
             target = sum(clean_mask)
-        ret = mask & False
         if split_unit == SplitUnit.KFOLD:
             inc = target % value
             num = target // value
