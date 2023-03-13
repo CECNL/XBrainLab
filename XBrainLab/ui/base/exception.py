@@ -7,7 +7,7 @@ class CustomException(Exception):
 
     def handle_exception(self):
         """Override this to handle exception."""
-        pass
+        raise NotImplementedError()
 
 class InitWindowValidateException(CustomException):
     def __init__(self, window, message):

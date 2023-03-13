@@ -4,3 +4,4 @@ from .resample import Resample
 from .time_epoch import TimeEpoch
 from .window_epoch import WindowEpoch
 from .edit_event import EditEvent
+from .export import Export
