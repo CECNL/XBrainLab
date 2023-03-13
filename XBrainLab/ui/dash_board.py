@@ -8,7 +8,7 @@ from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel,
 from .load_data import IMPORT_TYPE_MODULE_LIST
 from .preprocess import PREPROCESS_MODULE_LIST
 from .dataset import DataSplittingSettingWindow
-from .training import ModelSelectionWindow, TrainingSettingWindow, TrainingManagerWindow
+from .training import ModelSelectionWindow, TrainingSettingWindow, TestOnlySettingWindow, TrainingManagerWindow
 from .evaluation import EVALUATION_MODULE_LIST
 from .visualization import PickMontageWindow, VISUALIZATION_MODULE_LIST
 from .script import Script, ScriptType, ScriptPreview
@@ -88,11 +88,15 @@ class DashBoard(tk.Tk):
         preprocess_menu.add_command(label='Reset', command=self.reset_preprocess)
         
         # training
+        training_setting_menu = tk.Menu(training_menu, tearoff=0)
         training_menu.add_command(label='Dataset Splitting', command=self.split_data)
         training_menu.add_command(label='Model Selection', command=self.select_model)
-        training_menu.add_command(label='Training Setting', command=self.training_setting)
+        training_menu.add_cascade(label='Training Setting', menu=training_setting_menu)
         training_menu.add_command(label='Generate Training Plan', command=self.generate_plan)
         training_menu.add_command(label='Training Manager', command=self.open_training_manager)
+        # training setting
+        training_setting_menu.add_command(label='Training', command=self.training_setting)
+        training_setting_menu.add_command(label='Test Only', command=self.test_only_setting)
 
         # evaluation
         for evaluation_module in EVALUATION_MODULE_LIST:
@@ -190,6 +194,21 @@ class DashBoard(tk.Tk):
             return
         
         training_module = TrainingSettingWindow(self)
+        training_option = training_module.get_result()
+        if training_option:
+            self.study.set_training_option(training_option)
+            
+            training_module_script = training_module.get_script_history()
+            self.script_history += training_module_script
+            self.script_history.add_cmd('study.set_training_option(training_option)')
+            
+            self.update_dashboard()
+    
+    def test_only_setting(self):
+        if not self.clean_trainer():
+            return
+        
+        training_module = TestOnlySettingWindow(self)
         training_option = training_module.get_result()
         if training_option:
             self.study.set_training_option(training_option)
