@@ -18,5 +18,5 @@ class LoadEdf(LoadBase):
             selected_data = mne.io.read_raw_gdf(filepath, preload=True)
             self.script_history.add_cmd(f"data = mne.io.read_raw_gdf(filepath, preload=True)")
         else:
-            raise ValidateException('Only EDF/GDF files are supported')
+            raise ValidateException(self, 'Only EDF/GDF files are supported')
         return selected_data

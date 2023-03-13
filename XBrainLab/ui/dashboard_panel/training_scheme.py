@@ -63,7 +63,10 @@ class TrainingSchemePanel(PanelBase):
                 ## init widget
                 val_split_by_label = tk.Label(validation_frame, text=val_splitter.text)
                 val_split_type_label = tk.Label(validation_frame, text=val_splitter.split_unit.value)
-                val_split_entry_label = tk.Label(validation_frame, text=val_splitter.value_var)
+                value_var = val_splitter.value_var
+                if len(value_var) > 10:
+                    value_var = value_var[:10] + '...'
+                val_split_entry_label = tk.Label(validation_frame, text=value_var)
                 ## pack
                 val_split_by_label.grid(row=row + 0, column=0, columnspan=2)
                 val_split_type_label.grid(row=row + 1, column=0)
@@ -84,7 +87,10 @@ class TrainingSchemePanel(PanelBase):
                 ## init widget
                 test_split_by_label = tk.Label(testing_frame, text=test_splitter.text)
                 test_split_type_label = tk.Label(testing_frame, text=test_splitter.split_unit.value)
-                test_split_entry_label = tk.Label(testing_frame, text=test_splitter.value_var)
+                value_var = test_splitter.value_var
+                if len(value_var) > 10:
+                    value_var = value_var[:10] + '...'
+                test_split_entry_label = tk.Label(testing_frame, text=value_var)
                 ## pack
                 test_split_by_label.grid(row=row + 0, column=0, columnspan=2)
                 test_split_type_label.grid(row=row + 1, column=0)

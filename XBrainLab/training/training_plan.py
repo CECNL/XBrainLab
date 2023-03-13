@@ -115,7 +115,6 @@ class TrainingPlanHolder:
 
     # interact
     def train(self):
-        import threading
         try:
             for i in range(self.option.repeat_num):
                 self.status = Status.INIT.value.format(self.train_record_list[i].get_name())
@@ -166,7 +165,7 @@ class TrainingPlanHolder:
         # init
         model = train_record.get_training_model(device=self.option.get_device())
         trainLoader, valLoader, testLoader = self.get_loader()
-        if not trainLoader:
+        if self.option.epoch > 0 and not trainLoader:
             raise ValueError('No Training Data')
         optimizer = train_record.optim
         criterion = train_record.criterion

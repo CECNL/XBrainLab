@@ -20,6 +20,8 @@ class Script:
         self.ui_command_list.append((get_id(), data))
 
     def add_script(self, script):
+        if script is None:
+            return
         self.import_list.update(script.import_list)
         self.command_list += script.command_list
         self.ui_command_list += script.ui_command_list

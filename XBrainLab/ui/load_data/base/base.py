@@ -79,9 +79,9 @@ class EditRaw(TopWindow): # called when double click on treeview
     
     def confirm(self, *args):
         if not self.subject_var.get():
-            raise ValidateException('Subject name cannot be empty')
+            raise ValidateException(self, 'Subject name cannot be empty')
         if not self.session_var.get():
-            raise ValidateException('Subject name cannot be empty')
+            raise ValidateException(self, 'Subject name cannot be empty')
 
         if self.event_id:
             try:
