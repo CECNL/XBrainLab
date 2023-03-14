@@ -15,7 +15,7 @@ class PlotABSFigureWindow(PlotFigureWindow):
     def add_plot_command(self):
         if not hasattr(self, 'absolute_var'):
             return
-        self.script_history.add_ui_cmd(f"study.show_grad_plot(plot_type={self.plot_type.__class__.__name__}.{self.plot_type.name}, plan_name={repr(self.selected_plan_name.get())}, real_plan_name={repr(self.selected_real_plan_name.get())}, absolute={repr(self.absolute_var.get())})")
+        self.script_history.add_ui_cmd(f"study.show_grad_plot(plot_type={self.plot_type.__name__}, plan_name={repr(self.selected_plan_name.get())}, real_plan_name={repr(self.selected_real_plan_name.get())}, absolute={repr(self.absolute_var.get())})")
 
     def absolute_callback(self, *args):
         self.add_plot_command()
@@ -30,7 +30,6 @@ class PlotABSFigureWindow(PlotFigureWindow):
             return None
         
         epoch_data = self.trainer.get_dataset().get_epoch_data()
-        
-        target_func = getattr(eval_record, self.plot_type.value)
-        figure = target_func(epoch_data, absolute=self.absolute_var.get(), **self.get_figure_parms())
+        plot_visualizer = self.plot_type(eval_record, epoch_data, **self.get_figure_parms())
+        figure = plot_visualizer.get_plt(absolute=self.absolute_var.get())
         return figure
