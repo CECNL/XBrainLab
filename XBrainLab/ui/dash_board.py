@@ -83,8 +83,15 @@ class DashBoard(tk.Tk):
             import_data_menu.add_command(label=import_module.command_label, command=lambda var=import_module:self.import_data(var))
         
         # preprocess/epoching
+        edit_event_menu = None
         for preprocess_module in PREPROCESS_MODULE_LIST:
-            preprocess_menu.add_command(label=preprocess_module.command_label, command=lambda var=preprocess_module:self.preprocess(var))
+            if "Edit Event" not in preprocess_module.command_label:
+                preprocess_menu.add_command(label=preprocess_module.command_label, command=lambda var=preprocess_module:self.preprocess(var))
+            else:
+                if edit_event_menu is None:
+                    edit_event_menu = tk.Menu(preprocess_menu, tearoff=0)
+                    preprocess_menu.add_cascade(label='Edit Event', menu=edit_event_menu)
+                edit_event_menu.add_command(label=preprocess_module.command_label, command=lambda var=preprocess_module:self.preprocess(var))
         preprocess_menu.add_command(label='Reset', command=self.reset_preprocess)
         
         # training

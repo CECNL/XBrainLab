@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 import math
 
 class EEGNet(nn.Module):
@@ -18,7 +19,7 @@ class EEGNet(nn.Module):
         self.conv1 = nn.Sequential(  
         #temporal kernel size(1, floor(sf*0.5)) means 500ms EEG at sf/2
         #padding=(0, floor(sf*0.5)/2) maintain raw data shape 
-            nn.Conv2d(1, self.F1, (1, self.half_sf), padding='same', bias=False), #62,32
+            nn.Conv2d(1, self.F1, (1, self.half_sf), padding='valid', bias=False), #62,32
             nn.BatchNorm2d(self.F1)
         )
 
@@ -31,9 +32,9 @@ class EEGNet(nn.Module):
             nn.Dropout(0.5) # 0.25 in cross-subject classification beacuse the training size are larger 
         )
 
-        self.Conv3 = nn.Sequential(
+        self.conv3 = nn.Sequential(
         # kernel size=(1, floor((sf/4))*0.5) means 500ms EEG at sf/4 Hz 
-            nn.Conv2d(self.D*self.F1, self.D*self.F1, (1, math.floor(self.half_sf/4)), padding='same', groups=self.D*self.F1, bias=False),
+            nn.Conv2d(self.D*self.F1, self.D*self.F1, (1, math.floor(self.half_sf/4)), padding='valid', groups=self.D*self.F1, bias=False),
             nn.Conv2d(self.D*self.F1, self.F2, (1, 1), bias=False),
             nn.BatchNorm2d(self.F2),
             nn.ELU(),
@@ -41,16 +42,27 @@ class EEGNet(nn.Module):
             nn.Dropout(0.5)
         )
         
-        #(floor((sf/4))/2 * timepoint//32, n_class)
-        self.classifier = nn.Linear(self.F2* math.ceil(self.tp//32), self.n_class, bias=True)
+        ## (floor((sf/4))/2 * timepoint//32, n_class)
+        # self.classifier = nn.Linear(self.F2* math.ceil(self.tp//32), self.n_class, bias=True)
+        fc_inSize = self._get_size(self.ch, self.tp)[1]
+        self.classifier = nn.Linear(fc_inSize, self.n_class, bias=True)
        
     def forward(self, x):
         if len(x.shape) != 4:
             x = x.unsqueeze(1)
         x = self.conv1(x)
         x = self.conv2(x)
-        x = self.Conv3(x)
+        x = self.conv3(x)
         #(-1, sf/8* timepoint//32)
-        x = x.view(-1, self.F2* (self.tp//32))
+        x = x.view(x.size()[0], -1)
+        #x = x.view(-1, self.F2* (self.tp//32))
         x = self.classifier(x)
         return x
+    
+    def _get_size(self, ch, tsamp):
+        data = torch.ones((1, 1, ch, tsamp))
+        x = self.conv1(data)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = x.view(x.size()[0], -1)
+        return x.size()

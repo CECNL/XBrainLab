@@ -1,4 +1,5 @@
 from .base import PreprocessBase
+import numpy as np
 import mne
 
 class TimeEpoch(PreprocessBase):
@@ -18,9 +19,19 @@ class TimeEpoch(PreprocessBase):
     def _data_preprocess(self, preprocessed_data, baseline, new_event_id, tmin, tmax):
         events, event_id = preprocessed_data.get_raw_event_list()
         selected_event_id = {}
+        selected_events = events.copy()
         for event_name in new_event_id:
-            selected_event_id[ event_name ] = event_id[event_name]
-        data = mne.Epochs(preprocessed_data.get_mne(), events,
+            if event_name in event_id.keys():
+                selected_event_id[event_name] = event_id[event_name]
+        
+        for iter in np.unique(events[:,-1]):
+            if iter not in selected_event_id.values():
+                selected_events = np.delete(selected_events, np.where(selected_events[:,-1]==iter)[0], 0)
+
+        preprocessed_data.raw_event_id = selected_event_id
+        preprocessed_data.raw_events = selected_events
+
+        data = mne.Epochs(preprocessed_data.get_mne(), selected_events,
                                         event_id=selected_event_id,
                                         tmin=tmin,
                                         tmax=tmax,

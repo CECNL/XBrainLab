@@ -75,7 +75,7 @@ class XBrainLab:
         self.clean_trainer(force_update=force_update)
         self.training_option = training_option
 
-    # traing
+    # training
     def set_model_holder(self, model_holder, force_update=False):
         validate_type(model_holder, ModelHolder, 'model_holder')
         self.clean_trainer(force_update=force_update)

@@ -318,7 +318,7 @@ class DrawRegion():
         self.h = h
         self.from_canvas = np.zeros((w, h))
         self.to_canvas = np.zeros((w, h))
-        # global parms
+        # global params
         self.from_x = 0
         self.from_y = 0
         self.to_x = 0

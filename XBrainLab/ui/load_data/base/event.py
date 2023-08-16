@@ -36,16 +36,23 @@ class LoadEvent(TopWindow):
         selected_file = filedialog.askopenfilename(
             parent = self,
             filetypes = (
+                ('mat file', '*mat'),
                 ('text file', '*.txt'),
-                #('mat file', '*mat'),
                 #('text file', '*.lst'),
                 #('text file', '*.eve'),
                 #('binary file', '*.fif')
             )
         )
-        if selected_file:
-            label_list = self.event_loader.read_txt(selected_file)
-            self.load_script_history.set_cmd(f"event_loader.read_txt({repr(selected_file)})")
+        if selected_file: # event array length incompatiable not handled
+            if '.txt' in selected_file:
+                label_list = self.event_loader.read_txt(selected_file)
+                self.load_script_history.set_cmd(f"event_loader.read_txt({repr(selected_file)})")
+            elif '.mat' in selected_file:
+                label_list = self.event_loader.read_mat(selected_file)
+                self.load_script_history.set_cmd(f"event_loader.read_mat({repr(selected_file)})")
+            else:
+                tk.messagebox.showwarning(parent=self, title="Warning", message="Event file format not supported.")
+            
             self.event_num.set(len(label_list))
             self.new_event_name = {k: tk.StringVar(self) for k in np.unique(label_list)}
             for child in self.eventidframe.winfo_children():

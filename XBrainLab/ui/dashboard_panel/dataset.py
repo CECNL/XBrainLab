@@ -79,8 +79,8 @@ class DatasetPanel(PanelBase):
         tmin = None
         duration = None
         if not preprocessed_data.is_raw():
-            tmin = None
-            duration = preprocessed_data.get_epoch_duration() / preprocessed_data.get_sfreq()
+            tmin = preprocessed_data.get_tmin()
+            duration = int(preprocessed_data.get_epoch_duration()*100 / preprocessed_data.get_sfreq())/100
         highpass, lowpass = preprocessed_data.get_filter_range()
 
         self.type_label.config(text=DataType.RAW.value if preprocessed_data.is_raw() else DataType.EPOCH.value)

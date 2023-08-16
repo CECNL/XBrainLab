@@ -1,5 +1,6 @@
 import mne
 import os, re
+import tkinter as tk
 import numpy as np
 from enum import Enum
 from copy import deepcopy
@@ -65,14 +66,38 @@ class Raw:
         validate_type(events, np.ndarray, 'events')
         validate_type(event_id, dict, 'event_id')
         assert len(events.shape) == 2 and events.shape[1] == 3
-        if self.is_raw():
+        
+        if self.is_raw() and (self.raw_events is None or self.raw_events.shape == events): # legal event update
             self.raw_events = events
             self.raw_event_id = event_id
+        elif self.is_raw():
+            raw_events_copy = self.raw_events.copy()
+            events_copy = events.copy()
+
+            uq, cnt = np.unique(self.raw_events[:,-1], return_counts=True)
+            
+            event_count = {u:c for u,c in zip(uq, cnt)}
+            event_targets = {v:k for k,v in self.raw_event_id.items() if event_count[v]==len(events)}
+
+            assert len(event_targets) > 0
+
+            for target in event_targets.values():
+                _ = self.raw_event_id.pop(target)
+            for k,target in event_targets.items():
+                for i,j in enumerate(event_id.values()):
+                    new_id = 1
+                    while new_id in self.raw_event_id.values():
+                        new_id += 1
+                    self.raw_event_id[target+f'_{i}'] = new_id
+                    events[np.where(events_copy[:,-1]==j),-1] = new_id
+
+                self.raw_events[np.where(raw_events_copy[:,-1]==k),-1] = events[:,-1]
+            print(f'UserWarning: Inconsistent number of events with existing event number {self.raw_events.shape[0]} (got {len(events)}). Events with matching number are automatically updated with running numbers.')
         else:
             assert self.get_epochs_length() == len(events)
             self.mne_data.events = events
             self.mne_data.event_id = event_id
-    
+
     def set_mne(self, data):
         if isinstance(data,  mne.epochs.BaseEpochs):
             if self.raw_event_id:
@@ -82,7 +107,7 @@ class Raw:
                 self.raw_events = None
                 self.raw_event_id = None
         self.mne_data = data
-    
+
     def set_mne_and_wipe_events(self, data):
         self.raw_events = None
         self.raw_event_id = None
@@ -91,6 +116,9 @@ class Raw:
     #
     def get_mne(self):
         return self.mne_data
+
+    def get_tmin(self):
+        return self.mne_data.tmin
 
     def get_nchan(self):
         return self.mne_data.info['nchan']
@@ -114,17 +142,32 @@ class Raw:
     #
     def get_raw_event_list(self):
         try:
+            if self.raw_event_id:
+                return self.raw_events, self.raw_event_id
+        except:
+            pass
+        try:
             if self.mne_data.event_id:
                 return self.mne_data.events, self.mne_data.event_id
         except:
             pass
         try:
-            return mne.find_events(self.mne_data)
+            events = mne.find_events(self.mne_data)
+            if len(events) != len(np.unique(events[:,0])):
+                    events[:,0] = range(len(events))
+            event_ids = {}
+            for i, event in enumerate(np.unique(events[:,-1])):
+                event_ids[i] = event
+
+            self.set_event(events, event_ids)
+            return self.raw_events, self.raw_event_id
         except:
             try:
-                return mne.events_from_annotations(self.mne_data)
-            except: 
-                pass
+                events, event_ids = mne.events_from_annotations(self.mne_data)
+                self.set_event(events, event_ids)
+                return self.raw_events, self.raw_event_id
+            except Exception as e:
+                raise RuntimeError("Exception occured in get_raw_event_list():",e)
         return None, None
 
     def get_event_list(self):
