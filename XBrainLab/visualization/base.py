@@ -10,4 +10,5 @@ class Visiualizer:
         raise NotImplementedError()
 
     def get_gradient(self, labelIndex):
-        return self.eval_record.gradient[labelIndex][self.eval_record.label == labelIndex]
+        #return self.eval_record.gradient[labelIndex][self.eval_record.label == labelIndex]
+        return self.eval_record.gradient[labelIndex]

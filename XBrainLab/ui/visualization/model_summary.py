@@ -7,6 +7,7 @@ from ..base.top_window import TopWindow
 # torchinfo: https://github.com/TylerYep/torchinfo
 
 class ModelSummaryWindow(TopWindow):
+    command_label = 'Model Summary'
     def __init__(self, parent, model_instance):
         super().__init__(parent, 'Model summary')
         summary_object = summary(model_instance,

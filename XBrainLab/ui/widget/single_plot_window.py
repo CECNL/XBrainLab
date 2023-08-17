@@ -32,7 +32,7 @@ class SinglePlotWindow(TopWindow):
         self.update_idletasks()
         width = self.figure_canvas.get_tk_widget().winfo_width()
         heigh = self.figure_canvas.get_tk_widget().winfo_height()
-        target_width, target_height = [int(s * self.fig_parm['dpi']) for s in self.fig_parm['figsize']]
+        target_width, target_height = [int(s * self.fig_param['dpi']) for s in self.fig_param['figsize']]
         target_width -= width
         target_height -= heigh
         self.geometry(f"{self.winfo_width() + target_width}x{self.winfo_height() + target_height}")
@@ -54,9 +54,9 @@ class SinglePlotWindow(TopWindow):
         self.active_figure()
 
 
-    def get_figure_parms(self):
+    def get_figure_params(self):
         self.init_figure()
-        return self.fig_parm
+        return self.fig_param
     
     def clear_figure(self):
         plt.clf()
@@ -87,10 +87,10 @@ class SinglePlotWindow(TopWindow):
 
         self.figure_canvas = figure_canvas
         # could crash system called in threads
-        # if hasattr(self, 'fig_parm'):
-        #     plt.close(self.fig_parm['fig'])
-        self.fig_parm = {'fig': figure, 'figsize': figsize, 'dpi': dpi}
+        # if hasattr(self, 'fig_param'):
+        #     plt.close(self.fig_param['fig'])
+        self.fig_param = {'fig': figure, 'figsize': figsize, 'dpi': dpi}
 
     def redraw(self):
-        self.fig_parm['fig'].tight_layout()
+        self.fig_param['fig'].tight_layout()
         self.figure_canvas.draw()

@@ -14,16 +14,16 @@ def parse_device_name(use_cpu, gpu_idx):
         return f'{gpu_idx} - {torch.cuda.get_device_name(gpu_idx)}'
     return ''
 
-def parse_optim_name(optim, optim_parms):
-    option_list = [f"{i}={optim_parms[i]}" for i in optim_parms if optim_parms[i] ]
+def parse_optim_name(optim, optim_params):
+    option_list = [f"{i}={optim_params[i]}" for i in optim_params if optim_params[i] ]
     options = ', '.join(option_list)
     return f"{optim.__name__} ({options})"
 
 class TrainingOption:
-    def __init__(self, output_dir, optim, optim_parms, use_cpu, gpu_idx, epoch, bs, lr, checkpoint_epoch, evaluation_option, repeat_num):
+    def __init__(self, output_dir, optim, optim_params, use_cpu, gpu_idx, epoch, bs, lr, checkpoint_epoch, evaluation_option, repeat_num):
         self.output_dir = output_dir
         self.optim = optim
-        self.optim_parms = optim_parms
+        self.optim_params = optim_params
         self.use_cpu = use_cpu
         self.gpu_idx = gpu_idx
         self.epoch = epoch
@@ -39,7 +39,7 @@ class TrainingOption:
         reason = None
         if self.output_dir is None:
             reason = 'Output directory not set'
-        if self.optim  is None or self.optim_parms is None:
+        if self.optim  is None or self.optim_params is None:
             reason = 'Optimizer not set'
         if self.use_cpu is None:
             reason = 'Device not set'
@@ -81,13 +81,13 @@ class TrainingOption:
             self.gpu_idx = int(self.gpu_idx)
     
     def get_optim(self, model):
-        return self.optim(params=model.parameters(), lr=self.lr, **self.optim_parms)
+        return self.optim(params=model.parameters(), lr=self.lr, **self.optim_params)
 
     def get_optim_name(self):
         return self.optim.__name__
 
     def get_optim_desc_str(self):
-        return parse_optim_name(self.optim, self.optim_parms)
+        return parse_optim_name(self.optim, self.optim_params)
 
     def get_device_name(self):
         return parse_device_name(self.use_cpu, self.gpu_idx)

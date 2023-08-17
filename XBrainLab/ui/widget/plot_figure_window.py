@@ -95,7 +95,7 @@ class PlotFigureWindow(SinglePlotWindow):
 
     def _create_figure(self):
         target_func = getattr(self.plan_to_plot, self.plot_type.value)
-        figure = target_func(**self.get_figure_parms())
+        figure = target_func(**self.get_figure_params())
         return figure
 
     def update_loop(self):

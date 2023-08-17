@@ -28,11 +28,11 @@ class ModelSelectionWindow(TopWindow):
         selected_model_name.trace('w', self.on_model_select) # callback
         model_opt = tk.OptionMenu(self, selected_model_name, *model_list)
         
-        ## model parms
-        parms_frame = tk.LabelFrame(self, text='model parmeters')
-        columns = ('parm', 'value')
-        parms_tree = EditableTreeView(parms_frame, editableCols=['#2'], columns=columns, show='headings')
-        parms_tree.pack(fill=tk.BOTH, expand=True)
+        ## model params
+        params_frame = tk.LabelFrame(self, text='model parameters')
+        columns = ('param', 'value')
+        params_tree = EditableTreeView(params_frame, editableCols=['#2'], columns=columns, show='headings')
+        params_tree.pack(fill=tk.BOTH, expand=True)
 
         ## pretrained weight
         pretrained_weight_label = tk.Label(self, text='Pretrained weight: ')
@@ -41,7 +41,7 @@ class ModelSelectionWindow(TopWindow):
         
         model_opt_label.grid(row=1, column=0)
         model_opt.grid(row=1, column=1)
-        parms_frame.grid(row=2, column=0, columnspan=3, sticky='NEWS')
+        params_frame.grid(row=2, column=0, columnspan=3, sticky='NEWS')
         pretrained_weight_label.grid(row=3, column=0)
         pretrained_weight_disp_label.grid(row=3, column=1)
         pretrained_weight_btn.grid(row=3, column=2)
@@ -51,8 +51,8 @@ class ModelSelectionWindow(TopWindow):
 
         self.model_map = model_map
         self.selected_model_name = selected_model_name
-        self.parms_tree = parms_tree
-        self.parms_frame = parms_frame
+        self.params_tree = params_tree
+        self.params_frame = params_frame
         self.pretrained_weight_disp_label = pretrained_weight_disp_label
         self.pretrained_weight_btn = pretrained_weight_btn
 
@@ -61,21 +61,21 @@ class ModelSelectionWindow(TopWindow):
     def on_model_select(self, *args):
         """Update model params when model is selected"""
         target = self.model_map[self.selected_model_name.get()]
-        self.parms_tree.delete(*self.parms_tree.get_children()) # clear table
+        self.params_tree.delete(*self.params_tree.get_children()) # clear table
         contain = False
         if target:
             sigs = inspect.signature(target.__init__)
-            parms = sigs.parameters
-            for parm in parms:
-                if parm in ARG_DICT_SKIP_SET:
+            params = sigs.parameters
+            for param in params:
+                if param in ARG_DICT_SKIP_SET:
                     continue
-                value = value = '' if parms[parm].default == inspect._empty else parms[parm].default
-                self.parms_tree.insert('', index='end', values=(parm, value))
+                value = value = '' if params[param].default == inspect._empty else params[param].default
+                self.params_tree.insert('', index='end', values=(param, value))
                 contain = True
         if contain:
-            self.parms_frame.grid()
+            self.params_frame.grid()
         else:
-            self.parms_frame.grid_remove()
+            self.params_frame.grid_remove()
     
     def load_pretrained_weight(self):
         if self.pretrained_weight_path:
@@ -94,21 +94,21 @@ class ModelSelectionWindow(TopWindow):
             self.pretrained_weight_btn.config(text='clear')
 
     def confirm(self):
-        self.parms_tree.submitEntry() # close editing tables
+        self.params_tree.submitEntry() # close editing tables
         reason = None    
         
         target_model = self.model_map[self.selected_model_name.get()]
-        model_parms_map = {}
-        for item in self.parms_tree.get_children():
-            parm, value = self.parms_tree.item(item)['values']
-            model_parms_map[parm] = value
+        model_params_map = {}
+        for item in self.params_tree.get_children():
+            param, value = self.params_tree.item(item)['values']
+            model_params_map[param] = value
         
-        self.model_holder = ModelHolder(target_model, model_parms_map, self.pretrained_weight_path)
+        self.model_holder = ModelHolder(target_model, model_params_map, self.pretrained_weight_path)
         self.script_history = Script()
         self.script_history.add_import("from XBrainLab.training import ModelHolder")
         self.script_history.add_import("from XBrainLab import model_base")
 
-        self.script_history.add_cmd(f"model_holder = ModelHolder(target_model=model_base.{target_model.__name__}, model_parms_map={repr(model_parms_map)}, pretrained_weight_path={repr(self.pretrained_weight_path)})")
+        self.script_history.add_cmd(f"model_holder = ModelHolder(target_model=model_base.{target_model.__name__}, model_params_map={repr(model_params_map)}, pretrained_weight_path={repr(self.pretrained_weight_path)})")
         self.destroy()
 
     def _get_result(self):

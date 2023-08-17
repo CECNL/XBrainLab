@@ -14,7 +14,7 @@ class TrainingSettingWindow(TopWindow):
         self.training_option = None
         self.output_dir = None
         self.optim = None
-        self.optim_parms = None
+        self.optim_params = None
         self.use_cpu = None
         self.gpu_idx = None
         self.script_history = None
@@ -71,13 +71,13 @@ class TrainingSettingWindow(TopWindow):
     
     def set_optimizer(self):
         setter = SetOptimizerWindow(self)
-        optim, optim_parms = setter.get_result()
+        optim, optim_params = setter.get_result()
         if not self.window_exist:
             return
-        if optim and optim_parms:
+        if optim and optim_params:
             self.optim = optim
-            self.optim_parms = optim_parms
-            self.opt_label.config(text=parse_optim_name(optim, optim_parms))
+            self.optim_params = optim_params
+            self.opt_label.config(text=parse_optim_name(optim, optim_params))
         
     def set_device(self):
         setter = SetDeviceWindow(self)
@@ -99,7 +99,7 @@ class TrainingSettingWindow(TopWindow):
                 evaluation_option = i
             
         try:
-            self.training_option = TrainingOption(self.output_dir, self.optim, self.optim_parms, 
+            self.training_option = TrainingOption(self.output_dir, self.optim, self.optim_params, 
                                     self.use_cpu, self.gpu_idx, 
                                     self.epoch_entry.get(), 
                                     self.bs_entry.get(), 
@@ -117,7 +117,7 @@ class TrainingSettingWindow(TopWindow):
 
         self.script_history.add_cmd(f"output_dir={repr(self.training_option.output_dir)}")
         self.script_history.add_cmd(f"optim=torch.optim.{self.optim.__name__}")
-        self.script_history.add_cmd(f"optim_parms={repr(self.training_option.optim_parms)}")
+        self.script_history.add_cmd(f"optim_params={repr(self.training_option.optim_params)}")
         self.script_history.add_cmd(f"use_cpu={repr(self.training_option.use_cpu)}")
         self.script_history.add_cmd(f"gpu_idx={repr(self.training_option.gpu_idx)}")
         self.script_history.add_cmd(f"epoch={repr(self.training_option.epoch)}")
@@ -128,7 +128,7 @@ class TrainingSettingWindow(TopWindow):
         self.script_history.add_cmd(f"repeat_num={repr(self.training_option.repeat_num)}")
         
         self.script_history.add_cmd(f"training_option = TrainingOption(output_dir=output_dir, ")
-        self.script_history.add_cmd(f"optim=optim, optim_parms=optim_parms, ")
+        self.script_history.add_cmd(f"optim=optim, optim_params=optim_params, ")
         self.script_history.add_cmd(f"use_cpu=use_cpu, gpu_idx=gpu_idx, ")
         self.script_history.add_cmd(f"epoch=epoch, ")
         self.script_history.add_cmd(f"bs=bs, ")
@@ -149,7 +149,7 @@ class SetOptimizerWindow(TopWindow):
     def __init__(self, parent):
         super().__init__(parent, 'Optimizer Setting')
         self.optim = None
-        self.optim_parms = None
+        self.optim_params = None
 
         algo_label = tk.Label(self, text='Algorithm')
         
@@ -158,22 +158,22 @@ class SetOptimizerWindow(TopWindow):
         selected_algo_name.trace('w', self.on_algo_select)
         alg_opt = tk.OptionMenu(self, selected_algo_name, *algo_map)
         
-        parms_frame = tk.LabelFrame(self, text='Parameters')
-        columns = ('parm', 'value')
-        parms_tree = EditableTreeView(parms_frame, editableCols=['#2'], columns=columns, show='headings')
-        parms_tree.pack(fill=tk.BOTH, expand=True)
+        params_frame = tk.LabelFrame(self, text='Parameters')
+        columns = ('param', 'value')
+        params_tree = EditableTreeView(params_frame, editableCols=['#2'], columns=columns, show='headings')
+        params_tree.pack(fill=tk.BOTH, expand=True)
         
         PADDING = 5
 
         algo_label.grid(row=0, column=0, sticky='E', padx=PADDING)
         alg_opt.grid(row=0, column=1, sticky='W', padx=PADDING)
-        parms_frame.grid(row=1, column=0, columnspan=2, sticky='NEWS')
+        params_frame.grid(row=1, column=0, columnspan=2, sticky='NEWS')
         tk.Button(self, text='Confirm', command=self.confirm).grid(row=2, column=0, columnspan=2, pady=PADDING)
 
 
         self.algo_map = algo_map 
         self.selected_algo_name = selected_algo_name
-        self.parms_tree = parms_tree
+        self.params_tree = params_tree
         
         selected_algo_name.set(list(algo_map.keys())[0])
         if False: # test code
@@ -181,30 +181,30 @@ class SetOptimizerWindow(TopWindow):
 
     def on_algo_select(self, *args):
         target = self.algo_map[self.selected_algo_name.get()]
-        self.parms_tree.delete(*self.parms_tree.get_children())
+        self.params_tree.delete(*self.params_tree.get_children())
         if target:
             sigs = inspect.signature(target.__init__)
-            parms = list(sigs.parameters)[2:] # skip self and lr
-            for parm in parms:
-                if 'lr' in parm:
+            params = list(sigs.parameters)[2:] # skip self and lr
+            for param in params:
+                if 'lr' in param:
                     continue
-                if sigs.parameters[parm].default == inspect._empty or sigs.parameters[parm].default is None:
+                if sigs.parameters[param].default == inspect._empty or sigs.parameters[param].default is None:
                     value = ''
                 else:
-                    value = sigs.parameters[parm].default
+                    value = sigs.parameters[param].default
                     if False: # test code
-                        if parm == 'weight_decay':
+                        if param == 'weight_decay':
                             value = 0.1
-                self.parms_tree.insert('', index='end', values=(parm, value))
+                self.params_tree.insert('', index='end', values=(param, value))
 
     def confirm(self):
-        self.parms_tree.submitEntry()
-        optim_parms = {}
+        self.params_tree.submitEntry()
+        optim_params = {}
         target = self.algo_map[self.selected_algo_name.get()]
         reason = None
         try:
-            for item in self.parms_tree.get_children():
-                parm, value = self.parms_tree.item(item)['values']
+            for item in self.params_tree.get_children():
+                param, value = self.params_tree.item(item)['values']
                 if value != '':
                     if isinstance(value, str) and len(value.split()) > 1:
                         value = [float(v) for v in value.split()]
@@ -214,21 +214,21 @@ class SetOptimizerWindow(TopWindow):
                         value = False
                     else:
                         value = float(value)
-                    optim_parms[parm] = value
-            target([torch.Tensor()], lr=1, **optim_parms)
+                    optim_params[param] = value
+            target([torch.Tensor()], lr=1, **optim_params)
         except:
             reason = 'Invalid parameter'
         
         if reason:
             raise ValidateException(window=self, message=reason)
         
-        self.optim_parms = optim_parms
+        self.optim_params = optim_params
         self.optim = target
         
         self.destroy()
     
     def _get_result(self):
-        return self.optim, self.optim_parms
+        return self.optim, self.optim_params
 ##
 class SetDeviceWindow(TopWindow):
     def __init__(self, parent):

@@ -13,10 +13,14 @@ class FilenameGroupKey(Enum):
     SESSION = 'session'
 
 class Raw:
-    def __init__(self, filepath, mne_data):
+    def __init__(self, filepath, mne_data, normalize=True):
         validate_type(filepath, str, 'filepath')
         validate_type(mne_data, (mne.io.BaseRaw, mne.BaseEpochs), 'mne_data')
         self.filepath = filepath
+        if normalize:
+            for ch in range(mne_data._data.shape[0]):
+                mne_data._data[ch,:] = mne_data._data[ch,:]-mne_data._data[ch,:].mean() # /(mne_data._data[ch,:].max()-mne_data._data[ch,:].min())
+                # mne_data._data[ch,:] = (mne_data._data[ch,:]-mne_data._data[ch,:].min())/(mne_data._data[ch,:].max()-mne_data._data[ch,:].min())
         self.mne_data = mne_data
         self.preprocess_history = []
         self.raw_events = None
@@ -67,7 +71,7 @@ class Raw:
         validate_type(event_id, dict, 'event_id')
         assert len(events.shape) == 2 and events.shape[1] == 3
         
-        if self.is_raw() and (self.raw_events is None or self.raw_events.shape == events): # legal event update
+        if self.is_raw() and (self.raw_events is None or self.raw_events.shape == events.shape): # legal event update
             self.raw_events = events
             self.raw_event_id = event_id
         elif self.is_raw():

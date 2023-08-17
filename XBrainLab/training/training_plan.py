@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 from enum import Enum
 import traceback
+from captum.attr import Saliency
 
 from ..utils import validate_type, set_seed, set_random_state, get_random_state
 from ..dataset import Dataset
@@ -39,28 +40,37 @@ def eval_model(model, dataLoader, criterion):
     output_list = []
     label_list = []
     
-    gradient_list = None
-    
+    ## gradient_list = None
+    gradient_list = []
+    saliency_inst = Saliency(model)
+
     for inputs, labels in dataLoader:
-        inputs.requires_grad=True
+        # inputs.requires_grad=True
+        inputs.requires_grad = False
+        inputs = inputs.unsqueeze(1)
         outputs = model(inputs)
         
         output_list.append(outputs.detach().cpu().numpy())
         label_list.append(labels.detach().cpu().numpy())
 
-        if gradient_list is None:
-            gradient_list = {i: [] for i in range(outputs.shape[-1])}
-        for i in gradient_list:
-            inputs.grad = None
-            for output in outputs:
-                output[i].backward(retain_graph=True)
-            gradient_list[i].append(inputs.grad.detach().cpu().numpy())
+        ## if gradient_list is None:
+        ##     gradient_list = {i: [] for i in range(outputs.shape[-1])}
+        ## for i in gradient_list:
+        ##     inputs.grad = None
+        ##     for output in outputs:
+        ##         output[i].backward(retain_graph=True)
+        ##     gradient_list[i].append(inputs.grad.detach().cpu().numpy())
+        inputs.requires_grad=True
+        gradient_list.append(saliency_inst.attribute(inputs,target=labels.detach().cpu().numpy().tolist()).detach().cpu().numpy().squeeze())
 
     label_list = np.concatenate(label_list)
     output_list = np.concatenate(output_list)
-    for i in gradient_list:
-        gradient_list[i] = np.concatenate(gradient_list[i])
-    
+   
+    ## for i in gradient_list:
+    ##     gradient_list[i] = np.concatenate(gradient_list[i])
+    gradient_list = np.concatenate(gradient_list)
+    ## gradient_list = {i:gradient_list[np.where(output_list.argmax(axis=-1)==i)] for i in range(output_list.shape[-1])}
+    gradient_list = {i:gradient_list[np.where(label_list==i)] for i in range(output_list.shape[-1])}
     return EvalRecord(label_list, output_list, gradient_list)
 
 def to_holder(X, y, dev, bs, shuffle=False):

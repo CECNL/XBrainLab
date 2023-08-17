@@ -7,4 +7,5 @@ class Filtering(PreprocessBase):
 
     def _data_preprocess(self, preprocessed_data, l_freq, h_freq):
         preprocessed_data.get_mne().load_data()
-        preprocessed_data.get_mne().filter(l_freq=l_freq, h_freq=h_freq)
+        new_mne = preprocessed_data.get_mne().filter(l_freq=l_freq, h_freq=h_freq)
+        preprocessed_data.set_mne(new_mne)

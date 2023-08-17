@@ -5,7 +5,7 @@ import mne
 
 class SaliencyTopoMapViz(Visiualizer):
 
-    def get_plt(self, absolute):
+    def get_plt(self, absolute, spectrogram, sfreq):
         if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize, dpi=self.dpi)
         plt.clf()
