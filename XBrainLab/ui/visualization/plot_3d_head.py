@@ -22,7 +22,7 @@ class Saliency3D:
 
         # get saliency
         labelIndex = epoch_data.event_id[self.selected_event_name]
-        self.saliency = eval_record.gradient[labelIndex][eval_record.label == labelIndex]
+        self.saliency = eval_record.gradient[labelIndex]#[eval_record.label == labelIndex]
         self.saliency = self.saliency.mean(axis=0)
 
         for i in range(self.saliency.shape[0]):
@@ -30,7 +30,7 @@ class Saliency3D:
         self.max_time = self.saliency.shape[-1]
 
         # get channel pos
-        ch_pos = epoch_data.get_montage_position()
+        ch_pos = epoch_data.get_montage_position() # close plt
         electrode = epoch_data.get_channel_names()
 
         # get electrode pos in 3d

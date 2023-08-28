@@ -8,6 +8,7 @@ class PlotTopoABSFigureWindow(PlotABSFigureWindow):
     def add_plot_command(self):
         if not hasattr(self, 'absolute_var'):
             return
+        self.script_history.add_import("from XBrainLab.visualization import SaliencyTopoMapViz")
         self.script_history.add_ui_cmd(f"study.show_grad_topo_plot(plot_type={self.plot_type.__name__}, plan_name={repr(self.selected_plan_name.get())}, real_plan_name={repr(self.selected_real_plan_name.get())}, absolute={repr(self.absolute_var.get())})")
     
     def check_data(self):

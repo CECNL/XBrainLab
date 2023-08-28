@@ -26,6 +26,7 @@ class PlotABSFigureWindow(PlotFigureWindow):
     def add_plot_command(self):
         if not hasattr(self, 'absolute_var') or not hasattr(self, 'spectrogram_var'):
             return
+        self.script_history.add_import("from XBrainLab.visualization import SaliencyMapViz")
         self.script_history.add_ui_cmd(f"study.show_grad_plot(plot_type={self.plot_type.__name__}, plan_name={repr(self.selected_plan_name.get())}, real_plan_name={repr(self.selected_real_plan_name.get())}, absolute={repr(self.absolute_var.get())}, spectrogram={repr(self.spectrogram_var.get())})")
 
     def absolute_callback(self, *args):

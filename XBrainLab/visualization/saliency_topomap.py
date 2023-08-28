@@ -14,7 +14,10 @@ class SaliencyTopoMapViz(Visiualizer):
         chs = self.epoch_data.get_channel_names()
         label_number = self.epoch_data.get_label_number()
 
-        rows = 2
+        if label_number<=2:
+            rows = 1
+        else:
+            rows = 2
         cols = int(np.ceil(label_number / rows))
         labelIndex = 0
         
@@ -22,7 +25,7 @@ class SaliencyTopoMapViz(Visiualizer):
             for j in range(cols):
                 if labelIndex >= label_number:
                     break
-                ax = plt.subplot(rows, cols, i * cols + j + 1)
+                ax = plt.subplot(rows, cols, i * 2 + j + 1)
             
                 saliency = self.get_gradient(labelIndex)
                 if absolute:
@@ -42,7 +45,7 @@ class SaliencyTopoMapViz(Visiualizer):
                                      names = chs,
                                      cmap=cmap,
                                      axes=ax,
-                                     show_names=True,
+                                    #  show_names=True,
                                      show=False)
                 cbar = plt.colorbar(im, orientation='vertical')
                 cbar.ax.get_yaxis().set_ticks([])

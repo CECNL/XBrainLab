@@ -58,16 +58,16 @@ class TrainingManagerWindow(TopWindow):
         menu.add_cascade(label='Plot', menu=plot_menu)
 
     def plot_loss(self):
-        moduel = PlotFigureWindow(self, self.training_plan_holders, PlotType.LOSS)
-        self.script_history += moduel.get_script_history()
+        module = PlotFigureWindow(self, self.training_plan_holders, PlotType.LOSS)
+        self.script_history += module.get_script_history()
 
     def plot_acc(self):
-        moduel = PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
-        self.script_history += moduel.get_script_history()
+        module = PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
+        self.script_history += module.get_script_history()
 
     def plot_lr(self):
-        moduel = PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)
-        self.script_history += moduel.get_script_history()
+        module = PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)
+        self.script_history += module.get_script_history()
 
     # train
     def start_training(self):

@@ -12,7 +12,10 @@ class SaliencyMapViz(Visiualizer):
         
         label_number = self.epoch_data.get_label_number()
 
-        rows = 2
+        if label_number<=2:
+            rows = 1
+        else:
+            rows = 2
         cols = int(np.ceil(label_number / rows))
         labelIndex = 0
         ims = []
@@ -28,8 +31,8 @@ class SaliencyMapViz(Visiualizer):
                     freqs, timestamps, saliency = signal.stft(saliency, fs=sfreq, nperseg=sfreq, noverlap=sfreq//2, return_onesided=True)
                     saliency = np.mean(np.mean(abs(saliency), axis=0), axis=0)[:saliency.shape[0]//2,:]
                     # saliency = (saliency-saliency.min())/(saliency.max()-saliency.min())
-                    
-                    im = plt.imshow(saliency, interpolation='gaussian', aspect=0.2)
+                    cmap='bwr'
+                    im = plt.imshow(saliency, interpolation='gaussian', aspect=0.2, cmap=cmap)
                     ims.append(im)
                     tick_inteval = 0.5
                     tick_label = np.round(np.arange(0, timestamps[-1], tick_inteval), 1)
