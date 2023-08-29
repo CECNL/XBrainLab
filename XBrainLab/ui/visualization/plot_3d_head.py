@@ -25,8 +25,8 @@ class Saliency3D:
         self.saliency = eval_record.gradient[labelIndex]#[eval_record.label == labelIndex]
         self.saliency = self.saliency.mean(axis=0)
 
-        for i in range(self.saliency.shape[0]):
-            self.saliency[i, :] = (self.saliency[i, :] - min(self.saliency[i, :])) / (max(self.saliency[i, :]) - min(self.saliency[i, :]))
+        for i in range(self.saliency.shape[-1]):
+            self.saliency[:, i] = (self.saliency[:, i] - min(self.saliency[:, i])) / (max(self.saliency[:, i]) - min(self.saliency[:, i]))
         self.max_time = self.saliency.shape[-1]
 
         # get channel pos
