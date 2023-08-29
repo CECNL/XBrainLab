@@ -1,5 +1,6 @@
 from .base import Visiualizer
 from matplotlib import pyplot as plt
+from scipy import signal
 import numpy as np
 import mne
 
@@ -28,25 +29,36 @@ class SaliencyTopoMapViz(Visiualizer):
                 ax = plt.subplot(rows, cols, i * 2 + j + 1)
             
                 saliency = self.get_gradient(labelIndex)
-                if absolute:
-                    saliency = np.abs(saliency).mean(axis=0)
-                    if len(saliency) == 0:
-                        continue
-                    cmap='Reds'
+                if spectrogram:
+                    reqs, timestamps, saliency = signal.stft(saliency, fs=sfreq, nperseg=sfreq, noverlap=sfreq//2, return_onesided=True)
+                    # saliency = np.mean(np.mean(abs(saliency**2), axis=0), axis=0) #  trial, C, freq band, time interval -> freq, time interval
+                    cmap='viridis'
+                    saliency = np.mean(np.mean(np.mean(abs(saliency**2), axis=0), axis=-1), axis=-1)
+                    im, _ = mne.viz.plot_topomap(data = saliency,
+                                        pos = positions[:,0:2],
+                                        names = chs,
+                                        cmap=cmap,
+                                        axes=ax,
+                                        show=False)
                 else:
-                    if len(saliency) == 0:
-                        continue
-                    saliency = saliency.mean(axis=0)
-                    cmap='bwr'
-                
-                data = saliency.mean(axis=1)
-                im, _ = mne.viz.plot_topomap(data = data,
-                                     pos = positions[:,0:2],
-                                     names = chs,
-                                     cmap=cmap,
-                                     axes=ax,
-                                    #  show_names=True,
-                                     show=False)
+                    if absolute:
+                        saliency = np.abs(saliency).mean(axis=0)
+                        if len(saliency) == 0:
+                            continue
+                        cmap='Reds'
+                    else:
+                        if len(saliency) == 0:
+                            continue
+                        saliency = saliency.mean(axis=0)
+                        cmap='bwr'
+                    
+                    data = saliency.mean(axis=1)
+                    im, _ = mne.viz.plot_topomap(data = data,
+                                        pos = positions[:,0:2],
+                                        names = chs,
+                                        cmap=cmap,
+                                        axes=ax,
+                                        show=False)
                 cbar = plt.colorbar(im, orientation='vertical')
                 cbar.ax.get_yaxis().set_ticks([])
                 plt.title(f"Saliency Map of class {self.epoch_data.label_map[labelIndex]}")

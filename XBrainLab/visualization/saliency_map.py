@@ -18,7 +18,7 @@ class SaliencyMapViz(Visiualizer):
             rows = 2
         cols = int(np.ceil(label_number / rows))
         labelIndex = 0
-        ims = []
+
         for i in range(rows):
             for j in range(cols):
                 if labelIndex >= label_number:
@@ -29,11 +29,9 @@ class SaliencyMapViz(Visiualizer):
                 # n, 22, 250
                 if spectrogram:
                     freqs, timestamps, saliency = signal.stft(saliency, fs=sfreq, nperseg=sfreq, noverlap=sfreq//2, return_onesided=True)
-                    saliency = np.mean(np.mean(abs(saliency), axis=0), axis=0)[:saliency.shape[0]//2,:]
-                    # saliency = (saliency-saliency.min())/(saliency.max()-saliency.min())
-                    cmap='bwr'
-                    im = plt.imshow(saliency, interpolation='gaussian', aspect=0.2, cmap=cmap)
-                    ims.append(im)
+                    saliency = np.mean(np.mean(abs(saliency**2), axis=0), axis=0)[:saliency.shape[0]//2,:]
+                    cmap='viridis'
+                    im = plt.imshow(saliency, interpolation='gaussian', aspect=0.1,cmap=cmap, )
                     tick_inteval = 0.5
                     tick_label = np.round(np.arange(0, timestamps[-1], tick_inteval), 1)
                     ticks = np.linspace(0, saliency.shape[1], len(tick_label))-tick_inteval
@@ -56,7 +54,7 @@ class SaliencyMapViz(Visiualizer):
                     plt.xlabel("sample")
                     plt.ylabel("channel")
                     plt.yticks(ticks=range(len(self.epoch_data.get_channel_names())), labels=self.epoch_data.get_channel_names(), fontsize=6)
-                cbar = plt.colorbar(im, orientation='vertical')
+                plt.colorbar(im, orientation='vertical')
                 
                 plt.title(f"Saliency Map of class {self.epoch_data.label_map[labelIndex]}")
                 labelIndex += 1
