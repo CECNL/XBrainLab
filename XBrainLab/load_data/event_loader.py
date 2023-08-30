@@ -23,28 +23,36 @@ class EventLoader:
         return label_list
 
     def read_mat(self, selected_file):
-        label_list = []
         mat_content = scipy.io.loadmat(selected_file)
         mat_key = [k for k in mat_content.keys() if not k.startswith('_')]
         if len(mat_key) > 1:
             tk.messagebox.showwarning(parent=self, title="Warning", message="File expected to contain only corresponding event data.")
         else:
             mat_key = mat_key[0]
-        label_list = mat_content[mat_key].squeeze().astype(np.int32).tolist()
-        self.label_list = label_list
-        return label_list
+        event_content = mat_content[mat_key].squeeze().astype(np.int32)
+        if len(event_content.shape)>1:
+            self.label_list = event_content
+            return event_content[:,-1].squeeze().tolist()
+        else:
+            self.label_list = event_content
+            return event_content.tolist()
 
     def create_event(self, new_event_name):
-        if self.label_list:
+        if self.label_list is not None:
             for e in new_event_name:
                 if not new_event_name[e].strip():
                     raise ValueError("event name cannot be empty")
-            event_id = {new_event_name[i]: i for i in list(set(self.label_list))}
-            events = np.zeros((len(self.label_list), 3), dtype=np.int32)
-            print('UserWarning: Event array created created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
-            events[:,0] = range(len(self.label_list))
-            events[:,-1] = self.label_list
-
+            
+            if len(self.label_list.shape)>1:
+                event_id = {new_event_name[i]: i for i in np.unique(self.label_list[:,-1])}
+                events = self.label_list
+            else:
+                event_id = {new_event_name[i]: i for i in list(set(self.label_list))}
+                events = np.zeros((len(self.label_list), 3), dtype=np.int32)
+                print('UserWarning: Event array created created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
+                events[:,0] = range(len(self.label_list))
+                events[:,-1] = self.label_list
+                
             if not self.raw.is_raw():
                 if self.raw.get_epochs_length() != len(events):
                     raise ValueError(f'Inconsistent number of events (got {len(events)})')

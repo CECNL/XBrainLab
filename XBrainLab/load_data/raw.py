@@ -71,7 +71,7 @@ class Raw:
         validate_type(event_id, dict, 'event_id')
         assert len(events.shape) == 2 and events.shape[1] == 3
         
-        if self.is_raw() and (self.raw_events is None or self.raw_events.shape == events.shape): # legal event update
+        if self.is_raw() and (self.raw_events is None or len(self.raw_events)==0 or self.raw_events.shape == events.shape): # legal event update
             self.raw_events = events
             self.raw_event_id = event_id
         elif self.is_raw():

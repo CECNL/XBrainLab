@@ -114,7 +114,7 @@ class DictInfo(RawInfo):
         script += array_script
         # handle event and return raw
         if event_array is None:
-            return mne_data
+            return mne_data, script
         event_array = event_array.squeeze()
         assert len(event_array.shape) == 1
         event_id = {str(i): i for i in np.unique(event_array)}
