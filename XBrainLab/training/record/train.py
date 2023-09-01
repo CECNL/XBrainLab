@@ -208,12 +208,15 @@ class TrainRecord:
         ax.set_title(f'Confusion matrix')
         ax.set_xlabel('Prediction')
         ax.set_ylabel('Ground Truth')
-        res = ax.imshow(confusion, cmap='Blues', interpolation='nearest')
+        res = ax.imshow(confusion, cmap='magma', interpolation='nearest')
         for x in range(classNum):
             for y in range(classNum):
+                annot_color = 'k' if confusion[x][y]>(confusion.max()-confusion.min())/2 else 'w'
                 ax.annotate(str(confusion[x][y]), xy=(y, x), 
                             horizontalalignment='center',
-                            verticalalignment='center')
+                            verticalalignment='center',
+                            color=annot_color
+                            )
         cb = fig.colorbar(res)
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')

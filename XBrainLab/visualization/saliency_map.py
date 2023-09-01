@@ -1,9 +1,9 @@
-from .base import Visiualizer
+from .base import Visualizer
 from matplotlib import pyplot as plt
 from scipy import signal
 import numpy as np
 
-class SaliencyMapViz(Visiualizer):
+class SaliencyMapViz(Visualizer):
 
     def get_plt(self, absolute, spectrogram, sfreq):
         if self.fig is None:
@@ -27,16 +27,18 @@ class SaliencyMapViz(Visiualizer):
             saliency = self.get_gradient(labelIndex)
             # n, 22, 250
             if spectrogram:
-                freqs, timestamps, saliency = signal.stft(saliency, fs=sfreq, nperseg=sfreq, noverlap=sfreq//2, return_onesided=True)
-                saliency = np.mean(np.mean(abs(saliency**2), axis=0), axis=0)[:saliency.shape[0]//2,:]
-                cmap='viridis'
-                im = plt.imshow(saliency, interpolation='gaussian', aspect=0.1,cmap=cmap, )
+                freqs, timestamps, saliency = signal.stft(saliency, fs=sfreq, axis=-1, nperseg=sfreq, noverlap=sfreq//2)
+                saliency = np.mean(np.mean(abs(saliency), axis=0), axis=0) #[:saliency.shape[0]//2,:]
+                cmap='coolwarm'
+                im = plt.imshow(saliency, interpolation='gaussian', aspect='auto', cmap=cmap,
+                                vmin=saliency.min(), vmax=saliency.max())
                 tick_inteval = 0.5
                 tick_label = np.round(np.arange(0, timestamps[-1], tick_inteval), 1)
                 ticks = np.linspace(0, saliency.shape[1], len(tick_label))-tick_inteval
                 plt.xlabel("time")
                 plt.ylabel("frequency")
                 plt.xticks(ticks=ticks, labels=tick_label, fontsize=6)
+                plt.yticks(ticks=freqs[np.where(freqs%10==0)])
             else:
                 if absolute:
                     saliency = np.abs(saliency).mean(axis=0)
@@ -47,7 +49,7 @@ class SaliencyMapViz(Visiualizer):
                     if len(saliency) == 0:
                         continue
                     saliency = saliency.mean(axis=0)
-                    cmap='bwr'
+                    cmap='coolwarm'
                 im = plt.imshow(saliency, aspect='auto', cmap=cmap, 
                         vmin=saliency.min(), vmax=saliency.max(),  interpolation='none')
                 plt.xlabel("sample")

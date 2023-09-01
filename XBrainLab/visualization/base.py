@@ -1,4 +1,4 @@
-class Visiualizer:
+class Visualizer:
     def __init__(self, eval_record, epoch_data, figsize=(6.4, 4.8), dpi=100, fig=None):
         self.eval_record = eval_record
         self.epoch_data = epoch_data
