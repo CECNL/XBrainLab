@@ -49,7 +49,7 @@ class EventLoader:
             else:
                 event_id = {new_event_name[i]: i for i in list(set(self.label_list))}
                 events = np.zeros((len(self.label_list), 3), dtype=np.int32)
-                print('UserWarning: Event array created created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
+                print('UserWarning: Event array created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
                 events[:,0] = range(len(self.label_list))
                 events[:,-1] = self.label_list
                 

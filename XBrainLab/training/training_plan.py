@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 from enum import Enum
 import traceback
+from sklearn.metrics import roc_auc_score
 from captum.attr import Saliency
 
 from ..utils import validate_type, set_seed, set_random_state, get_random_state
@@ -19,6 +20,7 @@ def test_model(model, dataLoader, criterion):
     
     running_loss = 0.0
     total_count = 0
+    auc_score = 0
     correct = 0
     with torch.no_grad():
         for inputs, labels in dataLoader:
@@ -28,11 +30,21 @@ def test_model(model, dataLoader, criterion):
             running_loss += loss.item()
             
             correct += (outputs.argmax(axis=1) == labels).float().sum().item()
+            try:
+                if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
+                    auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
+                    torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy()[:,-1])
+                else:
+                    auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
+                    torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy(), multi_class='ovr')
+            except: # first few epochs in binary classification might not be able to compute score
+                pass
             total_count += len(labels)
 
     running_loss /= len(dataLoader)
     acc = correct / total_count * 100
-    return acc, running_loss
+    auc = auc_score/len(dataLoader)
+    return acc, auc, running_loss
 
 def eval_model(model, dataLoader, criterion):
     model.eval()
@@ -61,7 +73,7 @@ def eval_model(model, dataLoader, criterion):
         ##         output[i].backward(retain_graph=True)
         ##     gradient_list[i].append(inputs.grad.detach().cpu().numpy())
         inputs.requires_grad=True
-        gradient_list.append(saliency_inst.attribute(inputs,target=labels.detach().cpu().numpy().tolist()).detach().cpu().numpy().squeeze())
+        gradient_list.append(saliency_inst.attribute(inputs,target=labels.detach().cpu().numpy().tolist(), abs=False).detach().cpu().numpy().squeeze())
 
     label_list = np.concatenate(label_list)
     output_list = np.concatenate(output_list)
@@ -163,6 +175,11 @@ class TrainingPlanHolder:
                 target.load_state_dict(train_record.best_test_acc_model)
             else:
                 target = None
+        elif self.option.evaluation_option == TRAINING_EVALUATION.TEST_AUC:
+            if train_record.best_test_auc_model:
+                target.load_state_dict(train_record.best_test_auc_model)
+            else:
+                target = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.LAST_EPOCH:
             target.load_state_dict(train_record.model.state_dict())
         if target:
@@ -190,6 +207,7 @@ class TrainingPlanHolder:
             running_loss = 0.0
             model.train()
             correct = 0
+            auc_score = 0
             total_count = 0
             # train one mini batch
             for inputs, labels in trainLoader:
@@ -200,22 +218,32 @@ class TrainingPlanHolder:
                 optimizer.step()
 
                 correct += (outputs.argmax(axis=1) == labels).float().sum().item()
+                try:
+                    if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
+                        auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
+                        torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy()[:,-1])
+                    else:
+                        auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
+                        torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy(), multi_class='ovr')
+                except:
+                    pass
                 total_count += len(labels)
                 running_loss += loss.item()
             
             running_loss /= len(trainLoader)
-            trian_acc = correct / total_count * 100
-            train_record.update_train(trian_acc, running_loss)
+            train_acc = correct / total_count * 100
+            train_auc = auc_score/len(trainLoader)
+            train_record.update_train(train_acc, train_auc, running_loss)
             
             if valLoader:
-                val_acc, val_loss = test_model(model, valLoader, criterion)
-                train_record.update_eval(val_acc, val_loss)
+                val_acc, val_auc, val_loss = test_model(model, valLoader, criterion)
+                train_record.update_eval(val_acc, val_auc, val_loss)
             
             trainingTime = time.time() - start_time
 
             if testLoader:
-                test_acc, test_loss = test_model(model, testLoader, criterion)
-                train_record.update_test(test_acc, test_loss)
+                test_acc, test_auc, test_loss = test_model(model, testLoader, criterion)
+                train_record.update_test(test_acc, test_auc, test_loss)
             
             train_record.step(trainingTime, self.option.lr)
             if self.option.checkpoint_epoch and train_record.epoch % self.option.checkpoint_epoch == 0:
@@ -266,10 +294,12 @@ class TrainingPlanHolder:
         record = self.train_record_list[self.get_training_repeat()]
         lr = record.train['lr'][-1] if len(record.train['lr']) > 0 else '-'
         train_loss = record.train['loss'][-1] if len(record.train['loss']) > 0 else '-'
+        train_auc = record.train['auc'][-1] if len(record.train['auc']) > 0 else '-'
         train_acc = record.train['acc'][-1] if len(record.train['acc']) > 0 else '-'
         val_loss = record.val['loss'][-1] if len(record.val['loss']) > 0 else '-'
         val_acc = record.val['acc'][-1] if len(record.val['acc']) > 0 else '-'
-        return lr, train_loss, train_acc, val_loss, val_acc
+        val_auc = record.val['auc'][-1] if len(record.val['auc']) > 0 else '-'
+        return lr, train_loss, train_acc, train_auc, val_loss, val_acc, val_auc
     
     def is_finished(self):
         return self.train_record_list[-1].is_finished()

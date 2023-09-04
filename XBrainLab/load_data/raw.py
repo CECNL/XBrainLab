@@ -146,11 +146,6 @@ class Raw:
     #
     def get_raw_event_list(self):
         try:
-            if self.raw_event_id:
-                return self.raw_events, self.raw_event_id
-        except:
-            pass
-        try:
             if self.mne_data.event_id:
                 return self.mne_data.events, self.mne_data.event_id
         except:

@@ -4,6 +4,7 @@ import torch.nn as nn
 
 class TRAINING_EVALUATION(Enum):
     VAL_LOSS = 'Best validation loss'
+    TEST_AUC = 'Best testing AUC'
     TEST_ACC = 'Best testing performance'
     LAST_EPOCH = 'Last Epoch'
 

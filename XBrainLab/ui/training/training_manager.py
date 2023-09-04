@@ -15,7 +15,7 @@ class TrainingManagerWindow(TopWindow):
         self.training_plan_holders = trainer.get_training_plan_holders()
         self.script_history = Script()
 
-        columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc', 'val_loss', 'val_acc')
+        columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc','auc', 'val_loss', 'val_acc', 'val_auc')
         plan_tree = EditableTreeView(self, columns=columns, show='headings')
 
         status_bar = tk.Label(self, text='IDLE')
@@ -53,6 +53,7 @@ class TrainingManagerWindow(TopWindow):
         plot_menu = tk.Menu(menu, tearoff=0)
         plot_menu.add_command(label="Loss", command=self.plot_loss)
         plot_menu.add_command(label="Accuracy", command=self.plot_acc)
+        plot_menu.add_command(label="AUC", command=self.plot_auc)
         plot_menu.add_command(label="Learning Rate", command=self.plot_lr)
 
         menu.add_cascade(label='Plot', menu=plot_menu)
@@ -64,6 +65,11 @@ class TrainingManagerWindow(TopWindow):
     def plot_acc(self):
         module = PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
         self.script_history += module.get_script_history()
+    
+    def plot_auc(self):
+        module = PlotFigureWindow(self, self.training_plan_holders, PlotType.AUC)
+        self.script_history += module.get_script_history()
+
 
     def plot_lr(self):
         module = PlotFigureWindow(self, self.training_plan_holders, PlotType.LR)

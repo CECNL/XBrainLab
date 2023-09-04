@@ -20,15 +20,17 @@ class TrainRecord:
         self.eval_record = None
         self.best_val_loss_model = None
         self.best_val_acc_model = None
+        self.best_val_auc_model = None
         self.best_test_acc_model = None
+        self.best_test_auc_model = None
         # 
-        self.train = {'loss': [], 'acc': [], 'time': [], 'lr': []}
-        self.val = {'loss': [], 'acc': []}
-        self.test = {'loss': [], 'acc': []}
-        self.best_record = {'best_val_loss': torch.inf, 'best_val_acc': -1,
-                            'best_test_acc': -1, 
-                            'best_val_loss_epoch': None, 'best_val_acc_epoch': None, 
-                            'best_test_acc_epoch': None}
+        self.train = {'loss': [], 'acc': [], 'auc':[], 'time': [], 'lr': []}
+        self.val = {'loss': [], 'acc': [], 'auc':[]}
+        self.test = {'loss': [], 'acc': [], 'auc':[]}
+        self.best_record = {'best_val_loss': torch.inf, 'best_val_acc': -1, 'best_val_auc':-1,
+                            'best_test_acc': -1, 'best_test_auc':-1, 
+                            'best_val_loss_epoch': None, 'best_val_acc_epoch': None,'best_val_auc_epoch': None, 
+                            'best_test_acc_epoch': None, 'best_test_auc_epoch':None}
         #
         self.epoch = 0
         self.target_path = None
@@ -75,8 +77,9 @@ class TrainRecord:
         elif len(arr) == self.epoch:
             arr.append(val)
 
-    def update_eval(self, val_acc, val_loss):
+    def update_eval(self, val_acc, val_auc, val_loss):
         self.append_record(val_acc, self.val['acc'])
+        self.append_record(val_auc, self.val['auc'])
         self.append_record(val_loss, self.val['loss'])
         if val_loss <= self.best_record['best_val_loss']:
             self.best_record['best_val_loss'] = val_loss
@@ -87,17 +90,27 @@ class TrainRecord:
             self.best_record['best_val_acc'] = val_acc
             self.best_record['best_val_acc_epoch'] = self.epoch + 1
             self.best_val_acc_model = deepcopy(self.model.state_dict())
+
+        if val_auc >= self.best_record['best_val_auc']:
+            self.best_record['best_val_auc'] = val_auc
+            self.best_record['best_val_auc_epoch'] = self.epoch + 1
+            self.best_val_auc_model = deepcopy(self.model.state_dict())
     
-    def update_test(self, test_acc, test_loss):
+    def update_test(self, test_acc, test_auc, test_loss):
         self.append_record(test_acc, self.test['acc'])
+        self.append_record(test_auc, self.test['auc'])
         self.append_record(test_loss, self.test['loss'])
         if test_acc >= self.best_record['best_test_acc']:
             self.best_record['best_test_acc'] = test_acc
             self.best_record['best_test_acc_epoch'] = self.epoch + 1
             self.best_test_acc_model = deepcopy(self.model.state_dict())
-            
-    def update_train(self, trian_acc, running_loss):
-        self.append_record(trian_acc, self.train['acc'])
+        if test_auc >= self.best_record['best_test_auc']:
+            self.best_record['best_test_auc'] = test_auc
+            self.best_record['best_test_auc_epoch'] = self.epoch + 1
+            self.best_test_auc_model = deepcopy(self.model.state_dict())
+    def update_train(self, train_acc, train_auc, running_loss):
+        self.append_record(train_acc, self.train['acc'])
+        self.append_record(train_auc, self.train['auc'])
         self.append_record(running_loss, self.train['loss'])
     
     def step(self, trainingTime, lr):
@@ -116,8 +129,12 @@ class TrainRecord:
             torch.save(self.best_val_loss_model, os.path.join(self.target_path, 'best_val_loss_model'))
         if self.best_val_acc_model:
             torch.save(self.best_val_acc_model, os.path.join(self.target_path, 'best_val_acc_model'))
+        if self.best_val_auc_model:
+            torch.save(self.best_val_auc_model, os.path.join(self.target_path, 'best_val_auc_model'))
         if self.best_test_acc_model:
             torch.save(self.best_test_acc_model, os.path.join(self.target_path, 'best_test_acc_model'))
+        if self.best_test_auc_model:
+            torch.save(self.best_test_auc_model, os.path.join(self.target_path, 'best_test_auc_model'))
         
         fname = f'Epoch-{epoch}-model'
         torch.save(self.model.state_dict(), os.path.join(self.target_path, fname))
@@ -177,6 +194,28 @@ class TrainRecord:
         _ = plt.legend(loc='upper left')
         
         return fig
+
+    def get_auc_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100): ## TODO
+        if fig is None:
+            fig = plt.figure(figsize=figsize, dpi=dpi)
+        plt.clf()
+        
+        training_auc_list = self.train['auc']
+        val_auc_list = self.val['auc']
+        test_auc_list = self.test['auc']
+        if len(training_auc_list) == 0 and len(val_auc_list) == 0 and len(test_auc_list) == 0:
+            return None
+        plt.plot(training_auc_list, 'g', label='Training AUC')
+        if len(val_auc_list) > 0:
+            plt.plot(val_auc_list, 'b', label='validation AUC')
+        if len(val_auc_list) > 0:
+            plt.plot(test_auc_list, 'r', label='testing AUC')
+        plt.title('Training AUC')
+        plt.xlabel('Epochs')
+        plt.ylabel('AUC')
+        _ = plt.legend(loc='upper left')
+        
+        return fig
     
     def get_lr_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
         if fig is None:
@@ -231,6 +270,11 @@ class TrainRecord:
         if not self.eval_record:
             return None
         return self.eval_record.get_acc()
+    
+    def get_auc(self):
+        if not self.eval_record:
+            return None
+        return self.eval_record.get_auc()
 
     def get_kappa(self):
         if not self.eval_record:

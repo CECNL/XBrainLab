@@ -59,6 +59,9 @@ class EvaluationTableWindow(TopWindow):
             if self.selected_metric.get() == Metric.ACC.value:
                 metric = Metric.ACC
                 values = [plan.get_acc() for plan in trainer.get_plans()]
+            elif self.selected_metric.get() == Metric.AUC.value:
+                metric = Metric.AUC
+                values = [plan.get_auc() for plan in trainer.get_plans()]
             elif self.selected_metric.get() == Metric.KAPPA.value:
                 metric = Metric.KAPPA
                 values = [plan.get_kappa() for plan in trainer.get_plans()]

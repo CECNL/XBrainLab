@@ -276,7 +276,7 @@ class LoadBase(TopWindow):
             return
         self.script_history.newline()
         self.script_history.add_cmd(f"raw_data = data_loader.get_loaded_raw({repr(selected_row)})")
-        self.script_history.add_cmd("raw_data.get_raw_event_list()")
+        self.script_history.add_cmd("raw_data.get_event_list()")
         edit_module = EditRaw(self, raw_data)
         del_row = edit_module.get_result()
         edit_script_history = edit_module.get_script_history()

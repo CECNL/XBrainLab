@@ -1,5 +1,6 @@
 import os
 import torch
+from sklearn.metrics import roc_auc_score
 import numpy as np
 
 def calculate_confusion(output, label):
@@ -32,6 +33,12 @@ class EvalRecord:
     #
     def get_acc(self):
         return sum(self.output.argmax(axis=1) == self.label) / len(self.label)
+
+    def get_auc(self):
+        if torch.nn.functional.softmax(torch.Tensor(self.output), dim=1).numpy().shape[-1] <=2:
+            return roc_auc_score(self.label, torch.nn.functional.softmax(torch.Tensor(self.output), dim=1).numpy()[:,-1])
+        else:
+            return roc_auc_score(self.label, torch.nn.functional.softmax(torch.Tensor(self.output), dim=1).numpy(), multi_class='ovr')
 
     def get_kappa(self):
         confusion = calculate_confusion(self.output, self.label)
