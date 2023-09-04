@@ -1,14 +1,28 @@
+import numpy as np
+from matplotlib.figure import Figure
+from ..training.record import EvalRecord
+from ..dataset import Epochs
+
 class Visualizer:
-    def __init__(self, eval_record, epoch_data, figsize=(6.4, 4.8), dpi=100, fig=None):
+    """Base class for visualizer that generate figures from evaluation record
+
+    Attributes:
+        eval_record: evaluation record
+        epoch_data: original epoch data for providing dataset information
+        figsize: figure size
+        dpi: figure dpi
+        fig: figure to plot on. If None, a new figure will be created
+    """
+    def __init__(self, eval_record: EvalRecord, epoch_data: Epochs, figsize: tuple = (6.4, 4.8), dpi: int = 100, fig: Figure = None):
         self.eval_record = eval_record
         self.epoch_data = epoch_data
         self.figsize = figsize
         self.dpi = dpi
         self.fig = fig
     
-    def get_plt(self, absolute):
+    def get_plt(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def get_gradient(self, labelIndex):
-        #return self.eval_record.gradient[labelIndex][self.eval_record.label == labelIndex]
+    def get_gradient(self, labelIndex: int) -> np.ndarray:
+        """Return gradient of model by class index."""
         return self.eval_record.gradient[labelIndex]

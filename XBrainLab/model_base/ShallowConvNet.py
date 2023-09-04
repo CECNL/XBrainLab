@@ -3,6 +3,15 @@ import torch.nn as nn
 import math
 
 class ShallowConvNet(nn.Module):
+    """Implementation of ShallowConvNet
+    https://onlinelibrary.wiley.com/doi/full/10.1002/hbm.23730
+
+    Parameters:
+        n_classes: Number of classes.
+        channels: Number of channels.
+        samples: Number of samples.
+        sfreq: Sampling frequency.
+    """
     def __init__(self, n_classes, channels, samples, sfreq):
         super(ShallowConvNet, self).__init__()
         

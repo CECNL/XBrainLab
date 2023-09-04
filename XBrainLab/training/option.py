@@ -3,25 +3,55 @@ import torch
 import torch.nn as nn
 
 class TRAINING_EVALUATION(Enum):
+    """Utility class for model selection option"""
     VAL_LOSS = 'Best validation loss'
     TEST_AUC = 'Best testing AUC'
     TEST_ACC = 'Best testing performance'
     LAST_EPOCH = 'Last Epoch'
 
-def parse_device_name(use_cpu, gpu_idx):
+def parse_device_name(use_cpu: bool, gpu_idx: int) -> str:
+    """Return device description string"""
     if use_cpu:
         return 'cpu'
     if gpu_idx is not None:
         return f'{gpu_idx} - {torch.cuda.get_device_name(gpu_idx)}'
     return ''
 
-def parse_optim_name(optim, optim_params):
+def parse_optim_name(optim: type, optim_params: dict) -> str:
+    """Return optimizer description string, including optimizer name and parameters"""
     option_list = [f"{i}={optim_params[i]}" for i in optim_params if optim_params[i] ]
     options = ', '.join(option_list)
     return f"{optim.__name__} ({options})"
 
 class TrainingOption:
-    def __init__(self, output_dir, optim, optim_params, use_cpu, gpu_idx, epoch, bs, lr, checkpoint_epoch, evaluation_option, repeat_num):
+    """Utility class for storing training options
+    
+    Attributes:
+        output_dir: Output directory
+        optim: Optimizer class
+        optim_params: Optimizer parameters
+        use_cpu: Whether to use CPU
+        gpu_idx: GPU index
+        epoch: Number of epochs
+        bs: Batch size
+        lr: Learning rate
+        checkpoint_epoch: Checkpoint epoch
+        evaluation_option: Model selection option
+        repeat_num: Number of repeats
+        criterion: Loss function
+    """
+    def __init__(self, 
+                 output_dir: str, 
+                 optim: torch.optim.Optimizer,
+                 optim_params: dict, 
+                 use_cpu: bool, 
+                 gpu_idx: int, 
+                 epoch: int, 
+                 bs: int, 
+                 lr: float, 
+                 checkpoint_epoch: int, 
+                 evaluation_option: TRAINING_EVALUATION, 
+                 repeat_num: int):
         self.output_dir = output_dir
         self.optim = optim
         self.optim_params = optim_params
@@ -36,7 +66,12 @@ class TrainingOption:
         self.criterion = nn.CrossEntropyLoss()
         self.validate()
 
-    def validate(self):
+    def validate(self) -> None:
+        """Validate training options
+        
+        Raises:
+            ValueError: If any option is invalid or not set
+        """
         reason = None
         if self.output_dir is None:
             reason = 'Output directory not set'
@@ -81,36 +116,56 @@ class TrainingOption:
         if self.gpu_idx is not None:
             self.gpu_idx = int(self.gpu_idx)
     
-    def get_optim(self, model):
+    def get_optim(self, model: torch.nn.Module) -> torch.optim.Optimizer:
+        """Return optimizer instance"""
         return self.optim(params=model.parameters(), lr=self.lr, **self.optim_params)
 
-    def get_optim_name(self):
+    def get_optim_name(self) -> str:
+        """Return optimizer name"""
         return self.optim.__name__
 
-    def get_optim_desc_str(self):
+    def get_optim_desc_str(self) -> str:
+        """Return optimizer description string, including optimizer name and parameters"""
         return parse_optim_name(self.optim, self.optim_params)
 
-    def get_device_name(self):
+    def get_device_name(self) -> str:
+        """Return device description string"""
         return parse_device_name(self.use_cpu, self.gpu_idx)
     
-    def get_device(self):
+    def get_device(self) -> str:
+        """Return device name used by PyTorch"""
         if self.use_cpu:
             return 'cpu'
         return f"cuda:{self.gpu_idx}"
 
-    def get_evaluation_option_repr(self):
+    def get_evaluation_option_repr(self) -> str:
+        """Return model selection option description string"""
         return f"{self.evaluation_option.__class__.__name__}.{self.evaluation_option.name}"
 
-    def get_output_dir(self):
+    def get_output_dir(self) -> str:
+        """Return output directory"""
         return self.output_dir
 
 
 class TestOnlyOption(TrainingOption):
-    def __init__(self, output_dir, use_cpu, gpu_idx, bs):
+    """Utility class for storing test-only options
+
+    Parameters:
+        output_dir: Output directory
+        use_cpu: Whether to use CPU
+        gpu_idx: GPU index
+        bs: Batch size
+    """
+    def __init__(self, output_dir: str, use_cpu: bool, gpu_idx: int, bs: int):
         super().__init__(output_dir, None, None, use_cpu, gpu_idx, 0, bs, 0, 0, TRAINING_EVALUATION.LAST_EPOCH, 1)
         self.validate()
 
-    def validate(self):
+    def validate(self) -> None:
+        """Validate test-only options
+
+        Raises:
+            ValueError: If any option is invalid or not set
+        """
         reason = None
         if self.output_dir is None:
             reason = 'Output directory not set'

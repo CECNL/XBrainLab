@@ -4,6 +4,16 @@ import math
 import numpy as np
 
 class SCCNet(nn.Module):
+    """Implementation of SCCNet
+    https://ieeexplore.ieee.org/document/8716937
+
+    Parameters:
+        n_classes: Number of classes.
+        channels: Number of channels.
+        samples: Number of samples.
+        sfreq: Sampling frequency.
+        Ns: Number of spatial filters.
+    """
     def __init__(self, n_classes, channels, samples, sfreq, Ns=22):
         super(SCCNet, self).__init__() # input:bs, 1, channel, sample
 

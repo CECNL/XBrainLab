@@ -3,7 +3,19 @@ import torch
 import math
 
 class EEGNet(nn.Module):
-    def __init__(self, n_classes, channels, samples, sfreq, F1=8, F2=16, D=2):
+    """Implementation of EEGNet
+    https://iopscience.iop.org/article/10.1088/1741-2552/aace8c/meta
+
+    Parameters:
+        n_classes: Number of classes.
+        channels: Number of channels.
+        samples: Number of samples.
+        sfreq: Sampling frequency.
+        F1: Number of temporal filters.
+        F2: Number of pointwise filters.
+        D: Number of spatial filters within each temporal filter.
+    """
+    def __init__(self, n_classes: int, channels: int, samples: int, sfreq: float, F1: int = 8, F2: int = 16, D: int = 2):
         super(EEGNet, self).__init__()
 
         self.tp = samples

@@ -1,7 +1,16 @@
+from __future__ import annotations
 from .base import PreprocessBase
+from ..load_data import Raw
 import numpy as np
+from typing import List
+
 
 class EditEventName(PreprocessBase):
+    """Preprocessing class for editing event name.
+    
+    Input:
+        new_event_name: Dict of new event name.
+    """
 
     def check_data(self):
         super().check_data()
@@ -9,11 +18,11 @@ class EditEventName(PreprocessBase):
             if preprocessed_data.is_raw():
                 raise ValueError(f"Event name can only be edited for epoched data")
 
-    def get_preprocess_desc(self, new_event_name):
+    def get_preprocess_desc(self, new_event_name: dict[str, str]):
         diff = {k for k in new_event_name.keys()}.difference({v for v in new_event_name.values()})
         return f"Update {len(diff)} event names"
 
-    def _data_preprocess(self, preprocessed_data, new_event_name):
+    def _data_preprocess(self, preprocessed_data: Raw, new_event_name: dict[str, str]):
         # update parent event name to event id dict
         assert [k for k in new_event_name.keys()] != [v for v in new_event_name.values()], "No Event name updated."
         if len([k for k in new_event_name.keys()]) != len([v for v in new_event_name.values()]):
@@ -26,6 +35,11 @@ class EditEventName(PreprocessBase):
         preprocessed_data.set_event(events, new_event_id)
 
 class EditEventId(PreprocessBase):
+    """Preprocessing class for editing event id.
+    
+    Input:
+        new_event_ids: Dict of new event id.
+    """
 
     def check_data(self):
         super().check_data()
@@ -33,11 +47,11 @@ class EditEventId(PreprocessBase):
             if preprocessed_data.is_raw():
                 raise ValueError(f"Event id can only be edited for epoched data")
 
-    def get_preprocess_desc(self, new_event_ids):
+    def get_preprocess_desc(self, new_event_ids: dict[str, int]):
         diff = {k for k in new_event_ids.keys()}.difference({v for v in new_event_ids.values()})
         return f"Update {len(diff)} event ids"
 
-    def _data_preprocess(self, preprocessed_data, new_event_ids):
+    def _data_preprocess(self, preprocessed_data: Raw, new_event_ids: dict[str, int]):
         # update parent event data
         assert [k for k in new_event_ids.keys()] != [v for v in new_event_ids.values()], "No Event Id updated."
 

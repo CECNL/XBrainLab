@@ -1,11 +1,17 @@
 from .base import PreprocessBase
-
+from ..load_data import Raw
+from typing import List
 class Resample(PreprocessBase):
+	"""Preprocessing class for resampling data.
 
-	def get_preprocess_desc(self, sfreq):
+	Input:
+		sfreq: Sampling frequency.
+	"""
+
+	def get_preprocess_desc(self, sfreq: float):
 		return f"Resample to {sfreq}"
 
-	def _data_preprocess(self, preprocessed_data, sfreq):
+	def _data_preprocess(self, preprocessed_data: Raw, sfreq: float):
 		preprocessed_data.get_mne().load_data()
 		if preprocessed_data.is_raw():
 			new_mne, new_events = preprocessed_data.get_mne().resample(sfreq=sfreq, events=preprocessed_data.raw_events)

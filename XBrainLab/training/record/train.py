@@ -1,14 +1,62 @@
+from __future__ import annotations
 import os
 import shutil
 import torch
 import time
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 from copy import deepcopy
 from ...utils import set_random_state, get_random_state
-from .eval import calculate_confusion
+from ...dataset import Dataset
+from ...training import TrainingOption
+from .eval import EvalRecord, calculate_confusion
 
 class TrainRecord:
-    def __init__(self, repeat, dataset, model, option, seed):
+    """Class for recording statistics during training
+
+    Attributes:
+        repeat: int
+            Index of the repeat
+        dataset: :class:`XBrainLab.dataset.Dataset`
+            Dataset used for training
+        model: :class:`torch.nn.Module`
+            Model used for training
+        option: :class:`XBrainLab.training.TrainingOption`
+            Training option
+        seed: int
+            Random seed
+        optim: :class:`torch.optim.Optimizer`
+            Optimizer used for training
+        criterion: :class:`torch.nn.Module`
+            Criterion used for training
+        eval_record: :class:`XBrainLab.training.record.EvalRecord` | None
+            Evaluation record, set after training is finished
+        best_val_loss_model: :class:`torch.nn.Module` | None
+            Model with best validation loss, set during training
+        best_val_acc_model: :class:`torch.nn.Module` | None
+            Model with best validation accuracy, set during training
+        best_val_auc_model: :class:`torch.nn.Module` | None
+            Model with best validation auc, set during training
+        best_test_acc_model: :class:`torch.nn.Module` | None
+            Model with best test accuracy, set during training
+        best_test_auc_model: :class:`torch.nn.Module` | None
+            Model with best test auc, set during training
+        train: dict
+            Stores the statistics of each epoch, including loss, accuracy, auc, time used and learning rate
+        val: dict
+            Stores the statistics of each epoch, including loss, auc and accuracy
+        test: dict
+            Stores the statistics of each epoch, including loss, auc and accuracy
+        best_record: dict
+            Stores the statistics of the best model, including best validation loss, best validation auc, best validation accuracy, best test auc, best test accuracy, and their corresponding epoch
+        epoch: int
+            Current epoch
+        target_path: str
+            Path to save the record
+        random_state: tuple
+            Random state for reproducibility
+    """
+    def __init__(self, repeat: int, dataset: Dataset, model: torch.nn.Module, option: TrainingOption, seed: int):
         self.repeat = repeat
         self.dataset = dataset
         self.option = option
@@ -37,13 +85,8 @@ class TrainRecord:
         self.create_dir()
         self.random_state = get_random_state()
 
-    def resume(self):
-        set_random_state(self.random_state)
-
-    def pause(self):
-        self.random_state = get_random_state()
-
-    def create_dir(self):
+    def create_dir(self) -> None:
+        """Initialize the directory to save the record"""
         record_name = self.dataset.get_name()
         repeat_name = self.get_name()
         target_path = os.path.join(self.option.get_output_dir(), record_name, repeat_name)
@@ -57,19 +100,39 @@ class TrainRecord:
         os.makedirs(target_path)
         self.target_path = target_path
 
-    def get_name(self):
+    def resume(self) -> None:
+        """Resume training from the last training state"""
+        set_random_state(self.random_state)
+
+    def pause(self) -> None:
+        """Pause training and save the current training state"""
+        self.random_state = get_random_state()
+
+    def get_name(self) -> str:
+        """Return the name of the record"""
         return f"Repeat-{self.repeat}"
 
-    def get_epoch(self):
+    def get_epoch(self) -> int:
+        """Get the current epoch"""
         return self.epoch
 
-    def get_training_model(self, device):
+    def get_training_model(self, device: str) -> torch.nn.Module:
+        """Get the model for training and move it to the device"""
         return self.model.to(device)
 
-    def is_finished(self):
+    def is_finished(self) -> bool:
+        """Check if the training is finished"""
         return self.get_epoch() >= self.option.epoch and self.eval_record is not None
     #
-    def append_record(self, val, arr):
+    def append_record(self, val: any, arr: list) -> None:
+        """Internal function for appending a value to a statistic array
+        
+        Fill the array with None if the data is not available before the current epoch
+
+        Args:
+            val: Value to be appended
+            arr: Array to be appended
+        """
         while len(arr) < self.epoch:
             arr.append(None)
         if len(arr) > self.epoch:
@@ -77,7 +140,8 @@ class TrainRecord:
         elif len(arr) == self.epoch:
             arr.append(val)
 
-    def update_eval(self, val_acc, val_auc, val_loss):
+    def update_eval(self, val_acc: float, val_auc: float, val_loss: float) -> None:
+        """Append the validation statistics of the current epoch and update the best model"""
         self.append_record(val_acc, self.val['acc'])
         self.append_record(val_auc, self.val['auc'])
         self.append_record(val_loss, self.val['loss'])
@@ -96,7 +160,8 @@ class TrainRecord:
             self.best_record['best_val_auc_epoch'] = self.epoch + 1
             self.best_val_auc_model = deepcopy(self.model.state_dict())
     
-    def update_test(self, test_acc, test_auc, test_loss):
+    def update_test(self, test_acc: float, test_auc: float, test_loss: float) -> None:
+        """Append the test statistics of the current epoch and update the best model"""
         self.append_record(test_acc, self.test['acc'])
         self.append_record(test_auc, self.test['auc'])
         self.append_record(test_loss, self.test['loss'])
@@ -108,20 +173,25 @@ class TrainRecord:
             self.best_record['best_test_auc'] = test_auc
             self.best_record['best_test_auc_epoch'] = self.epoch + 1
             self.best_test_auc_model = deepcopy(self.model.state_dict())
-    def update_train(self, train_acc, train_auc, running_loss):
+
+    def update_train(self, train_acc: float, train_auc: float, running_loss: float) -> None:
+        """Append the training statistics of the current epoch"""
         self.append_record(train_acc, self.train['acc'])
         self.append_record(train_auc, self.train['auc'])
         self.append_record(running_loss, self.train['loss'])
     
-    def step(self, trainingTime, lr):
+    def step(self, trainingTime: float, lr: float) -> None:
+        """Append the time and learning rate of the current epoch and move to the next epoch"""
         self.append_record(trainingTime, self.train['time'])
         self.append_record(lr, self.train['lr'])
         self.epoch += 1
 
-    def set_eval_record(self, eval_record):
+    def set_eval_record(self, eval_record: EvalRecord) -> None:
+        """Set the evaluation record when training is finished"""
         self.eval_record = eval_record
     # 
-    def export_checkpoint(self):
+    def export_checkpoint(self) -> None:
+        """Export the checkpoint of the training record"""
         epoch = len(self.train['loss'])
         if self.eval_record:
             self.eval_record.export(self.target_path)
@@ -150,7 +220,14 @@ class TrainRecord:
         
 
     # figure
-    def get_loss_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
+    def get_loss_figure(self, fig: Figure = None, figsize: tuple = (6.4, 4.8), dpi: int = 100) -> Figure:
+        """Return the line chart of loss during training
+        
+        Args:
+            fig: Figure to be plotted on. If None, a new figure will be created
+            figsize: Figure size
+            dpi: Figure dpi
+        """
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -173,7 +250,14 @@ class TrainRecord:
         
         return fig
 
-    def get_acc_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
+    def get_acc_figure(self, fig: Figure = None, figsize: tuple = (6.4, 4.8), dpi: int = 100) -> Figure:
+        """Return the line chart of accuracy during training
+
+        Args:
+            fig: Figure to be plotted on. If None, a new figure will be created
+            figsize: Figure size
+            dpi: Figure dpi
+        """
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -195,7 +279,16 @@ class TrainRecord:
         
         return fig
 
-    def get_auc_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100): ## TODO
+    def get_auc_figure(self, fig: Figure = None, figsize: tuple = (6.4, 4.8), dpi: int = 100) -> Figure:
+        """Return the line chart of auc during training
+
+        TODO: 
+
+        Args:
+            fig: Figure to be plotted on. If None, a new figure will be created
+            figsize: Figure size
+            dpi: Figure dpi
+        """
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -217,7 +310,14 @@ class TrainRecord:
         
         return fig
     
-    def get_lr_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
+    def get_lr_figure(self, fig: Figure = None, figsize: tuple = (6.4, 4.8), dpi: int = 100) -> Figure:
+        """Return the line chart of learning rate during training
+
+        Args:
+            fig: Figure to be plotted on. If None, a new figure will be created
+            figsize: Figure size
+            dpi: Figure dpi
+        """
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -232,7 +332,14 @@ class TrainRecord:
         plt.ylabel('lr')
         return fig
 
-    def get_confusion_figure(self, fig=None, figsize=(6.4, 4.8), dpi=100):
+    def get_confusion_figure(self, fig: Figure = None, figsize: tuple = (6.4, 4.8), dpi: int = 100) -> Figure:
+        """Return the confusion matrix of the evaluation record
+
+        Args:
+            fig: Figure to be plotted on. If None, a new figure will be created
+            figsize: Figure size
+            dpi: Figure dpi
+        """
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
@@ -266,20 +373,24 @@ class TrainRecord:
         return fig
     
     # get evaluate
-    def get_acc(self):
+    def get_acc(self) -> float | None:
+        """Get the accuracy of the evaluation record, None if training is not finished"""
         if not self.eval_record:
             return None
         return self.eval_record.get_acc()
     
-    def get_auc(self):
+    def get_auc(self) -> float | None:
+        """Get the auc of the evaluation record, None if training is not finished"""
         if not self.eval_record:
             return None
         return self.eval_record.get_auc()
 
-    def get_kappa(self):
+    def get_kappa(self) -> float | None:
+        """Get the kappa of the evaluation record, None if training is not finished"""
         if not self.eval_record:
             return None
         return self.eval_record.get_kappa()
 
-    def get_eval_record(self):
+    def get_eval_record(self) -> EvalRecord | None:
+        """Get the evaluation record, None if training is not finished"""
         return self.eval_record

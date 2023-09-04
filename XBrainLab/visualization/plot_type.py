@@ -1,6 +1,7 @@
 from enum import Enum
 
 class PlotType(Enum):
+    """Utility class for plot type."""
     LOSS = 'get_loss_figure'
     ACCURACY = 'get_acc_figure'
     AUC = 'get_auc_figure'

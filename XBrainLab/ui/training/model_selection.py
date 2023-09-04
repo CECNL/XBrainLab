@@ -8,7 +8,9 @@ from ..script import Script
 from ..widget import EditableTreeView
 
 from XBrainLab import model_base
-from XBrainLab.training import ModelHolder, ARG_DICT_SKIP_SET
+from XBrainLab.training import ModelHolder
+
+ARG_DICT_SKIP_SET = set(['self', 'n_classes', 'channels', 'samples', 'sfreq'])
 
 class ModelSelectionWindow(TopWindow):
     def __init__(self, parent):

@@ -1,4 +1,4 @@
-from .model_holder import ARG_DICT_SKIP_SET, ModelHolder
+from .model_holder import ModelHolder
 from .option import TrainingOption, TestOnlyOption, TRAINING_EVALUATION, parse_device_name, parse_optim_name
 from .training_plan import TrainingPlanHolder
 

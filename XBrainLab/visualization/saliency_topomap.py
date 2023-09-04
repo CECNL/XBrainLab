@@ -5,8 +5,14 @@ import numpy as np
 import mne
 
 class SaliencyTopoMapViz(Visualizer):
-
-    def get_plt(self, absolute, spectrogram, sfreq):
+    """Visualizer that generate topographic saliency map from evaluation record
+    
+    Args:
+        absolute: whether to plot absolute value of saliency
+        spectrogram: whether to plot as spectrogram
+        sfreq: sampling frequency of the data
+    """
+    def get_plt(self, absolute: bool, spectrogram: bool, sfreq: float) -> plt:
         if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize, dpi=self.dpi)
         plt.clf()

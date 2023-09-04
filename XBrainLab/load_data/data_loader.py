@@ -1,8 +1,20 @@
 from ..utils import validate_type, validate_list_type
 from . import Raw
 
+from typing import List, TYPE_CHECKING
+if TYPE_CHECKING:
+    from .. import XBrainLab
+
+
 class RawDataLoader(list):
-    def __init__(self, raw_data_list=None):
+    """Helper class for loading raw data.
+
+    Validate the loaded raw data consistency and apply to the study.
+
+    Parameters:
+        raw_data_list: List of loaded raw data.
+    """
+    def __init__(self, raw_data_list: List[Raw]=None):
         if raw_data_list is None:
             raw_data_list = []
         validate_list_type(raw_data_list, Raw, "raw_data_list")
@@ -10,13 +22,23 @@ class RawDataLoader(list):
         if raw_data_list:
             self.validate()
 
-    def get_loaded_raw(self, filepath):
+    def get_loaded_raw(self, filepath: str) -> Raw:
+        """Return the loaded raw data with the given filepath.
+        
+        Args:
+            filepath: Filepath of the raw data.
+        """
         for raw_data in self:
             if filepath == raw_data.get_filepath():
                 return raw_data
         return None
 
-    def validate(self):
+    def validate(self) -> None:
+        """Validate the loaded raw data consistency.
+        
+        Raises:
+            ValueError: If the loaded raw data is inconsistent or empty.
+        """
         for i in range(len(self)):
             raw_data = self[i]
             self.check_loaded_data_consistency(raw_data, idx=0)
@@ -25,12 +47,21 @@ class RawDataLoader(list):
                 raise ValueError(f"No label has been loaded for {raw_data.get_filename()}")
         if len(self) == 0:
             raise ValueError(f"No dataset has been loaded")
-        return True
 
-    def check_loaded_data_consistency(self, raw, idx=-1):
+    def check_loaded_data_consistency(self, raw: Raw, idx: int = -1):
+        """Validate the loaded raw data consistency with the raw data in the dataset at the given index.
+
+        Args:
+            raw: Loaded raw data.
+            idx: Index of the raw data in the dataset. Default to the last one.
+        
+        Raises:
+            ValueError: If the loaded raw data is inconsistent with the raw data in the dataset.
+        """
         validate_type(raw, Raw, 'raw')
+        # valide if the dataset is empty
         if not self:
-            return True
+            return
         # check channel number
         if self[idx].get_nchan() != raw.get_nchan():
             raise ValueError(f'Dataset channel numbers inconsistent (got {raw.get_nchan()}).')
@@ -44,13 +75,22 @@ class RawDataLoader(list):
         if not raw.is_raw():
             if self[idx].get_epoch_duration() != raw.get_epoch_duration():
                 raise ValueError(f'Epoch duration inconsistent (got {raw.get_epoch_duration()}).')
-        return True
     
-    def append(self, raw):
+    def append(self, raw: Raw) -> None:
+        """Append the loaded raw data to the dataset.
+
+        Args:
+            raw: Loaded raw data.
+        """
         self.check_loaded_data_consistency(raw)
         super().append(raw)
 
-    def apply(self, study):
+    def apply(self, study: 'XBrainLab') -> None:
+        """Apply the loaded raw data to the study.
+
+        Args:
+            study: XBrainLab Study to apply the loaded raw data.
+        """
         from .. import XBrainLab
         validate_type(study, XBrainLab, 'study')
         self.validate()

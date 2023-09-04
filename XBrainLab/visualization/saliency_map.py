@@ -4,8 +4,16 @@ from scipy import signal
 import numpy as np
 
 class SaliencyMapViz(Visualizer):
+    """Visualizer that generate channel by time saliency map from evaluation record"""
 
-    def get_plt(self, absolute, spectrogram, sfreq):
+    def get_plt(self, absolute: bool, spectrogram: bool, sfreq: float) -> plt:
+        """Return saliency map plot
+        
+        Args:
+            absolute: whether to plot absolute value of saliency
+            spectrogram: whether to plot as spectrogram
+            sfreq: sampling frequency of the data
+            """
         if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize, dpi=self.dpi)
         plt.clf()

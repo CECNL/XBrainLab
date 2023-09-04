@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import scipy.io
 import tkinter as tk
@@ -6,14 +7,37 @@ from . import Raw
 from ..utils import validate_type
 
 class EventLoader:
-    def __init__(self, raw):
+    """Helper class for loading event data.
+
+    Attributes:
+        raw: :class:`Raw` 
+            Raw data.
+        label_list: List[int] | None
+            List of event codes.
+        events: list[list[int]] | None
+            Event array. Same as `mne` format.
+        event_id: dict[str, int] | None
+            Event id. Same as `mne` format.
+    """
+
+    def __init__(self, raw: Raw):
         validate_type(raw, Raw, 'raw')
         self.raw = raw
         self.label_list = None
         self.events = None
         self.event_id = None
 
-    def read_txt(self, selected_file):
+    def read_txt(self, selected_file: str) -> list:
+        """Read event data from txt file.
+
+        The txt file should contain a list of event codes, separated by space.
+
+        Args:
+            selected_file: Path to the txt file.
+
+        Returns:
+            List of event codes.
+        """
         label_list = []
         with open(selected_file, encoding='utf-8', mode='r') as fp:
             for line in fp.readlines():
@@ -22,7 +46,17 @@ class EventLoader:
         self.label_list = label_list
         return label_list
 
-    def read_mat(self, selected_file):
+    def read_mat(self, selected_file: str) -> list:
+        """Read event data from mat file.
+
+        The mat file should contain exactly one variable, which is a list of event codes.
+
+        Args:
+            selected_file: Path to the mat file.
+
+        Returns:
+            List of event codes.
+        """
         mat_content = scipy.io.loadmat(selected_file)
         mat_key = [k for k in mat_content.keys() if not k.startswith('_')]
         if len(mat_key) > 1:
@@ -37,7 +71,15 @@ class EventLoader:
             self.label_list = event_content
             return event_content.tolist()
 
-    def create_event(self, new_event_name):
+    def create_event(self, new_event_name: List[str]) -> tuple:
+        """Create event array and event id.
+
+        Args:
+            new_event_name: List of event names.
+
+        Returns:
+            Tuple of event array and event id.
+        """
         if self.label_list is not None:
             for e in new_event_name:
                 if not new_event_name[e].strip():
@@ -62,7 +104,12 @@ class EventLoader:
         else:
             raise ValueError("No label has been loaded.")
 
-    def apply(self):
+    def apply(self) -> None:
+        """Apply the loaded event data to the raw data.
+
+        Raises:
+            ValueError: If no label has been loaded.
+        """
         assert self.events is not None, "No label has been loaded."
         assert self.event_id is not None, "No label has been loaded."
         self.raw.set_event(self.events, self.event_id)

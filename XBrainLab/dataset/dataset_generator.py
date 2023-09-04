@@ -1,13 +1,32 @@
+from typing import List
 import numpy as np
 
-from .option import TrainingType, SplitByType, ValSplitByType, SplitUnit
+from .option import TrainingType, SplitByType, ValSplitByType
 from .dataset import Dataset
 from . import DataSplittingConfig, Epochs
 
 from ..utils import validate_type
 
 class DatasetGenerator:
-    def __init__(self, epoch_data, config, datasets=None):
+    """Class for generating dataset from epoch data and splitting configuration.
+    
+    Attributes:
+        epoch_data: :class:`Epochs`
+            Epoch data to be splitted
+        config: :class:`DataSplittingConfig`
+            Splitting configuration
+        datasets: list[:class:`Dataset`]
+            List of generated datasets
+        interrupted: bool
+            Whether the dataset generation is interrupted
+        preview_failed: bool
+            Whether the preview failed
+        test_splitter_list: List[`DataSplitter`]
+            List of splitters for test set
+        val_splitter_list: List[`DataSplitter`]
+            List of splitters for validation set
+    """
+    def __init__(self, epoch_data: Epochs, config: DataSplittingConfig, datasets: List[Dataset] = None):
         validate_type(epoch_data, Epochs ,"epoch_data")
         validate_type(config, DataSplittingConfig ,"config")
         if datasets is None:
@@ -23,18 +42,28 @@ class DatasetGenerator:
         self.interrupted = False
         self.preview_failed = False
 
-    def handle_IND(self):
+    def handle_IND(self) -> None:
+        """Wrapper for generating datasets for individual scheme. Called by :func:`generate`."""
         for subject_idx in range(len(self.epoch_data.get_subject_index_list())):
             name_prefix = f"Subject-{self.epoch_data.get_subject_name(subject_idx)}"
             def hook(dataset):
                 dataset.set_remaining_by_subject_idx(subject_idx)
             self.handle(name_prefix, hook)
     
-    def handle_FULL(self):
+    def handle_FULL(self) -> None:
+        """Wrapper for generating datasets for full scheme. Called by :func:`generate`."""
         name_prefix = "Group"
         self.handle(name_prefix)
     
-    def split_test(self, dataset, group_idx, mask, clean_mask):
+    def split_test(self, dataset: Dataset, group_idx: int, mask: np.ndarray, clean_mask: np.ndarray) -> np.ndarray:
+        """Split the test set of the dataset.
+
+        Args:
+            dataset: Dataset to be splitted
+            group_idx: Index of the group
+            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            clean_mask: Mask to filter epochs, including all available selection. 1D np.ndarray of bool.
+        """
         idx = 0
         next_mask = mask.copy()
         for test_splitter in self.test_splitter_list:
@@ -75,7 +104,13 @@ class DatasetGenerator:
             next_mask &= False
         return next_mask
 
-    def split_validate(self, dataset, group_idx, clean_mask):
+    def split_validate(self, dataset: Dataset, group_idx: int) -> None:
+        """Split the validation set of the dataset.
+        
+        Args:
+            dataset: Dataset to be splitted
+            group_idx: Index of the group
+        """
         mask = dataset.get_remaining_mask()
         idx = 0
         for val_splitter in self.val_splitter_list:
@@ -95,13 +130,19 @@ class DatasetGenerator:
                 # subject
                 elif val_splitter.split_type == ValSplitByType.SUBJECT:
                     split_func = self.epoch_data.pick_subject
-                mask, excluded = split_func(mask=mask, clean_mask=None, 
+                mask, _ = split_func(mask=mask, clean_mask=None, 
                     value=val_splitter.get_value(), split_unit=val_splitter.get_split_unit(), group_idx=group_idx)
                 idx += 1
         if idx > 0:
             dataset.set_val(mask)
 
-    def handle(self, name_prefix, dataset_hook=None):
+    def handle(self, name_prefix: str, dataset_hook: callable = None) -> None:
+        """Internal function for generating datasets
+        
+        Args:
+            name_prefix: Prefix of dataset name
+            dataset_hook: Function for setting up dataset for specific scheme
+        """
         group_idx = 0
         remaining_mask = None
         while (remaining_mask is None) or (self.config.is_cross_validation and remaining_mask.any()):
@@ -122,7 +163,8 @@ class DatasetGenerator:
             self.datasets.append(dataset)
             group_idx += 1
 
-    def generate(self):
+    def generate(self) -> List[Dataset]:
+        """Internal function for calling the dataset generation function."""
         if self.datasets:
             return self.datasets
         Dataset.SEQ = 0
@@ -140,10 +182,12 @@ class DatasetGenerator:
         
         return self.datasets
 
-    def set_interrupt(self):
+    def set_interrupt(self) -> None:
+        """Set the interrupt flag to break the dataset generation."""
         self.interrupted = True
 
-    def prepare_reuslt(self):
+    def prepare_reuslt(self) -> list:
+        """Generate the datasets and remove unselcted datasets."""
         if not self.datasets:
             self.generate()
         while True:
@@ -161,7 +205,8 @@ class DatasetGenerator:
             raise ValueError('No valid dataset is generated')
         return self.datasets
     
-    def apply(self, study):
+    def apply(self, study) -> None:
+        """Apply the generated datasets to the study."""
         from ..lab import XBrainLab
         validate_type(study, XBrainLab, 'study')
         self.prepare_reuslt()
