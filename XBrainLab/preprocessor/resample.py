@@ -13,4 +13,4 @@ class Resample(PreprocessBase):
 			preprocessed_data.set_event(new_events, preprocessed_data.raw_event_id)
 		else:
 			new_mne = preprocessed_data.get_mne().resample(sfreq=sfreq)
-			preprocessed_data.set_mne(new_events)
+			preprocessed_data.set_mne(new_mne)

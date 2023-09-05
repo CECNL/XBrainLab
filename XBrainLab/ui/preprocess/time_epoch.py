@@ -93,7 +93,7 @@ class SelectEvents(TopWindow):
 
         event_id_set = set()
         for preprocessed_data in preprocessed_data_list:
-            _, event_id = preprocessed_data.get_raw_event_list()
+            _, event_id = preprocessed_data.get_event_list()
             event_id_set.update(event_id)
         event_id_set = list(event_id_set)
 
