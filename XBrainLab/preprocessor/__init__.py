@@ -1,4 +1,5 @@
 from .channel_selection import ChannelSelection
+from .normalize import Normalize
 from .filtering import Filtering
 from .resample import Resample
 from .time_epoch import TimeEpoch

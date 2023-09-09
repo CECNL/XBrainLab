@@ -317,6 +317,9 @@ class Epochs:
     def get_channel_names(self):
         return self.channel_map
     
+    def get_epoch_duration(self):
+        return np.round(self.data.shape[-1]/self.sfreq,2)
+    
     def set_channels(self, chs, channel_position):
         self.channel_map = chs
         self.channel_position = channel_position
