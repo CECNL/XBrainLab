@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from ..training.record import EvalRecord
 from ..dataset import Epochs
@@ -20,8 +21,15 @@ class Visualizer:
         self.dpi = dpi
         self.fig = fig
     
-    def get_plt(self, *args, **kwargs):
+    def _get_plt(self, *args, **kwargs):
         raise NotImplementedError()
+    
+    def get_plt(self, *args, **kwargs):
+        if self.fig is None:
+            self.fig = plt.figure(figsize=self.figsize, dpi=self.dpi)
+        plt.clf()
+        self._get_plt(*args, **kwargs)
+        
 
     def get_gradient(self, labelIndex: int) -> np.ndarray:
         """Return gradient of model by class index."""
