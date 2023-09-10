@@ -1,2 +1,2 @@
-from .train import TrainRecord
+from .train import TrainRecord, RecordKey, TrainRecordKey
 from .eval import EvalRecord

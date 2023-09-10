@@ -11,6 +11,22 @@ from ...dataset import Dataset
 from ...training import TrainingOption
 from .eval import EvalRecord, calculate_confusion
 
+class RecordKey:
+    "Utility class for accessing the statistics of the testing record"
+    LOSS = 'loss'
+    ACC = 'accuracy'
+    AUC = 'auc'
+
+    def __iter__(self):
+        keys = dir(self)
+        keys = [getattr(self, key) for key in keys if not key.startswith('_')]
+        return iter(keys)
+    
+class TrainRecordKey(RecordKey):
+    "Utility class for accessing the statistics of the training record"
+    TIME = 'time'
+    LR = 'lr'
+
 class TrainRecord:
     """Class for recording statistics during training
 
@@ -33,11 +49,11 @@ class TrainRecord:
             Evaluation record, set after training is finished
         best_val_loss_model: :class:`torch.nn.Module` | None
             Model with best validation loss, set during training
-        best_val_acc_model: :class:`torch.nn.Module` | None
+        best_val_accuracy_model: :class:`torch.nn.Module` | None
             Model with best validation accuracy, set during training
         best_val_auc_model: :class:`torch.nn.Module` | None
             Model with best validation auc, set during training
-        best_test_acc_model: :class:`torch.nn.Module` | None
+        best_test_accuracy_model: :class:`torch.nn.Module` | None
             Model with best test accuracy, set during training
         best_test_auc_model: :class:`torch.nn.Module` | None
             Model with best test auc, set during training
@@ -66,19 +82,20 @@ class TrainRecord:
         self.criterion = self.option.criterion
         #
         self.eval_record = None
-        self.best_val_loss_model = None
-        self.best_val_acc_model = None
-        self.best_val_auc_model = None
-        self.best_test_acc_model = None
-        self.best_test_auc_model = None
+        for key in RecordKey():
+            setattr(self, 'best_val_' + key + '_model', None)
+            setattr(self, 'best_test_' + key + '_model', None)
         # 
-        self.train = {'loss': [], 'acc': [], 'auc':[], 'time': [], 'lr': []}
-        self.val = {'loss': [], 'acc': [], 'auc':[]}
-        self.test = {'loss': [], 'acc': [], 'auc':[]}
-        self.best_record = {'best_val_loss': torch.inf, 'best_val_acc': -1, 'best_val_auc':-1,
-                            'best_test_acc': -1, 'best_test_auc':-1, 
-                            'best_val_loss_epoch': None, 'best_val_acc_epoch': None,'best_val_auc_epoch': None, 
-                            'best_test_acc_epoch': None, 'best_test_auc_epoch':None}
+        self.train = {i: [] for i in TrainRecordKey()}
+        self.val = {i: [] for i in RecordKey()}
+        self.test = {i: [] for i in RecordKey()}
+        self.best_record = {}
+        for record_type in ['val', 'test']:
+            for key in RecordKey():
+                self.best_record[f'best_{record_type}_{key}'] = -1
+                self.best_record[f'best_{record_type}_{key}_epoch'] = None
+            self.best_record[f'best_{record_type}_' + RecordKey.LOSS] = torch.inf
+
         #
         self.epoch = 0
         self.target_path = None
@@ -140,50 +157,42 @@ class TrainRecord:
         elif len(arr) == self.epoch:
             arr.append(val)
 
-    def update_eval(self, val_acc: float, val_auc: float, val_loss: float) -> None:
+    def update(self, update_type: str, test_result: dict[str, float]) -> None:
+        """Append the statistics of given type the current epoch"""
+        for key in test_result:
+            self.append_record(test_result[key], getattr(self, update_type)[key])
+            should_update = False
+            if 'loss' in key:
+                if test_result[key] <= self.best_record['best_' + update_type + '_' + key]:
+                    should_update = True
+            else:
+                if test_result[key] >= self.best_record['best_' + update_type + '_' + key]:
+                    should_update = True
+            if should_update:
+                self.best_record['best_' + update_type + '_' + key] = test_result[key]
+                self.best_record['best_' + update_type + '_' + key + '_epoch'] = self.get_epoch()
+                setattr(self, 'best_' + update_type + '_' + key + '_model', deepcopy(self.model.state_dict()))
+
+    def update_eval(self, test_result: dict[str, float]) -> None:
         """Append the validation statistics of the current epoch and update the best model"""
-        self.append_record(val_acc, self.val['acc'])
-        self.append_record(val_auc, self.val['auc'])
-        self.append_record(val_loss, self.val['loss'])
-        if val_loss <= self.best_record['best_val_loss']:
-            self.best_record['best_val_loss'] = val_loss
-            self.best_record['best_val_loss_epoch'] = self.epoch + 1
-            self.best_val_loss_model = deepcopy(self.model.state_dict())
+        self.update('val', test_result)
 
-        if val_acc >= self.best_record['best_val_acc']:
-            self.best_record['best_val_acc'] = val_acc
-            self.best_record['best_val_acc_epoch'] = self.epoch + 1
-            self.best_val_acc_model = deepcopy(self.model.state_dict())
-
-        if val_auc >= self.best_record['best_val_auc']:
-            self.best_record['best_val_auc'] = val_auc
-            self.best_record['best_val_auc_epoch'] = self.epoch + 1
-            self.best_val_auc_model = deepcopy(self.model.state_dict())
-    
-    def update_test(self, test_acc: float, test_auc: float, test_loss: float) -> None:
+    def update_test(self, test_result: dict[str, float]) -> None:
         """Append the test statistics of the current epoch and update the best model"""
-        self.append_record(test_acc, self.test['acc'])
-        self.append_record(test_auc, self.test['auc'])
-        self.append_record(test_loss, self.test['loss'])
-        if test_acc >= self.best_record['best_test_acc']:
-            self.best_record['best_test_acc'] = test_acc
-            self.best_record['best_test_acc_epoch'] = self.epoch + 1
-            self.best_test_acc_model = deepcopy(self.model.state_dict())
-        if test_auc >= self.best_record['best_test_auc']:
-            self.best_record['best_test_auc'] = test_auc
-            self.best_record['best_test_auc_epoch'] = self.epoch + 1
-            self.best_test_auc_model = deepcopy(self.model.state_dict())
+        self.update('test', test_result)
 
-    def update_train(self, train_acc: float, train_auc: float, running_loss: float) -> None:
+    def update_train(self, test_result: dict[str, float]) -> None:
         """Append the training statistics of the current epoch"""
-        self.append_record(train_acc, self.train['acc'])
-        self.append_record(train_auc, self.train['auc'])
-        self.append_record(running_loss, self.train['loss'])
+        for key in test_result:
+            self.append_record(test_result[key], self.train[key])
     
-    def step(self, trainingTime: float, lr: float) -> None:
-        """Append the time and learning rate of the current epoch and move to the next epoch"""
-        self.append_record(trainingTime, self.train['time'])
-        self.append_record(lr, self.train['lr'])
+    def update_statistic(self, statistic: dict[str, float]) -> None:
+        """Append the statistics of the current epoch"""
+        for key in statistic:
+            self.append_record(statistic[key], self.train[key])
+
+    def step(self) -> None:
+        """Move to the next epoch"""
         self.epoch += 1
 
     def set_eval_record(self, eval_record: EvalRecord) -> None:
@@ -192,19 +201,15 @@ class TrainRecord:
     # 
     def export_checkpoint(self) -> None:
         """Export the checkpoint of the training record"""
-        epoch = len(self.train['loss'])
+        epoch = len(self.train[RecordKey.LOSS])
         if self.eval_record:
             self.eval_record.export(self.target_path)
-        if self.best_val_loss_model:
-            torch.save(self.best_val_loss_model, os.path.join(self.target_path, 'best_val_loss_model'))
-        if self.best_val_acc_model:
-            torch.save(self.best_val_acc_model, os.path.join(self.target_path, 'best_val_acc_model'))
-        if self.best_val_auc_model:
-            torch.save(self.best_val_auc_model, os.path.join(self.target_path, 'best_val_auc_model'))
-        if self.best_test_acc_model:
-            torch.save(self.best_test_acc_model, os.path.join(self.target_path, 'best_test_acc_model'))
-        if self.best_test_auc_model:
-            torch.save(self.best_test_auc_model, os.path.join(self.target_path, 'best_test_auc_model'))
+        for best_type in ['val', 'test']:
+            for key in RecordKey():
+                key = 'best_' + best_type + '_' + key + '_model'
+                model = getattr(self, key)
+                if model:
+                    torch.save(model, os.path.join(self.target_path, key))
         
         fname = f'Epoch-{epoch}-model'
         torch.save(self.model.state_dict(), os.path.join(self.target_path, fname))
@@ -232,13 +237,14 @@ class TrainRecord:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
 
-        training_loss_list = self.train['loss']
-        val_loss_list = self.val['loss']
-        test_loss_list = self.test['loss']
+        training_loss_list = self.train[RecordKey.LOSS]
+        val_loss_list = self.val[RecordKey.LOSS]
+        test_loss_list = self.test[RecordKey.LOSS]
         if len(training_loss_list) == 0 and len(val_loss_list) == 0 and len(test_loss_list) == 0:
             return None
-
-        plt.plot(training_loss_list, 'g', label='Training loss')
+        
+        if len(training_loss_list) > 0:
+            plt.plot(training_loss_list, 'g', label='Training loss')
         if len(val_loss_list) > 0:
             plt.plot(val_loss_list, 'b', label='validation loss')
         if len(test_loss_list) > 0:
@@ -262,15 +268,17 @@ class TrainRecord:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
         
-        training_acc_list = self.train['acc']
-        val_acc_list = self.val['acc']
-        test_acc_list = self.test['acc']
+        training_acc_list = self.train[RecordKey.ACC]
+        val_acc_list = self.val[RecordKey.ACC]
+        test_acc_list = self.test[RecordKey.ACC]
         if len(training_acc_list) == 0 and len(val_acc_list) == 0 and len(test_acc_list) == 0:
             return None
-        plt.plot(training_acc_list, 'g', label='Training accuracy')
+        
+        if len(training_acc_list) > 0:
+            plt.plot(training_acc_list, 'g', label='Training accuracy')
         if len(val_acc_list) > 0:
             plt.plot(val_acc_list, 'b', label='validation accuracy')
-        if len(val_acc_list) > 0:
+        if len(test_acc_list) > 0:
             plt.plot(test_acc_list, 'r', label='testing accuracy')
         plt.title('Training Accuracy')
         plt.xlabel('Epochs')
@@ -293,15 +301,17 @@ class TrainRecord:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
         
-        training_auc_list = self.train['auc']
-        val_auc_list = self.val['auc']
-        test_auc_list = self.test['auc']
+        training_auc_list = self.train[RecordKey.AUC]
+        val_auc_list = self.val[RecordKey.AUC]
+        test_auc_list = self.test[RecordKey.AUC]
         if len(training_auc_list) == 0 and len(val_auc_list) == 0 and len(test_auc_list) == 0:
             return None
-        plt.plot(training_auc_list, 'g', label='Training AUC')
+        
+        if len(training_auc_list) > 0:
+            plt.plot(training_auc_list, 'g', label='Training AUC')
         if len(val_auc_list) > 0:
             plt.plot(val_auc_list, 'b', label='validation AUC')
-        if len(val_auc_list) > 0:
+        if len(test_auc_list) > 0:
             plt.plot(test_auc_list, 'r', label='testing AUC')
         plt.title('Training AUC')
         plt.xlabel('Epochs')
@@ -322,7 +332,7 @@ class TrainRecord:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
         
-        lr_list = self.train['lr']
+        lr_list = self.train[TrainRecordKey.LR]
         if len(lr_list) == 0:
             return None
 
@@ -363,7 +373,7 @@ class TrainRecord:
                             verticalalignment='center',
                             color=annot_color
                             )
-        cb = fig.colorbar(res)
+        fig.colorbar(res)
         ax.xaxis.tick_top()
         ax.xaxis.set_label_position('top')
         labels = [self.dataset.get_epoch_data().label_map[l] for l in range(classNum)]

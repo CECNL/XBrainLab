@@ -27,8 +27,8 @@ class EvalRecord:
             Ground truth label.
         output: :class:`numpy.ndarray` of shape (n, classNum).
             Output of model.
-        gradient: dict of :class:`numpy.ndarray` of shape (n, classNum, ...).
-            Gradient of model by class.
+        gradient: dict of :class:`numpy.ndarray` of shape (n, classNum, ...) with class index as key.
+            Gradient of model by class index.
     """
     def __init__(self, label: np.ndarray, output: np.ndarray, gradient: dict):
         self.label = label

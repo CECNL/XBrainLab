@@ -45,7 +45,7 @@ class Trainer():
 
     def clear_interrupt(self) -> None:
         """Set interrupt flag to False and clear interrupt flag of all training plan holders"""
-        self.progress_text = Status.INIT
+        self.progress_text = Status.PENDING
         self.interrupt = False
         for plan_holder in self.training_plan_holders:
             plan_holder.clear_interrupt()
@@ -85,7 +85,7 @@ class Trainer():
 
     def is_running(self) -> bool:
         """Return whether training is running"""
-        return self.job_thread is not None
+        return self.job_thread is not None and self.job_thread.is_alive()
 
     def clean(self, force_update: bool = False) -> None:
         """Stop and clean training job
@@ -100,4 +100,4 @@ class Trainer():
         if force_update:
             self.set_interrupt()
         elif self.is_running():
-            raise ValueError("Training still in progress")
+            raise RuntimeError("Training still in progress")

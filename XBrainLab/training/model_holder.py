@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 
 class ModelHolder:
@@ -10,7 +11,7 @@ class ModelHolder:
         model_params_map (dict): Model parameters
         pretrained_weight_path (str): Path to pretrained weight
     """
-    def __init__(self, target_model: type, model_params_map: dict, pretrained_weight_path: str):
+    def __init__(self, target_model: type, model_params_map: dict, pretrained_weight_path: str | None):
         self.target_model = target_model
         self.model_params_map = model_params_map
         self.pretrained_weight_path = pretrained_weight_path

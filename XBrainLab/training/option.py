@@ -15,7 +15,7 @@ def parse_device_name(use_cpu: bool, gpu_idx: int) -> str:
         return 'cpu'
     if gpu_idx is not None:
         return f'{gpu_idx} - {torch.cuda.get_device_name(gpu_idx)}'
-    return ''
+    raise ValueError('Device not set')
 
 def parse_optim_name(optim: type, optim_params: dict) -> str:
     """Return optimizer description string, including optimizer name and parameters"""
@@ -28,7 +28,7 @@ class TrainingOption:
     
     Attributes:
         output_dir: Output directory
-        optim: Optimizer class
+        optim: Optimizer class of type :class:`torch.optim.Optimizer`
         optim_params: Optimizer parameters
         use_cpu: Whether to use CPU
         gpu_idx: GPU index
@@ -42,7 +42,7 @@ class TrainingOption:
     """
     def __init__(self, 
                  output_dir: str, 
-                 optim: torch.optim.Optimizer,
+                 optim: type,
                  optim_params: dict, 
                  use_cpu: bool, 
                  gpu_idx: int, 
@@ -173,8 +173,6 @@ class TestOnlyOption(TrainingOption):
             reason = 'Device not set'
         if not self.use_cpu and self.gpu_idx is None:
             reason = 'Device not set'
-        if self.evaluation_option is None:
-            reason = 'Evaluation option not set'
 
         def check_num(i):
             try:
@@ -186,8 +184,6 @@ class TestOnlyOption(TrainingOption):
         if self.gpu_idx is not None:
             if check_num(self.gpu_idx):
                 reason = 'Invalid gpu_idx'
-        if check_num(self.epoch):
-            reason = 'Invalid epoch'
         if check_num(self.bs):
             reason = 'Invalid batch size'
         
