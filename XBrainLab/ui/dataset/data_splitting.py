@@ -473,7 +473,7 @@ class DataSplitterHolder(DataSplitter):
 
 class DataSplittingConfigHolder(DataSplittingConfig):
     def __init__(self, train_type, val_type_list, test_type_list, is_cross_validation):
-        super().__init__(train_type, is_cross_validation, val_splitter_list=None, test_splitter_list=None)
+        super().__init__(train_type, is_cross_validation, val_splitter_list=[], test_splitter_list=[])
         self.train_type = train_type # TrainingType
         self.val_type_list = val_type_list # [SplitByType ...]
         self.test_type_list = test_type_list # [ValSplitByType ...]

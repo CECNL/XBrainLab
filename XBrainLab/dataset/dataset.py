@@ -78,7 +78,7 @@ class Dataset:
         """Return the information of the dataset for displaying in UI treeview.
         
         Returns:
-            (selected, name, train_number, val_number, test_number)
+            (selected: str, name: str, train_number: int, val_number: int, test_number: int)
         """
         train_number, val_number, test_number = self.get_all_trial_numbers()
         selected = 'O' if self.is_selected else 'X'
@@ -116,12 +116,12 @@ class Dataset:
     ## set result
     def set_test(self, mask: np.ndarray) -> None:
         """Set the mask for test set and update the remaining mask."""
-        self.test_mask = mask.copy()
+        self.test_mask = mask & self.remaining_mask
         self.remaining_mask &= np.logical_not(mask)
     
     def set_val(self, mask: np.ndarray) -> None:
         """Set the mask for validation set and update the remaining mask."""
-        self.val_mask = mask.copy()
+        self.val_mask = mask & self.remaining_mask
         self.remaining_mask &= np.logical_not(mask)
 
     def set_remaining_to_train(self) -> None:

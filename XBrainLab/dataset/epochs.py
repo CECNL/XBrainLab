@@ -5,6 +5,13 @@ from .option import SplitUnit
 from ..utils import validate_list_type
 from ..load_data import Raw
 from typing import List
+from enum import Enum
+
+class TrialSelectionSequence(Enum):
+    """Utility class for trial selection sequence in dataset splitting."""
+    SESSION = 'session'
+    SUBJECT = 'subject'
+    Label = 'label'
 
 class Epochs:
     """Class for storing epoch data.
@@ -113,7 +120,7 @@ class Epochs:
             self.session = np.concatenate((self.session, [session_idx] * epoch_len))
             self.label   = np.concatenate((self.label,   data.events[:,2]))
             self.idx     = np.concatenate((self.idx,     range(epoch_len)))
-            if self.data == []:
+            if len(self.data) == 0:
                 self.data = data.get_data()
             else:
                 self.data = np.concatenate((self.data,    data.get_data()))
@@ -146,7 +153,7 @@ class Epochs:
         """Return list of subject index of each epoch by mask.
 
         Args:
-            mask: Mask to filter epochs. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs. 1D np.ndarray of bool.
         """
         return self.subject[mask]
     
@@ -154,7 +161,7 @@ class Epochs:
         """Return list of session index of each epoch by mask.
 
         Args:
-            mask: Mask to filter epochs. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs. 1D np.ndarray of bool.
         """
         return self.session[mask]
     
@@ -162,7 +169,7 @@ class Epochs:
         """Return list of label index of each epoch by mask.
 
         Args:
-            mask: Mask to filter epochs. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs. 1D np.ndarray of bool.
         """
         return self.label[mask]
 
@@ -170,7 +177,7 @@ class Epochs:
         """Return list of epoch index of each epoch by mask.
 
         Args:
-            mask: Mask to filter epochs. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs. 1D np.ndarray of bool.
         """
         return self.idx[mask]
 
@@ -231,11 +238,28 @@ class Epochs:
         return len(self.data) 
 
     ## picker
-    def get_mask_target(self, mask: np.ndarray) -> dict:
+    """
+        How it works:
+            (Enter pick_XXX)
+            Get the list of selected attributes.
+            (Enter _pick)
+            Calculate the number of ids to be selected. (In _get_real_num)
+            Generate the mask and selected counter filtered by each attribute. (In _generate_mask_target)
+            while number of epochs to be selected > 0:
+                Get the mask and counter of epochs with least selected counter. (In _get_filtered_mask_pair)
+                Choose one epoch
+                Select all epochs matched the chosen epoch by the attribute.
+                Update the counter of groups that contain the chosen epoch. (In _update_mask_target)
+                Decrease the number of ids to be selected.
+            Return the selected mask.
+        Note: sequence of attributes to be selected can make the result different. (The sequence is defined in _get_filtered_mask_pair)
+        Note: Trial is different from other attributes. (In pick_trial) The index of trial is discarded because it is meaningless so far.
+    """
+    def _generate_mask_target(self, mask: np.ndarray) -> dict:
         """Return mask-counter pair, group by label, subject, and session.
 
         Args:
-            mask: Mask to filter epochs. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs. 1D np.ndarray of bool.
         
         Returns:
             dict[label_idx][subject_idx][session_idx] = [target_filter_mask, count]
@@ -251,14 +275,12 @@ class Epochs:
                 if subject_idx not in filter_preview_mask[label_idx]:
                     filter_preview_mask[label_idx][subject_idx] = {}
                 for session_idx in unique_session_idx:
-                    if session_idx in filter_preview_mask[label_idx][subject_idx]:
-                        continue
                     filter_mask = (self.label == label_idx) & (self.subject == subject_idx) & (self.session == session_idx)
                     target_filter_mask = filter_mask & mask 
                     filter_preview_mask[label_idx][subject_idx][session_idx] = [target_filter_mask, 0]
         return filter_preview_mask
 
-    def get_filtered_mask_pair(self, filter_preview_mask: dict) -> list:
+    def _get_filtered_mask_pair(self, filter_preview_mask: dict) -> list:
         """Return mask-counter pair with least selected group.
 
         Args:
@@ -270,17 +292,25 @@ class Epochs:
 
         min_count = self.get_data_length()
         filtered_mask_pair = None
-        for label_idx in filter_preview_mask:
-            unique_subject_idx = filter_preview_mask[label_idx]
-            for subject_idx in unique_subject_idx:
-                unique_session_idx = unique_subject_idx[subject_idx]
-                for session_idx in unique_session_idx:
-                    if unique_session_idx[session_idx][0].any() and unique_session_idx[session_idx][1] < min_count:
-                        min_count = unique_session_idx[session_idx][1]
-                        filtered_mask_pair = unique_session_idx[session_idx]
+        sequence = [
+            TrialSelectionSequence.SESSION,
+            TrialSelectionSequence.SUBJECT,
+            TrialSelectionSequence.Label
+        ]
+        for a in np.unique(getattr(self, f"get_{sequence[0].value}_list")()):
+            for b in np.unique(getattr(self, f"get_{sequence[1].value}_list")()):
+                for c in np.unique(getattr(self, f"get_{sequence[2].value}_list")()):
+                    args = [a, b, c]
+                    label_idx = args[sequence.index(TrialSelectionSequence.Label)]
+                    subject_idx = args[sequence.index(TrialSelectionSequence.SUBJECT)]
+                    session_idx = args[sequence.index(TrialSelectionSequence.SESSION)]
+                    target = filter_preview_mask[label_idx][subject_idx][session_idx]
+                    if target[0].any() and target[1] < min_count:
+                        min_count = target[1]
+                        filtered_mask_pair = target
         return filtered_mask_pair
 
-    def update_mask_target(self, filter_preview_mask: dict, pos: np.ndarray) -> dict:
+    def _update_mask_target(self, filter_preview_mask: dict, pos: np.ndarray) -> dict:
         """Update mask-counter pair by selected mask.
 
         Args:
@@ -300,7 +330,7 @@ class Epochs:
                     filtered_mask_pair[0] &= np.logical_not(pos)
         return filter_preview_mask
 
-    def get_real_num(self, 
+    def _get_real_num(self, 
                      target_type: np.ndarray,
                      value: float | List[int],
                      split_unit: SplitUnit,
@@ -313,8 +343,8 @@ class Epochs:
             target_type: List of index of target type. Can be list index of subject or session.
             value: Value of splitting option. Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
-            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter epochs, including all available selection. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
             group_idx: Group index of cross validation.
         """
         if clean_mask is None:
@@ -329,13 +359,13 @@ class Epochs:
         elif split_unit == SplitUnit.RATIO:
             num = value * target
         elif split_unit == SplitUnit.NUMBER:
-            num = value
+            num = min(value, target)
         else:
             raise NotImplementedError
         num = int(num)
         return num
 
-    def pick(self, 
+    def _pick(self, 
              target_type: np.ndarray,
              mask: np.ndarray,
              clean_mask: np.ndarray,
@@ -346,17 +376,20 @@ class Epochs:
 
         Args:
             target_type: List of index of target type. Can be list index of subject or session.
-            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter epochs, including all available selection. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
             value: Value of splitting option. Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
+        
+        Returns:
+            [selected_mask, remaining_mask]
         """
-        num = self.get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
+        num = self._get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
         ret = mask & False
-        filter_preview_mask = self.get_mask_target(mask)
+        filter_preview_mask = self._generate_mask_target(mask)
         while num > 0:
-            filtered_mask_pair = self.get_filtered_mask_pair(filter_preview_mask)
+            filtered_mask_pair = self._get_filtered_mask_pair(filter_preview_mask)
             if filtered_mask_pair is None:
                 return ret, mask
             target = target_type[filtered_mask_pair[0]]
@@ -364,13 +397,13 @@ class Epochs:
                 pos = (mask & (target_type == target[-1]))
                 ret |= pos
                 mask &= np.logical_not(pos)
-                self.update_mask_target(filter_preview_mask, pos)
+                self._update_mask_target(filter_preview_mask, pos)
                 filtered_mask_pair[0] &= np.logical_not(pos)
                 filtered_mask_pair[1] += sum(pos)
                 num -= 1
         return ret, mask
 
-    def pick_manual(self, 
+    def _pick_manual(self, 
                     target_type: np.ndarray, 
                     mask: np.ndarray, 
                     value: List[int]) -> tuple[np.ndarray, np.ndarray]:
@@ -378,8 +411,11 @@ class Epochs:
 
         Args:
             target_type: List of index of target type. Can be list index of subject or session.
-            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
             value: List of manual selection.
+        
+        Returns:
+            [selected_mask, remaining_mask]
         """
         ret = mask & False
         for v in value:
@@ -397,17 +433,20 @@ class Epochs:
         """Return mask of epochs selected by subject.
 
         Args:
-            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter epochs, including all available selection. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
             value: Value of splitting option. Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
+       
+        Returns:
+            [selected_mask, remaining_mask]
         """
         target_type = self.get_subject_list()
         if split_unit == SplitUnit.MANUAL:
-            return self.pick_manual(target_type, mask, value)
+            return self._pick_manual(target_type, mask, value)
         else:
-            return self.pick(target_type, mask, clean_mask, value, split_unit, group_idx)
+            return self._pick(target_type, mask, clean_mask, value, split_unit, group_idx)
 
     def pick_session(self, 
                      mask: np.ndarray, 
@@ -418,17 +457,20 @@ class Epochs:
         """Return mask of epochs selected by session.
 
         Args:
-            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter epochs, including all available selection. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
             value: Value of splitting option. Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
+        
+        Returns:
+            [selected_mask, remaining_mask]
         """
         target_type = self.get_session_list()
         if split_unit == SplitUnit.MANUAL:
-            return self.pick_manual(target_type, mask, value)
+            return self._pick_manual(target_type, mask, value)
         else:
-            return self.pick(target_type, mask, clean_mask, value, split_unit, group_idx)
+            return self._pick(target_type, mask, clean_mask, value, split_unit, group_idx)
         
     def pick_trial(self, 
                    mask: np.ndarray, 
@@ -439,19 +481,25 @@ class Epochs:
         """Return mask of epochs selected by trial.
 
         Args:
-            mask: Mask to filter epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter epochs, including all available selection. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
             value: Value of splitting option. Can be ratio, number, or list of manual selection.
+                   When split_unit is manual selection, value is the boolean mask of selected epochs.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
+        
+        Returns:
+            [selected_mask, remaining_mask]
         """
         ret = mask & False
+        # manual selection
         if split_unit == SplitUnit.MANUAL:
             ret[value] = True
             ret &= mask
             mask &= np.logical_not(ret)
             return ret, mask
         
+        # get number of epochs to be selected
         if clean_mask is None:
             target = sum(mask)
         else:
@@ -468,10 +516,10 @@ class Epochs:
         else:
             raise NotImplementedError
         num = int(num)
-
-        filter_preview_mask = self.get_mask_target(mask)
+        # select epochs
+        filter_preview_mask = self._generate_mask_target(mask)
         while num > 0:
-            filtered_mask_pair = self.get_filtered_mask_pair(filter_preview_mask)
+            filtered_mask_pair = self._get_filtered_mask_pair(filter_preview_mask)
             if filtered_mask_pair is None:
                 return ret, mask
             pos = filtered_mask_pair[0].nonzero()[0][-1]
