@@ -32,7 +32,4 @@ class WindowEpoch(PreprocessBase):
         epoch = mne.make_fixed_length_epochs(mne_data, duration=duration, overlap=overlap, preload=True, id=FIXED_ID)
         _, event_id = preprocessed_data.get_event_list()
         epoch.event_id = {list(event_id.keys())[0]: FIXED_ID}
-        try:
-            preprocessed_data.set_mne_and_wipe_events(epoch)
-        except:
-            raise ValueError(f'Inconsistent number of events with label length.')
+        preprocessed_data.set_mne_and_wipe_events(epoch)

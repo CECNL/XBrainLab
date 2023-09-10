@@ -65,19 +65,20 @@ class TimeEpoch(PreprocessBase):
 
         if not self.event_id:
             raise ValidateException(window=self, message="No event was selected")
+        selected_event_names = list(self.event_id.keys())
         
         try:
             tmin = float(self.field_var['epoch_tmin'].get())
             tmax = float(self.field_var['epoch_tmax'].get())
-            self.return_data = self.preprocessor.data_preprocess(baseline, self.event_id, tmin, tmax)
+            self.return_data = self.preprocessor.data_preprocess(baseline, selected_event_names, tmin, tmax)
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
         
-        self.script_history.add_cmd(f'new_event_id={repr(self.event_id)}')
+        self.script_history.add_cmd(f'selected_event_names={repr(selected_event_names)}')
         self.script_history.add_cmd(f'baseline={repr(baseline)}')
         self.script_history.add_cmd(f'tmin={repr(tmin)}')
         self.script_history.add_cmd(f'tmax={repr(tmax)}')
-        self.script_history.add_cmd('study.preprocess(preprocessor=preprocessor.TimeEpoch, baseline=baseline, new_event_id=new_event_id, tmin=tmin, tmax=tmax)')
+        self.script_history.add_cmd('study.preprocess(preprocessor=preprocessor.TimeEpoch, baseline=baseline, selected_event_names=selected_event_names, tmin=tmin, tmax=tmax)')
         self.ret_script_history = self.script_history
 
         self.destroy()

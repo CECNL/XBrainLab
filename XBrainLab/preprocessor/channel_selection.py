@@ -16,5 +16,4 @@ class ChannelSelection(PreprocessBase):
         # Check if channel is selected
         if len(selected_channels) == 0:
             raise ValueError("No Channel is Selected")
-
         preprocessed_data.get_mne().pick_channels(selected_channels)

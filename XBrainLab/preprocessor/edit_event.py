@@ -4,12 +4,11 @@ from ..load_data import Raw
 import numpy as np
 from typing import List
 
-
 class EditEventName(PreprocessBase):
     """Preprocessing class for editing event name.
     
     Input:
-        new_event_name: Dict of new event name.
+        new_event_name: Mapping of old event name to new event name.
     """
 
     def check_data(self):
@@ -24,14 +23,22 @@ class EditEventName(PreprocessBase):
 
     def _data_preprocess(self, preprocessed_data: Raw, new_event_name: dict[str, str]):
         # update parent event name to event id dict
-        assert [k for k in new_event_name.keys()] != [v for v in new_event_name.values()], "No Event name updated."
-        if len([k for k in new_event_name.keys()]) != len([v for v in new_event_name.values()]):
-            print("UserWarning: Updated with duplicate new event names.")
-        
         events, event_id = preprocessed_data.get_event_list()
+        for k in new_event_name:
+            assert k in event_id, "New event name not found in old event name."
+        assert [k for k in new_event_name.keys()] != [v for v in new_event_name.values()], "No Event name updated."
+        
         new_event_id = {}
         for e in event_id:
-            new_event_id[new_event_name[e]] = event_id[e]
+            
+            if e in new_event_name:
+                new_name = new_event_name[e]
+            else:
+                new_name = e
+            if new_name in new_event_id:
+                raise ValueError(f"Duplicate event name: {new_name}")
+            new_event_id[new_name] = event_id[e]
+            
         preprocessed_data.set_event(events, new_event_id)
 
 class EditEventId(PreprocessBase):
