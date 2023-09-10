@@ -66,7 +66,7 @@ class LoadEvent(TopWindow):
         try:
             self.event_loader.create_event(new_event_name)
             self.script_history.add_script(self.load_script_history)
-            self.script_history.add_cmd(f"event_loader.create_event(new_event_name={repr(new_event_name)})")
+            self.script_history.add_cmd(f"event_loader.create_event(event_name_map={repr(new_event_name)})")
         except Exception as e:
             raise ValidateException(self, str(e))
         

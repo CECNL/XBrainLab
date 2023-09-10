@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 import numpy as np
 import scipy.io
 import tkinter as tk
@@ -60,41 +60,60 @@ class EventLoader:
         mat_content = scipy.io.loadmat(selected_file)
         mat_key = [k for k in mat_content.keys() if not k.startswith('_')]
         if len(mat_key) > 1:
-            tk.messagebox.showwarning(parent=self, title="Warning", message="File expected to contain only corresponding event data.")
+            raise ValueError("Mat file should contain exactly one variable.")
         else:
             mat_key = mat_key[0]
-        event_content = mat_content[mat_key].squeeze().astype(np.int32)
-        if len(event_content.shape)>1:
+        event_content = mat_content[mat_key].astype(np.int32)
+        # for (n,1) and (1,n) of labels
+        if len(event_content.shape) == 2:
+            if event_content.shape[0] == 1:
+                event_content = event_content[0]
+            elif event_content.shape[1] == 1:
+                event_content = event_content[:,0]
+        # (n, 3)
+        if len(event_content.shape) == 2:
+            assert event_content.shape[1] == 3, "Event array should have 3 columns."
             self.label_list = event_content
-            return event_content[:,-1].squeeze().tolist()
-        else:
+            return event_content[:, -1].tolist()
+        # (n,)
+        elif len(event_content.shape) == 1:
             self.label_list = event_content
             return event_content.tolist()
+        else:
+            raise ValueError("Either 1d or 2d array is expected.")
 
-    def create_event(self, new_event_name: List[str]) -> tuple:
+    def create_event(self, event_name_map: dict[int, str]) -> tuple:
         """Create event array and event id.
 
         Args:
-            new_event_name: List of event names.
+            event_name_map: Mapping from event code to event name.
 
         Returns:
             Tuple of event array and event id.
         """
-        if self.label_list is not None:
-            for e in new_event_name:
-                if not new_event_name[e].strip():
-                    raise ValueError("event name cannot be empty")
-            
-            if len(self.label_list.shape)>1:
-                event_id = {new_event_name[i]: i for i in np.unique(self.label_list[:,-1])}
+        if self.label_list is not None and len(self.label_list) > 0:
+            # check if new event name is valid
+            for e in event_name_map:
+                if not event_name_map[e].strip():
+                    raise ValueError("Event name cannot be empty.")
+                
+            self.label_list = np.array(self.label_list)
+            # label_list in (n,3) format
+            if len(self.label_list.shape) > 1:
+                # get new event id mapping
+                event_id = {event_name_map[i]: i for i in np.unique(self.label_list[:,-1])}
                 events = self.label_list
+            # label_list in (n,) format
             else:
-                event_id = {new_event_name[i]: i for i in list(set(self.label_list))}
-                events = np.zeros((len(self.label_list), 3), dtype=np.int32)
-                print('UserWarning: Event array created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
+                # get new event id mapping
+                event_id = {event_name_map[i]: i for i in np.unique(self.label_list)}
+                # create new event array
+                events = np.zeros((len(self.label_list), 3))
                 events[:,0] = range(len(self.label_list))
                 events[:,-1] = self.label_list
-                
+                print('UserWarning: Event array created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
+
+            # check if event array is consistent with raw data
             if not self.raw.is_raw():
                 if self.raw.get_epochs_length() != len(events):
                     raise ValueError(f'Inconsistent number of events (got {len(events)})')

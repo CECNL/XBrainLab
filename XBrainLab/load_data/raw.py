@@ -40,14 +40,10 @@ class Raw:
             Session name.
     """
 
-    def __init__(self, filepath: str, mne_data: mne.io.BaseRaw | mne.BaseEpochs, normalize=True):
+    def __init__(self, filepath: str, mne_data: mne.io.BaseRaw | mne.BaseEpochs):
         validate_type(filepath, str, 'filepath')
         validate_type(mne_data, (mne.io.BaseRaw, mne.BaseEpochs), 'mne_data')
         self.filepath = filepath
-        if normalize:
-            for ch in range(mne_data._data.shape[0]):
-                mne_data._data[ch,:] = mne_data._data[ch,:]-mne_data._data[ch,:].mean() # /(mne_data._data[ch,:].max()-mne_data._data[ch,:].min())
-                # mne_data._data[ch,:] = (mne_data._data[ch,:]-mne_data._data[ch,:].min())/(mne_data._data[ch,:].max()-mne_data._data[ch,:].min())
         self.mne_data = mne_data
         self.preprocess_history = []
         self.raw_events = None
@@ -116,37 +112,12 @@ class Raw:
         validate_type(events, np.ndarray, 'events')
         validate_type(event_id, dict, 'event_id')
         assert len(events.shape) == 2 and events.shape[1] == 3
-        
-        if self.is_raw() and (self.raw_events is None or len(self.raw_events)==0 or self.raw_events.shape == events.shape): # legal event update
-            self.raw_events = events
-            self.raw_event_id = event_id
-        elif self.is_raw():
-            raw_events_copy = self.raw_events.copy()
-            events_copy = events.copy()
-
-            uq, cnt = np.unique(self.raw_events[:,-1], return_counts=True)
-            
-            event_count = {u:c for u,c in zip(uq, cnt)}
-            event_targets = {v:k for k,v in self.raw_event_id.items() if event_count[v]==len(events)}
-
-            assert len(event_targets) > 0
-
-            for target in event_targets.values():
-                _ = self.raw_event_id.pop(target)
-            for k,target in event_targets.items():
-                for i,j in enumerate(event_id.values()):
-                    new_id = 1
-                    while new_id in self.raw_event_id.values():
-                        new_id += 1
-                    self.raw_event_id[target+f'_{i}'] = new_id
-                    events[np.where(events_copy[:,-1]==j),-1] = new_id
-
-                self.raw_events[np.where(raw_events_copy[:,-1]==k),-1] = events[:,-1]
-            print(f'UserWarning: Inconsistent number of events with existing event number {self.raw_events.shape[0]} (got {len(events)}). Events with matching number are automatically updated with running numbers.')
-        else:
+        if not self.is_raw():
             assert self.get_epochs_length() == len(events)
             self.mne_data.events = events
             self.mne_data.event_id = event_id
+        self.raw_events = events
+        self.raw_event_id = event_id
 
     def set_mne(self, data: mne.io.BaseRaw | mne.BaseEpochs) -> None:
         """Set new mne data.
@@ -217,29 +188,19 @@ class Raw:
         Returns:
             (events, event_id)
         """
+        # epoch data
         try:
             if self.mne_data.event_id:
                 return self.mne_data.events, self.mne_data.event_id
         except:
             pass
+        # stim channel
         try:
             events = mne.find_events(self.mne_data)
-            if len(events) != len(np.unique(events[:,0])):
-                    events[:,0] = range(len(events))
-            event_ids = {}
-            for i, event in enumerate(np.unique(events[:,-1])):
-                event_ids[i] = event
-
-            self.set_event(events, event_ids)
-            return self.raw_events, self.raw_event_id
+            event_ids = {str(e):e for e in np.unique(events[:,-1])}
+            return events, event_ids
         except:
-            try:
-                events, event_ids = mne.events_from_annotations(self.mne_data)
-                self.set_event(events, event_ids)
-                return self.raw_events, self.raw_event_id
-            except Exception as e:
-                raise RuntimeError("Exception occured in get_raw_event_list():",e)
-        return None, None
+            return mne.events_from_annotations(self.mne_data)
 
     def get_event_list(self) -> tuple[list[list[int]], dict[str, int]]:
         """Return the event list and event id of the raw data.
