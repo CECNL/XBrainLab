@@ -37,38 +37,13 @@ class SCCNet(nn.Module):
         # (20* ceiling((timepoint-sf/2)/floor(sf*0.1)), n_class)
         self.classifier = nn.Linear(20* int( (self.tp + (int(np.ceil((self.octsf-1)/2)) * 2 - self.octsf + 1) - int(self.sf/2) ) / int(self.octsf)+1 ), self.n_class, bias=True)
         
-        self.addHook = False
-        self.spatialGrad = None
-        self.spatialResponse = None
-        self.temporalGrad = None
-        self.temporalResponse = None
-        
-        
-    def setHook(self, addHook):
-        self.addHook = addHook
-    
     def forward(self, x):
-        def convert(var):
-            return var.detach().cpu().numpy().squeeze()
-        def spGrad(var):
-            self.spatialGrad = convert(var)
-        def tpGrad(var):
-            self.temporalGrad = convert(var)
-            
         if len(x.shape) != 4:
             x = x.unsqueeze(1)
         spX = self.conv1(x) #(128,22,1,562)
-        # hook for sptial grad
-        if self.addHook:
-            spX.register_hook(spGrad)
-            self.spatialResponse = convert(spX)
             
         x = self.Bn1(spX)
         tpX = self.conv2(x) #(128,20,1,563)
-        # hook for temperal grad
-        if self.addHook:
-            tpX.register_hook(tpGrad)
-            self.temporalResponse = convert(tpX)
         
         x = self.Bn2(tpX)
         x = x ** 2
@@ -79,11 +54,3 @@ class SCCNet(nn.Module):
         x = self.classifier(x)
 
         return x
-    
-    def getTemporalWeights(self):
-        weights = self.conv2.weight.detach().cpu().numpy().squeeze()
-        return weights
-
-    def getSpatialWeights(self):
-        weights = self.conv1.weight.detach().cpu().numpy().squeeze()
-        return weights

@@ -26,11 +26,16 @@ class ShallowConvNet(nn.Module):
         self.AvgPool1 = nn.AvgPool2d((1, 35), stride=(1, 7))
         # self.LogLayer = Log_layer()
         self.Drop1 = nn.Dropout(0.25)
-        self.outSize = (samples - self.kernel) - 35 / 7
+        if self.kernel % 2 == 1:
+            self.outSize = math.ceil(((samples - self.kernel) - 34) / 7)
+        else:
+            self.outSize = math.ceil(((samples - self.kernel) - 35) / 7)
         self.classifier = nn.Linear(self.spatial_filter*self.outSize, n_classes, bias=True)
         #self.softmax = nn.Softmax()
 
     def forward(self, x):
+        if len(x.shape) != 4:
+            x = x.unsqueeze(1)
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.Bn1(x)
