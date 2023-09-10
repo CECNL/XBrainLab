@@ -1,7 +1,11 @@
 from ..base import TopWindow
 import tkinter as tk
 import matplotlib
-matplotlib.use('TkAgg')
+import traceback
+try:
+    matplotlib.use('TkAgg')
+except Exception as e:
+    traceback.print_exc()
 
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
