@@ -1,19 +1,28 @@
-from XBrainLab.dataset import DatasetGenerator, DataSplittingConfig, DataSplitter, Dataset
+from XBrainLab.dataset import (
+    DatasetGenerator, DataSplittingConfig, DataSplitter, Dataset
+)
 from XBrainLab.dataset import SplitUnit, SplitByType, TrainingType, ValSplitByType
-from .test_epochs import epochs, preprocessed_data_list, n_class, n_trial, subject_list, session_list, block_size
+from .test_epochs import (
+    epochs, preprocessed_data_list, # noqa: F401
+    n_class, n_trial, subject_list, session_list, block_size
+)
 
 import pytest
 import numpy as np
 
-def test_dataset_generator(epochs):
+def test_dataset_generator(
+    epochs, # noqa: F811
+):
     train_type = TrainingType.IND
     is_cross_validation = False
     test_splitter_list = []
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     with pytest.raises(AssertionError):
         DatasetGenerator(epochs, config, ['test'])
-    generator = DatasetGenerator(epochs, config)
+    DatasetGenerator(epochs, config)
     
 @pytest.mark.parametrize('split_type, mock_target', [
     (SplitByType.SESSION, 'pick_session'),
@@ -23,7 +32,10 @@ def test_dataset_generator(epochs):
     (SplitByType.TRIAL, 'pick_trial'),
     (SplitByType.TRIAL_IND, 'pick_trial')
 ])
-def test_dataset_generator_split_test(mocker, epochs, split_type, mock_target):
+def test_dataset_generator_split_test(
+    epochs, # noqa: F811
+    mocker, split_type, mock_target
+):
     # prepare generator
     train_type = TrainingType.IND
     is_cross_validation = False
@@ -33,7 +45,9 @@ def test_dataset_generator_split_test(mocker, epochs, split_type, mock_target):
         DataSplitter(split_type, split_value, split_unit)
     ]
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
@@ -75,7 +89,10 @@ def test_dataset_generator_split_test(mocker, epochs, split_type, mock_target):
     (SplitByType.TRIAL, 'pick_trial'),
     (SplitByType.TRIAL_IND, 'pick_trial')
 ])
-def test_dataset_generator_split_test_list(mocker, epochs, split_type, mock_target):
+def test_dataset_generator_split_test_list(
+    epochs, # noqa: F811
+    mocker, split_type, mock_target
+):
     # prepare generator
     train_type = TrainingType.IND
     is_cross_validation = False
@@ -86,7 +103,9 @@ def test_dataset_generator_split_test_list(mocker, epochs, split_type, mock_targ
         DataSplitter(split_type, split_value, split_unit)
     ]
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
@@ -114,12 +133,15 @@ def test_dataset_generator_split_test_list(mocker, epochs, split_type, mock_targ
 
     call_args = call_args_lists[1][1]
     assert np.array_equal(call_args['mask'], test_mask)
-    assert call_args['clean_mask'] == None
+    assert call_args['clean_mask'] is None
     assert call_args['value'] == split_value
     assert call_args['split_unit'] == split_unit
     assert call_args['group_idx'] == group_idx
 
-def test_dataset_generator_split_test_empty(mocker, epochs):
+def test_dataset_generator_split_test_empty(
+    epochs, # noqa: F811
+    mocker
+):
     # prepare generator
     split_type = SplitByType.SESSION
     mock_target = 'pick_session'
@@ -132,7 +154,9 @@ def test_dataset_generator_split_test_empty(mocker, epochs):
         DataSplitter(split_type, split_value, split_unit)
     ]
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
@@ -160,7 +184,7 @@ def test_dataset_generator_split_test_empty(mocker, epochs):
     assert len(X) == 0
     assert len(y) == 0
     
-    assert (next_mask == False).all()
+    assert (~next_mask).all()
     assert not generator.preview_failed
 
     generator.set_interrupt()
@@ -168,7 +192,9 @@ def test_dataset_generator_split_test_empty(mocker, epochs):
     assert generator.preview_failed
     assert not generator.is_clean()
 
-def test_dataset_generator_split_test_failed(epochs):
+def test_dataset_generator_split_test_failed(
+    epochs, # noqa: F811
+):
     # prepare generator
     split_type = SplitByType.SESSION
     train_type = TrainingType.IND
@@ -179,7 +205,9 @@ def test_dataset_generator_split_test_failed(epochs):
         DataSplitter(split_type, split_value, split_unit)
     ]
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
     group_idx = 0
@@ -191,7 +219,9 @@ def test_dataset_generator_split_test_failed(epochs):
     
     assert generator.preview_failed
 
-def test_dataset_generator_split_test_interrupted(epochs):
+def test_dataset_generator_split_test_interrupted(
+    epochs, # noqa: F811
+):
     # prepare generator
     split_type = SplitByType.SESSION
     train_type = TrainingType.IND
@@ -202,7 +232,9 @@ def test_dataset_generator_split_test_interrupted(epochs):
         DataSplitter(split_type, split_value, split_unit)
     ]
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
     group_idx = 0
@@ -226,11 +258,16 @@ def test_dataset_generator_split_test_interrupted(epochs):
         DataSplitter(SplitByType.SUBJECT_IND, 1, SplitUnit.NUMBER)
     ])
 ])
-def test_dataset_generator_split_test_independent(epochs, target_getter_name, expected_length, test_splitter_list):
+def test_dataset_generator_split_test_independent(
+    epochs, # noqa: F811
+    target_getter_name, expected_length, test_splitter_list
+):
     train_type = TrainingType.FULL
     is_cross_validation = False
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     
     dataset = Dataset(epochs, config)
@@ -238,10 +275,15 @@ def test_dataset_generator_split_test_independent(epochs, target_getter_name, ex
     mask = np.ones(epochs.get_data_length(), dtype=bool)
     clean_mask = np.ones(epochs.get_data_length(), dtype=bool)
     generator.split_test(dataset, group_idx, mask, clean_mask)
-    assert len(np.unique(getattr(epochs, target_getter_name)()[dataset.get_remaining_mask()])) == expected_length
+    assert len(
+        np.unique(getattr(epochs, target_getter_name)()[dataset.get_remaining_mask()])
+    ) == expected_length
 
 @pytest.mark.parametrize('split_type', ['error', None])
-def test_dataset_generator_split_test_not_implemented(epochs, split_type):
+def test_dataset_generator_split_test_not_implemented(
+    epochs, # noqa: F811
+    split_type
+):
     # prepare generator
     train_type = TrainingType.IND
     is_cross_validation = False
@@ -252,7 +294,9 @@ def test_dataset_generator_split_test_not_implemented(epochs, split_type):
     ]
     test_splitter_list[0].split_type = split_type
     val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     
     dataset = Dataset(epochs, config)
@@ -267,7 +311,10 @@ def test_dataset_generator_split_test_not_implemented(epochs, split_type):
     (ValSplitByType.SUBJECT, 'pick_subject'),
     (ValSplitByType.TRIAL, 'pick_trial'),
 ])
-def test_dataset_generator_split_validation(mocker, epochs, split_type, mock_target):
+def test_dataset_generator_split_validation(
+    epochs, # noqa: F811
+    mocker, split_type, mock_target
+):
     train_type = TrainingType.FULL
     is_cross_validation = False
     split_value = 0.2
@@ -276,7 +323,9 @@ def test_dataset_generator_split_validation(mocker, epochs, split_type, mock_tar
         DataSplitter(split_type, split_value, split_unit)
     ]
     test_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
 
@@ -310,7 +359,9 @@ def test_dataset_generator_split_validation(mocker, epochs, split_type, mock_tar
         assert np.array_equal(X[i], expected)
         assert y[i] == np.arange(n_class).repeat(n_trial)[i]
     
-def test_dataset_generator_split_validation_failed(epochs):
+def test_dataset_generator_split_validation_failed(
+    epochs, # noqa: F811
+):
     # prepare generator
     split_type = ValSplitByType.SESSION
     train_type = TrainingType.IND
@@ -321,7 +372,9 @@ def test_dataset_generator_split_validation_failed(epochs):
         DataSplitter(split_type, split_value, split_unit)
     ]
     test_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
     group_idx = 0
@@ -337,7 +390,10 @@ def test_dataset_generator_split_validation_failed(epochs):
 
 
 @pytest.mark.parametrize('split_type', ['error', None])
-def test_dataset_generator_split_validation_not_implemented(epochs, split_type):
+def test_dataset_generator_split_validation_not_implemented(
+    epochs, # noqa: F811
+    split_type
+):
     # prepare generator
     train_type = TrainingType.IND
     is_cross_validation = False
@@ -348,7 +404,9 @@ def test_dataset_generator_split_validation_not_implemented(epochs, split_type):
         DataSplitter(ValSplitByType.SESSION, split_value, split_unit)
     ]
     val_splitter_list[0].split_type = split_type
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     
     dataset = Dataset(epochs, config)
@@ -356,7 +414,9 @@ def test_dataset_generator_split_validation_not_implemented(epochs, split_type):
     with pytest.raises(NotImplementedError):
         generator.split_validate(dataset, group_idx)
 
-def test_dataset_generator_split_validation_interrupt(epochs):
+def test_dataset_generator_split_validation_interrupt(
+    epochs, # noqa: F811
+):
     # prepare generator
     split_type = ValSplitByType.SESSION
     train_type = TrainingType.IND
@@ -367,7 +427,9 @@ def test_dataset_generator_split_validation_interrupt(epochs):
         DataSplitter(split_type, split_value, split_unit)
     ]
     test_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
     group_idx = 0
@@ -378,12 +440,16 @@ def test_dataset_generator_split_validation_interrupt(epochs):
     assert generator.interrupted
     assert generator.preview_failed
     
-def test_dataset_generator_failed(epochs):
+def test_dataset_generator_failed(
+    epochs, # noqa: F811
+):
     train_type = TrainingType.FULL
     is_cross_validation = False
     val_splitter_list = []
     test_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     generator.preview_failed = True
     assert not generator.is_clean()
@@ -401,12 +467,17 @@ def test_dataset_generator_failed(epochs):
     ('handle_IND', 'Subject-'),
     ('handle_FULL', 'Group'),
 ])
-def test_dataset_generator_name_prefix(mocker, epochs, test_scheme_func_name, expected_name_prefix):
+def test_dataset_generator_name_prefix(
+    epochs, # noqa: F811
+    mocker, test_scheme_func_name, expected_name_prefix
+):
     train_type = TrainingType.FULL
     is_cross_validation = False
     val_splitter_list = []
     test_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
 
     handle_mock = mocker.patch.object(generator, 'handle')
@@ -414,7 +485,9 @@ def test_dataset_generator_name_prefix(mocker, epochs, test_scheme_func_name, ex
     called_args = handle_mock.call_args[0]
     assert called_args[0].startswith(expected_name_prefix)
 
-def test_dataset_generator_handle_individual(epochs):
+def test_dataset_generator_handle_individual(
+    epochs, # noqa: F811
+):
     train_type = TrainingType.IND
     is_cross_validation = False
     split_value = 1
@@ -427,7 +500,9 @@ def test_dataset_generator_handle_individual(epochs):
     val_splitter_list = [
         DataSplitter(ValSplitByType.TRIAL, split_value, split_unit)
     ]
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     result = generator.generate()
     assert len(result) == len(subject_list)
@@ -440,7 +515,9 @@ def test_dataset_generator_handle_individual(epochs):
         X, _ = result[i].get_test_data()
         assert ((X // 1000 * 1000) == ((i + 1) * 100000 + 1 * 1000)).all()
         
-def test_dataset_generator_handle_individual_cross_validation(epochs):
+def test_dataset_generator_handle_individual_cross_validation(
+    epochs, # noqa: F811
+):
     train_type = TrainingType.IND
     is_cross_validation = True
     split_value = 1
@@ -453,22 +530,38 @@ def test_dataset_generator_handle_individual_cross_validation(epochs):
     val_splitter_list = [
         DataSplitter(ValSplitByType.TRIAL, split_value, split_unit)
     ]
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     result = generator.generate()
     assert len(result) == len(subject_list) * len(session_list)
     for i in range(len(subject_list)):
         for j in range(len(session_list)):
             idx = i * len(session_list) + j
-            assert result[idx].get_name() == str(idx) + '-Subject-' + str(i + 1) + '_' + str(j)
+            assert (
+                result[idx].get_name() == 
+                str(idx) + '-Subject-' + str(i + 1) + '_' + str(j)
+            )
             X, _ = result[idx].get_training_data()
-            assert ((X // 1000 * 1000) == ((i + 1) * 100000 + ((j + 1) % len(session_list) + 1) * 1000)).all()
+            assert (
+                (X // 1000 * 1000) == 
+                ((i + 1) * 100000 + ((j + 1) % len(session_list) + 1) * 1000)
+            ).all()
             X, _ = result[idx].get_val_data()
-            assert ((X // 1000 * 1000) == ((i + 1) * 100000 + ((j + 1) % len(session_list) + 1) * 1000)).all()
+            assert (
+                (X // 1000 * 1000) == 
+                ((i + 1) * 100000 + ((j + 1) % len(session_list) + 1) * 1000)
+            ).all()
             X, _ = result[idx].get_test_data()
-            assert ((X // 1000 * 1000) == ((i + 1) * 100000 + ((j) % len(session_list) + 1) * 1000)).all()
+            assert (
+                (X // 1000 * 1000) == 
+                ((i + 1) * 100000 + ((j) % len(session_list) + 1) * 1000)
+            ).all()
 
-def test_dataset_generator_handle_full(epochs):
+def test_dataset_generator_handle_full(
+    epochs, # noqa: F811
+):
     train_type = TrainingType.FULL
     is_cross_validation = False
     split_value = 1
@@ -481,7 +574,9 @@ def test_dataset_generator_handle_full(epochs):
     val_splitter_list = [
         DataSplitter(ValSplitByType.SESSION, split_value, split_unit)
     ]
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     result = generator.generate()
     assert len(result) == 1
@@ -498,7 +593,9 @@ def test_dataset_generator_handle_full(epochs):
     assert len(X) == block_size * len(session_list)
         
 
-def test_dataset_generator_handle_full_cross_validation(epochs):
+def test_dataset_generator_handle_full_cross_validation(
+    epochs, # noqa: F811
+): 
     train_type = TrainingType.FULL
     is_cross_validation = True
     split_value = 1
@@ -511,7 +608,9 @@ def test_dataset_generator_handle_full_cross_validation(epochs):
     val_splitter_list = [
         DataSplitter(ValSplitByType.SESSION, split_value, split_unit)
     ]
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     result = generator.generate()
     assert len(result) == len(subject_list)
@@ -520,7 +619,10 @@ def test_dataset_generator_handle_full_cross_validation(epochs):
         assert result[i].get_name() == str(i) + '-Group_' + str(i)
         X, _ = result[i].get_training_data()
         assert ((X // 100000 * 100000) != ((i + 1) * 100000)).all()
-        assert len(X) == block_size * ((len(subject_list) - 1) * (len(session_list) - 1))
+        assert (
+            len(X) == 
+            block_size * ((len(subject_list) - 1) * (len(session_list) - 1))
+        )
         X, _ = result[i].get_val_data()
         assert ((X // 100000 * 100000) != ((i + 1) * 100000)).all()
         assert len(X) == block_size * ((len(subject_list) - 1) * 1)
@@ -537,10 +639,15 @@ def test_dataset_generator_handle_full_cross_validation(epochs):
     ([1], False),
     ([1, 2, 3], False)
 ])
-def test_dataset_generator_generate(mocker, epochs, train_type, handle_func_name, datasets, has_error):
+def test_dataset_generator_generate(
+    epochs, # noqa: F811
+    mocker, train_type, handle_func_name, datasets, has_error
+):
     is_cross_validation = False
     test_splitter_list = val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     def handle():
         generator.datasets = datasets
@@ -554,13 +661,17 @@ def test_dataset_generator_generate(mocker, epochs, train_type, handle_func_name
     handle_mock.assert_called_once()
 
 @pytest.mark.parametrize('train_type', ["error", None])
-def test_dataset_generator_generate_not_implemented(epochs, train_type):
+def test_dataset_generator_generate_not_implemented(
+    epochs, # noqa: F811
+    train_type
+):
     is_cross_validation = False
     test_splitter_list = val_splitter_list = []
-    config = DataSplittingConfig(TrainingType.IND, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        TrainingType.IND, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     config.train_type = train_type
     generator = DatasetGenerator(epochs, config)
-    datasets = [1]
     with pytest.raises(NotImplementedError):
         generator.generate()
         assert not generator.is_clean()
@@ -570,10 +681,15 @@ def test_dataset_generator_generate_not_implemented(epochs, train_type):
     (TrainingType.IND),
     (TrainingType.FULL)
 ])
-def test_dataset_generator_generate_exists(epochs, train_type):
+def test_dataset_generator_generate_exists(
+    epochs, # noqa: F811
+    train_type
+):
     is_cross_validation = False
     test_splitter_list = val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     datasets = [1 ,2 ,3]
     generator.datasets = datasets
@@ -582,12 +698,14 @@ def test_dataset_generator_generate_exists(epochs, train_type):
 
 
 def _dataset_generator(selected):
-    def func(epochs):
+    def func(epoch):
         train_type = TrainingType.IND
         is_cross_validation = False
         test_splitter_list = val_splitter_list = []
-        config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
-        dataset = Dataset(epochs, config)
+        config = DataSplittingConfig(
+            train_type, is_cross_validation, val_splitter_list, test_splitter_list
+        )
+        dataset = Dataset(epoch, config)
         dataset.set_selection(selected)
         return dataset
     return func
@@ -603,10 +721,15 @@ def _dataset_generator(selected):
     (TrainingType.IND),
     (TrainingType.FULL)
 ])
-def test_dataset_generator_prepare_reuslt(mocker, epochs, train_type, datasets, has_error):
+def test_dataset_generator_prepare_reuslt(
+    epochs, # noqa: F811
+    mocker, train_type, datasets, has_error
+):
     is_cross_validation = False
     test_splitter_list = val_splitter_list = []
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     for i in range(len(datasets)):
         if not isinstance(datasets[i], Dataset):
@@ -620,12 +743,14 @@ def test_dataset_generator_prepare_reuslt(mocker, epochs, train_type, datasets, 
         generator.prepare_reuslt()
         assert generator.is_clean()
 
-def test_dataset_generator_apply(epochs):
+def test_dataset_generator_apply(epochs): # noqa: F811
     from XBrainLab import XBrainLab
     lab = XBrainLab()
     is_cross_validation = False
     test_splitter_list = val_splitter_list = []
-    config = DataSplittingConfig(TrainingType.IND, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        TrainingType.IND, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     generator = DatasetGenerator(epochs, config)
     generator.datasets = [Dataset(epochs, config)]
     generator.apply(lab)

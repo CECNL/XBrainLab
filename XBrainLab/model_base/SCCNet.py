@@ -28,14 +28,30 @@ class SCCNet(nn.Module):
         self.conv1 = nn.Conv2d(1, Ns, (self.ch, 1))  
         self.Bn1 = nn.BatchNorm2d(Ns) #(n_ch) 
         #kernelsize=(1, floor(sf*0.1)) padding= (0, floor(sf*0.1)/2)
-        self.conv2 = nn.Conv2d(Ns, 20, (1, self.octsf), padding=(0, int(np.ceil((self.octsf-1)/2))))
+        self.conv2 = nn.Conv2d(
+            Ns, 20, (1, self.octsf), padding=(0, int(np.ceil((self.octsf-1)/2)))
+        )
         self.Bn2   = nn.BatchNorm2d(20)
         
         self.Drop1 = nn.Dropout(0.5) 
         #kernelsize=(1, sf/2) revise to 128/2?  stride=(1, floor(sf*0.1))
-        self.AvgPool1 = nn.AvgPool2d((1, int(self.sf/2)), stride=(1, int(self.octsf))) 
+        self.AvgPool1 = nn.AvgPool2d(
+            (1, int(self.sf/2)), stride=(1, int(self.octsf))
+        ) 
         # (20* ceiling((timepoint-sf/2)/floor(sf*0.1)), n_class)
-        self.classifier = nn.Linear(20* int( (self.tp + (int(np.ceil((self.octsf-1)/2)) * 2 - self.octsf + 1) - int(self.sf/2) ) / int(self.octsf)+1 ), self.n_class, bias=True)
+        self.classifier = nn.Linear(
+            (
+                20 * 
+                int(
+                    (
+                        self.tp + (
+                            int(np.ceil((self.octsf - 1) / 2)) * 2 - self.octsf + 1
+                        ) - int(self.sf / 2) 
+                    ) / int(self.octsf) + 1 
+                )
+            ), 
+            self.n_class, bias=True
+        )
         
     def forward(self, x):
         if len(x.shape) != 4:
@@ -50,7 +66,12 @@ class SCCNet(nn.Module):
         x = self.Drop1(x)
         x = self.AvgPool1(x) #(128,20,1,42)
         x = torch.log(x) 
-        x = x.view(-1, 20* int( (self.tp + (int(np.ceil((self.octsf-1)/2)) * 2 - self.octsf + 1) - int(self.sf/2) ) / int(self.octsf)+1 ))
+        x = x.view(-1, 
+                   20 * int((
+                       self.tp + (
+                           int(np.ceil((self.octsf - 1) / 2)) * 2 - self.octsf + 1
+                       ) - int(self.sf / 2)) / int(self.octsf) + 1)
+        )
         x = self.classifier(x)
 
         return x

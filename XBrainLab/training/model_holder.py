@@ -11,14 +11,22 @@ class ModelHolder:
         model_params_map (dict): Model parameters
         pretrained_weight_path (str): Path to pretrained weight
     """
-    def __init__(self, target_model: type, model_params_map: dict, pretrained_weight_path: str | None):
+    def __init__(
+        self, 
+        target_model: type, 
+        model_params_map: dict, 
+        pretrained_weight_path: str | None
+    ):
         self.target_model = target_model
         self.model_params_map = model_params_map
         self.pretrained_weight_path = pretrained_weight_path
 
     def get_model_desc_str(self) -> str:
         """Get model description string, including model name and parameters"""
-        option_list = [f"{i}={self.model_params_map[i]}" for i in self.model_params_map if self.model_params_map[i] ]
+        option_list = [
+            f"{i}={self.model_params_map[i]}" 
+            for i in self.model_params_map if self.model_params_map[i] 
+        ]
         options = ', '.join(option_list)
         return f"{self.target_model.__name__} ({options})"
 

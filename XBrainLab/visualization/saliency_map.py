@@ -38,7 +38,8 @@ class SaliencyMapViz(Visualizer):
             plt.ylabel("channel")
             ch_names = self.epoch_data.get_channel_names()
             plt.yticks(ticks=range(len(ch_names)), labels=ch_names, fontsize=6)
-            plt.xticks(ticks=np.linspace(0, saliency.shape[-1], 5), labels = np.round(np.linspace(0, duration, 5),2))
+            plt.xticks(ticks=np.linspace(0, saliency.shape[-1], 5), 
+                       labels=np.round(np.linspace(0, duration, 5),2))
             plt.colorbar(im, orientation='vertical')
             plt.title(f"Saliency Map of class {self.epoch_data.label_map[labelIndex]}")
         plt.tight_layout()

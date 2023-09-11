@@ -1,6 +1,5 @@
 from .base import PreprocessBase
 import scipy.io
-import numpy as np
 import os
 
 class Export(PreprocessBase):

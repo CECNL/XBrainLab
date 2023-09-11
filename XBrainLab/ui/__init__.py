@@ -13,7 +13,10 @@ class Catcher:
             if isinstance(self.func.__self__, tk.Toplevel):
                 self.win = self.func.__self__
         for param, value in inspect.signature(self.func).parameters.items():
-            if (param == 'win' or param == 'window') and isinstance(value.default, tk.Toplevel):
+            if (
+                (param == 'win' or param == 'window') 
+                and isinstance(value.default, tk.Toplevel)
+            ):
                 self.win = value.default
 
     def __call__(self, *args):
@@ -29,7 +32,7 @@ class Catcher:
             try:
                 if self.win.window_exist:
                     parent = self.win
-            except:
+            except AttributeError:
                 pass
             tk.messagebox.showerror(parent=parent, title='Error', message=e)
             

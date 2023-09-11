@@ -28,7 +28,7 @@ class ValidateException(CustomException):
         try:
             if not self.window.window_exist:
                 self.window = None
-        except:
+        except AttributeError:
             self.window = None
         tk.messagebox.showerror(parent=self.window, title='Error', message=self)
 

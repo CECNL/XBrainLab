@@ -2,10 +2,18 @@ import tkinter as tk
 from . import SinglePlotWindow
 from ..base import InitWindowValidateException
 from ..script import Script
-from XBrainLab.visualization import PlotType
 
 class PlotFigureWindow(SinglePlotWindow):
-    def __init__(self, parent, trainers, plot_type, figsize=None, title='Plot', plan_name=None, real_plan_name=None):
+    def __init__(
+        self, 
+        parent, 
+        trainers, 
+        plot_type, 
+        figsize=None, 
+        title='Plot',
+        plan_name=None, 
+        real_plan_name=None
+    ):
         super().__init__(parent, figsize, title=title)
         self.trainers = trainers
         self.trainer = None
@@ -14,7 +22,9 @@ class PlotFigureWindow(SinglePlotWindow):
         self.plan_to_plot = None
         self.current_plot = None
         self.script_history = Script()
-        self.script_history.add_import("from XBrainLab.visualization import PlotType")
+        self.script_history.add_import(
+            "from XBrainLab.visualization import PlotType"
+        )
         self.plot_gap = 0
 
         # init data
@@ -35,8 +45,13 @@ class PlotFigureWindow(SinglePlotWindow):
         selected_real_plan_name = tk.StringVar(self)
         selected_real_plan_name.set(real_plan_list[0])
         selected_real_plan_name.trace('w', self.on_real_plan_select) # callback
-        selected_plan_name.trace('w', lambda *args,win=self: selected_real_plan_name.set(real_plan_list[0])) # reset selection
-        real_plan_opt = tk.OptionMenu(selector_frame, selected_real_plan_name, *real_plan_list)
+        selected_plan_name.trace(
+            'w', 
+            lambda *args, win=self: selected_real_plan_name.set(real_plan_list[0])
+        ) # reset selection
+        real_plan_opt = tk.OptionMenu(
+            selector_frame, selected_real_plan_name, *real_plan_list
+        )
 
         plan_opt.pack()
         real_plan_opt.pack()
@@ -60,11 +75,22 @@ class PlotFigureWindow(SinglePlotWindow):
 
 
     def check_data(self):
-        if type(self.trainers) != list or len(self.trainers) == 0:
-            raise InitWindowValidateException(self, 'No valid training plan is generated')
+        if (
+            not isinstance(self.trainers, list) 
+            or len(self.trainers) == 0
+        ):
+            raise InitWindowValidateException(
+                self, 
+                'No valid training plan is generated'
+            )
 
     def add_plot_command(self):
-        self.script_history.add_ui_cmd(f"study.show_plot(plot_type={self.plot_type.__class__.__name__}.{self.plot_type.name}, plan_name={repr(self.selected_plan_name.get())}, real_plan_name={repr(self.selected_real_plan_name.get())})")
+        self.script_history.add_ui_cmd((
+            "study.show_plot(plot_type="
+            f"{self.plot_type.__class__.__name__}.{self.plot_type.name}, "
+            f"plan_name={repr(self.selected_plan_name.get())}, "
+            f"real_plan_name={repr(self.selected_real_plan_name.get())})"
+        ))
 
     def on_plan_select(self, var_name, *args):
         self.set_selection(False)
@@ -81,7 +107,10 @@ class PlotFigureWindow(SinglePlotWindow):
         self.trainer = trainer
         self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
-            self.real_plan_opt['menu'].add_command(label=choice, command=lambda win=self,value=choice: self.selected_real_plan_name.set(value))
+            self.real_plan_opt['menu'].add_command(
+                label=choice, 
+                command=lambda win=self, v=choice: win.selected_real_plan_name.set(v)
+            )
 
     def on_real_plan_select(self, var_name, *args):
         self.set_selection(False)
@@ -114,7 +143,9 @@ class PlotFigureWindow(SinglePlotWindow):
                 else:
                     self.plot_gap = 0
                     update_progress = self.plan_to_plot.get_epoch()
-                    if update_progress != self.update_progress or self.plan_to_plot.is_finished():
+                    if (update_progress != self.update_progress or 
+                        self.plan_to_plot.is_finished()
+                    ):
                         self.update_progress = update_progress
                         self.show_drawing()
                         figure = self._create_figure()
@@ -133,9 +164,14 @@ class PlotFigureWindow(SinglePlotWindow):
             return
         trainer = self.trainer_map[self.selected_plan_name.get()]
         while len(trainer.get_plans()) > 0 and item_count < len(trainer.get_plans()):
-            self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
+            self.real_plan_map = {
+                plan.get_name(): plan for plan in trainer.get_plans()
+            }
             choice = trainer.get_plans()[item_count].get_name()
-            self.real_plan_opt['menu'].add_command(label=choice, command=lambda win=self,value=choice: self.selected_real_plan_name.set(value))
+            self.real_plan_opt['menu'].add_command(
+                label=choice, 
+                command=lambda win=self, v=choice: win.selected_real_plan_name.set(v)
+            )
             item_count += 1
 
     def set_selection(self, allow):

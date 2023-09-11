@@ -8,7 +8,7 @@ from numpy.random import RandomState, SeedSequence
 
 def set_seed(seed: int | None = None) -> int:
     """Set seed for reproducibility and return the seed value."""
-    if seed == None:
+    if seed is None:
         seed = torch.seed()
 
     # random

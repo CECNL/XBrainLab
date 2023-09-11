@@ -14,7 +14,12 @@ class Visualizer:
         dpi: figure dpi
         fig: figure to plot on. If None, a new figure will be created
     """
-    def __init__(self, eval_record: EvalRecord, epoch_data: Epochs, figsize: tuple = (6.4, 4.8), dpi: int = 100, fig: Figure = None):
+    def __init__(self, 
+                 eval_record: EvalRecord, 
+                 epoch_data: Epochs, 
+                 figsize: tuple = (6.4, 4.8), 
+                 dpi: int = 100, 
+                 fig: Figure = None):
         self.eval_record = eval_record
         self.epoch_data = epoch_data
         self.figsize = figsize

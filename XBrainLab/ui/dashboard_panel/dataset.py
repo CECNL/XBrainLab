@@ -1,8 +1,5 @@
 from .base import PanelBase
-from ..base import TopWindow
 from ..load_data import DataType
-from XBrainLab.dataset import Epochs
-from XBrainLab.load_data import Raw
 import tkinter as tk
 
 class DatasetPanel(PanelBase):
@@ -17,7 +14,9 @@ class DatasetPanel(PanelBase):
         tk.Label(frame, text='Channel').grid(row=4, column=0, sticky='e', padx=10)
         tk.Label(frame, text='Sample rate').grid(row=5, column=0, sticky='e', padx=10)
         tk.Label(frame, text='tmin (sec.)').grid(row=6, column=0, sticky='e', padx=10)
-        tk.Label(frame, text='duration (sec.)').grid(row=7, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='duration (sec.)').grid(
+            row=7, column=0, sticky='e', padx=10
+        )
         tk.Label(frame, text='Highpass').grid(row=8, column=0, sticky='e', padx=10)
         tk.Label(frame, text='Lowpass').grid(row=9, column=0, sticky='e', padx=10)
         tk.Label(frame, text='Classes').grid(row=10, column=0, sticky='e', padx=10)
@@ -80,10 +79,17 @@ class DatasetPanel(PanelBase):
         duration = None
         if not preprocessed_data.is_raw():
             tmin = preprocessed_data.get_tmin()
-            duration = int(preprocessed_data.get_epoch_duration()*100 / preprocessed_data.get_sfreq())/100
+            duration = int(
+                preprocessed_data.get_epoch_duration() * 
+                100 / 
+                preprocessed_data.get_sfreq()
+            ) / 100
         highpass, lowpass = preprocessed_data.get_filter_range()
-
-        self.type_label.config(text=DataType.RAW.value if preprocessed_data.is_raw() else DataType.EPOCH.value)
+        if preprocessed_data.is_raw():
+            text = DataType.RAW.value
+        else:
+            text = DataType.EPOCH.value
+        self.type_label.config(text=text)
         self.subject_label.config(text=len(subject_set))
         self.session_label.config(text=len(session_set))
         self.epochs_label.config(text=epoch_length)

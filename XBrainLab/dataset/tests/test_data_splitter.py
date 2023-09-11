@@ -1,8 +1,13 @@
-from XBrainLab.dataset import DataSplittingConfig, SplitUnit, SplitByType, TrainingType, ValSplitByType, DataSplitter
+from XBrainLab.dataset import (
+    DataSplittingConfig, SplitUnit, SplitByType, 
+    TrainingType, ValSplitByType, DataSplitter
+)
 
 import pytest
 
-@pytest.mark.parametrize('split_type', [i for i in SplitByType] + [i for i in ValSplitByType])
+@pytest.mark.parametrize(
+    'split_type', [i for i in SplitByType] + [i for i in ValSplitByType]
+)
 @pytest.mark.parametrize('parsed_value, value_var, value_target_unit', [
     (0, '0', (SplitUnit.RATIO, SplitUnit.NUMBER, SplitUnit.MANUAL)), 
     (0.0, '0.0', (SplitUnit.RATIO,)), 
@@ -40,7 +45,7 @@ def test_splitter(split_type, parsed_value, value_var, value_target_unit, split_
     assert splitter.split_unit == split_unit
 
     if split_unit is None:
-        assert splitter.is_valid() == False
+        assert not splitter.is_valid()
     else:
         assert splitter.is_valid() == (split_unit in value_target_unit)
 
@@ -51,7 +56,7 @@ def test_splitter(split_type, parsed_value, value_var, value_target_unit, split_
             splitter.get_raw_value()
     else:
         checker = parsed_value
-        if split_unit == SplitUnit.MANUAL and type(parsed_value) is not list:
+        if split_unit == SplitUnit.MANUAL and not isinstance(parsed_value, list):
             checker = [parsed_value]
         assert splitter.get_value() == checker
         assert splitter.get_raw_value() == value_var
@@ -87,7 +92,9 @@ def test_config():
     is_cross_validation = True
     val_splitter_list = [DataSplitter(SplitByType.SESSION, '1', SplitUnit.KFOLD, True)]
     test_splitter_list = [DataSplitter(SplitByType.SESSION, '1', SplitUnit.KFOLD, True)]
-    config = DataSplittingConfig(train_type, is_cross_validation, val_splitter_list, test_splitter_list)
+    config = DataSplittingConfig(
+        train_type, is_cross_validation, val_splitter_list, test_splitter_list
+    )
     
     assert config.train_type == train_type
     assert config.is_cross_validation == is_cross_validation

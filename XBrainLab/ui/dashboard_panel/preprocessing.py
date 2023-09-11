@@ -14,4 +14,6 @@ class PreprocessPanel(PanelBase):
             return
         preprocessed_data = preprocessed_data_list[0]
         if preprocessed_data.get_preprocess_history():
-            self.history_list.insert(tk.END, *preprocessed_data.get_preprocess_history())
+            self.history_list.insert(
+                tk.END, *preprocessed_data.get_preprocess_history()
+            )

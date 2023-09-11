@@ -1,4 +1,6 @@
-from XBrainLab.training.training_plan import to_holder, _test_model, _eval_model, EvalRecord
+from XBrainLab.training.training_plan import (
+    to_holder, _test_model, _eval_model, EvalRecord
+)
 
 from torch.utils.data import DataLoader
 
@@ -36,7 +38,7 @@ def test_to_holder_empty():
     device = 'cpu'
     bs = 128
     shuffle = True
-    assert to_holder(X, y, device, bs, shuffle) == None
+    assert to_holder(X, y, device, bs, shuffle) is None
 
 CLASS_NUM = 4
 ERROR_NUM = 3
@@ -90,8 +92,12 @@ def dataloader(full_y, y):
 @pytest.fixture
 def loss_avg():
     criterion = torch.nn.CrossEntropyLoss()
-    error_loss = criterion(torch.Tensor([[0, 0, 0, 1]]), torch.Tensor([0]).long()).item()
-    correct_loss = criterion(torch.Tensor([[1, 0, 0, 0]]), torch.Tensor([0]).long()).item()
+    error_loss = criterion(
+        torch.Tensor([[0, 0, 0, 1]]), torch.Tensor([0]).long()
+    ).item()
+    correct_loss = criterion(
+        torch.Tensor([[1, 0, 0, 0]]), torch.Tensor([0]).long()
+    ).item()
     loss = np.ones((TOTAL_NUM)) * correct_loss
     loss[:ERROR_NUM] = error_loss
     loss_avg = []
@@ -117,8 +123,10 @@ def test_test_model_auc(mocker, dataloader):
 def test_eval_model(mocker, dataloader, y, full_y):
     model = FakeModel()
     model.eval()
-    eval_record_mock = mocker.patch('XBrainLab.training.record.eval.EvalRecord.__init__',
-                                    return_value=None)
+    eval_record_mock = mocker.patch(
+        'XBrainLab.training.record.eval.EvalRecord.__init__',
+        return_value=None
+    )
     eval_model_mock = mocker.patch.object(model, 'eval')
     result = _eval_model(model, dataloader)
     eval_model_mock.assert_called_once()

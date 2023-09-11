@@ -4,11 +4,17 @@ from matplotlib import pyplot as plt
 from copy import deepcopy
 from .base import ValidateException
 
-from .dashboard_panel import DatasetPanel, PreprocessPanel, TrainingSchemePanel, TrainingSettingPanel, TrainingStatusPanel
+from .dashboard_panel import (
+    DatasetPanel, PreprocessPanel, TrainingSchemePanel, 
+    TrainingSettingPanel, TrainingStatusPanel
+)
 from .load_data import IMPORT_TYPE_MODULE_LIST
 from .preprocess import PREPROCESS_MODULE_LIST
 from .dataset import DataSplittingSettingWindow
-from .training import ModelSelectionWindow, TrainingSettingWindow, TestOnlySettingWindow, TrainingManagerWindow
+from .training import (
+    ModelSelectionWindow, TrainingSettingWindow, 
+    TestOnlySettingWindow, TrainingManagerWindow
+)
 from .evaluation import EVALUATION_MODULE_LIST
 from .visualization import PickMontageWindow, VISUALIZATION_MODULE_LIST
 from .script import Script, ScriptType, ScriptPreview
@@ -31,7 +37,9 @@ class DashBoard(tk.Tk):
         self.dataset_panel = DatasetPanel(self, row=0, column=0)
         self.preprocess_panel = PreprocessPanel(self, row=0, column=1)
         self.training_scheme_panel = TrainingSchemePanel(self, row=0, column=2)
-        self.training_setting_panel = TrainingSettingPanel(self, row=1, column=0, columnspan=2)
+        self.training_setting_panel = TrainingSettingPanel(
+            self, row=1, column=0, columnspan=2
+        )
         self.training_status_panel = TrainingStatusPanel(self, row=1, column=2)
 
         self.study = study
@@ -53,7 +61,9 @@ class DashBoard(tk.Tk):
             self.update_idletasks()
             self.training_scheme_panel.update_panel(self.study.datasets)
             self.update_idletasks()
-            self.training_setting_panel.update_panel(self.study.model_holder, self.study.training_option)
+            self.training_setting_panel.update_panel(
+                self.study.model_holder, self.study.training_option
+            )
             self.update_idletasks()
         
         self.training_status_panel.update_panel(self.study.trainer)
@@ -80,18 +90,29 @@ class DashBoard(tk.Tk):
         
         # import data
         for import_module in IMPORT_TYPE_MODULE_LIST:
-            import_data_menu.add_command(label=import_module.command_label, command=lambda var=import_module:self.import_data(var))
+            import_data_menu.add_command(
+                label=import_module.command_label, 
+                command=lambda var=import_module:self.import_data(var)
+            )
         
         # preprocess/epoching
         edit_event_menu = None
         for preprocess_module in PREPROCESS_MODULE_LIST:
             if "Edit Event" not in preprocess_module.command_label:
-                preprocess_menu.add_command(label=preprocess_module.command_label, command=lambda var=preprocess_module:self.preprocess(var))
+                preprocess_menu.add_command(
+                    label=preprocess_module.command_label, 
+                    command=lambda var=preprocess_module:self.preprocess(var)
+                )
             else:
                 if edit_event_menu is None:
                     edit_event_menu = tk.Menu(preprocess_menu, tearoff=0)
-                    preprocess_menu.add_cascade(label='Edit Event', menu=edit_event_menu)
-                edit_event_menu.add_command(label=preprocess_module.command_label, command=lambda var=preprocess_module:self.preprocess(var))
+                    preprocess_menu.add_cascade(
+                        label='Edit Event', menu=edit_event_menu
+                    )
+                edit_event_menu.add_command(
+                    label=preprocess_module.command_label, 
+                    command=lambda var=preprocess_module:self.preprocess(var)
+                )
         preprocess_menu.add_command(label='Reset', command=self.reset_preprocess)
         
         # training
@@ -99,32 +120,62 @@ class DashBoard(tk.Tk):
         training_menu.add_command(label='Dataset Splitting', command=self.split_data)
         training_menu.add_command(label='Model Selection', command=self.select_model)
         training_menu.add_cascade(label='Training Setting', menu=training_setting_menu)
-        training_menu.add_command(label='Generate Training Plan', command=self.generate_plan)
-        training_menu.add_command(label='Training Manager', command=self.open_training_manager)
+        training_menu.add_command(
+            label='Generate Training Plan', command=self.generate_plan
+        )
+        training_menu.add_command(
+            label='Training Manager', command=self.open_training_manager
+        )
         # training setting
-        training_setting_menu.add_command(label='Training', command=self.training_setting)
-        training_setting_menu.add_command(label='Test Only', command=self.test_only_setting)
+        training_setting_menu.add_command(
+            label='Training', command=self.training_setting
+        )
+        training_setting_menu.add_command(
+            label='Test Only', command=self.test_only_setting
+        )
 
         # evaluation
         for evaluation_module in EVALUATION_MODULE_LIST:
-            evaluation_menu.add_command(label=evaluation_module.command_label, command=lambda var=evaluation_module:self.evaluate(var))
+            evaluation_menu.add_command(
+                label=evaluation_module.command_label, 
+                command=lambda var=evaluation_module:self.evaluate(var)
+            )
         
         # visualization
         visualization_menu.add_command(label='Set Montage', command=self.set_montage)
         for visualization_module in VISUALIZATION_MODULE_LIST:
-            visualization_menu.add_command(label=visualization_module.command_label, command=lambda var=visualization_module:self.visualize(var))
+            visualization_menu.add_command(
+                label=visualization_module.command_label, 
+                command=lambda var=visualization_module:self.visualize(var)
+            )
         visualization_menu.add_command(label='clean plots', command=self.clean_plot)
 
         # script
-        script_menu.add_command(label='Show command script', command=lambda :self.show_script(ScriptType.CLI))
-        script_menu.add_command(label='Show ui script', command=lambda :self.show_script(ScriptType.UI))
-        script_menu.add_command(label='Show all script', command=lambda :self.show_script(ScriptType.ALL))
+        script_menu.add_command(
+            label='Show command script', 
+            command=lambda :self.show_script(ScriptType.CLI)
+        )
+        script_menu.add_command(
+            label='Show ui script', 
+            command=lambda :self.show_script(ScriptType.UI)
+        )
+        script_menu.add_command(
+            label='Show all script', 
+            command=lambda :self.show_script(ScriptType.ALL)
+        )
         script_menu.add_command(label='Clear script', command=self.clear_script)
 
         self.config(menu=menu)
     
     def warn_flow_cleaning(self):
-        if tk.messagebox.askokcancel(parent=self, title='Warning', message='This step has already been done, all following data will be removed if you reset this step.\nDo you want to proceed?'):
+        if tk.messagebox.askokcancel(
+            parent=self, title='Warning', 
+            message=(
+                'This step has already been done, '
+                'all following data will be removed if you reset this step.\n'
+                'Do you want to proceed?'
+            )
+        ):
             return True
         return False
     
@@ -149,7 +200,9 @@ class DashBoard(tk.Tk):
         if not self.clean_datasets():
             return
 
-        current_preprocess_module = preprocess_module(self, self.study.preprocessed_data_list)
+        current_preprocess_module = preprocess_module(
+            self, self.study.preprocessed_data_list
+        )
         preprocessed_data_list = current_preprocess_module.get_result()
         if preprocessed_data_list:
             self.study.set_preprocessed_data_list(preprocessed_data_list)
@@ -179,7 +232,9 @@ class DashBoard(tk.Tk):
             datasets_generator.apply(self.study)
             data_splitting_script = data_splitting_module.get_script_history()
             self.script_history += data_splitting_script
-            self.script_history.add_cmd('datasets_generator.apply(study)', newline=True)
+            self.script_history.add_cmd(
+                'datasets_generator.apply(study)', newline=True
+            )
             self.update_dashboard()
 
     def select_model(self):
@@ -241,21 +296,26 @@ class DashBoard(tk.Tk):
         self.open_training_manager()
 
     def open_training_manager(self):
-        self.script_history += TrainingManagerWindow(self, self.study.trainer).get_script_history()
+        history = TrainingManagerWindow(self, self.study.trainer).get_script_history()
+        self.script_history += history
 
     # eval
     def evaluate(self, evaluation_module):
         training_plan_holders = None
         if self.study.trainer:
             training_plan_holders = self.study.trainer.get_training_plan_holders()
-        self.script_history += evaluation_module(self, training_plan_holders).get_script_history()
+        history = evaluation_module(self, training_plan_holders).get_script_history()
+        self.script_history += history
     
     # visualize
     def set_montage(self):
         if type(self.study.epoch_data) != Epochs:
-            raise ValidateException(window=self, message='No valid epoch data is generated')
-            return
-        pick_montage_module = PickMontageWindow(self, self.study.epoch_data.get_channel_names())
+            raise ValidateException(
+                window=self, message='No valid epoch data is generated'
+            )
+        pick_montage_module = PickMontageWindow(
+            self, self.study.epoch_data.get_channel_names()
+        )
         chs, positions = pick_montage_module.get_result()
         if chs is not None and positions is not None:
             self.study.set_channels(chs, positions)
@@ -272,10 +332,11 @@ class DashBoard(tk.Tk):
         training_plan_holders = None
         if self.study.trainer:
             training_plan_holders = self.study.trainer.get_training_plan_holders()
-        self.script_history += visualization_module(self, training_plan_holders).get_script_history()
+        hist = visualization_module(self, training_plan_holders).get_script_history()
+        self.script_history += hist
         
     def show_script(self, script_type, target=None):
-        if target == None:
+        if target is None:
             target = self
             ui_script = deepcopy(target.script_history)
         else:
@@ -329,7 +390,10 @@ class DashBoard(tk.Tk):
        
     def check_training(self, force=False):
         if self.study.is_training():
-            if tk.messagebox.askyesno(parent=self, title='Warning', message='Training is in progress.\nDo you want to interrupt it?'):
+            if tk.messagebox.askyesno(
+                parent=self, title='Warning', 
+                message='Training is in progress.\nDo you want to interrupt it?'
+            ):
                 self.study.stop_training()
             elif force:
                 self.study.stop_training()

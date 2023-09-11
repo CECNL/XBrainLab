@@ -1,11 +1,10 @@
 from __future__ import annotations
 from typing import List
 import mne
-import os, re
-import tkinter as tk
+import os
+import re
 import numpy as np
 from enum import Enum
-from copy import deepcopy
 import traceback
 
 from ..utils import validate_type
@@ -31,7 +30,8 @@ class Raw:
             List of preprocess history.
         # list of 
         raw_events: list[list[int]] | None
-            Raw events. Same as `mne` format, (onset, immediately preceding sample, event_id).
+            Raw events. Same as `mne` format, 
+            (onset, immediately preceding sample, event_id).
         raw_event_id: dict[str, int] | None
             Raw event id. Same as `mne` format, {event_name: event_id}.
         subject: str
@@ -90,7 +90,7 @@ class Raw:
                 self.set_session_name(groupdict[FilenameGroupKey.SESSION.value])
             if FilenameGroupKey.SUBJECT.value in groupdict:
                 self.set_subject_name(groupdict[FilenameGroupKey.SUBJECT.value])
-        except:
+        except Exception:
             traceback.print_exc()
             pass
 
@@ -106,7 +106,8 @@ class Raw:
         """Set the event of the raw data.
 
         Args:
-            events: Raw events. Same as `mne` format, (onset, immediately preceding sample, event_id).
+            events: Raw events. Same as `mne` format, 
+                    (onset, immediately preceding sample, event_id).
             event_id: Raw event id. Same as `mne` format, {event_name: event_id}.
         """
         validate_type(events, np.ndarray, 'events')
@@ -185,7 +186,8 @@ class Raw:
     
     # event related functions
     def get_raw_event_list(self) -> tuple[list[list[int]], dict[str, int]]:
-        """Return the event list and event id of the raw data directly from the :attr:`mne_data`.
+        """Return the event list and event id of the raw data 
+           directly from the :attr:`mne_data`.
 
         Returns:
             (events, event_id)
@@ -194,14 +196,16 @@ class Raw:
         try:
             if self.mne_data.event_id:
                 return self.mne_data.events, self.mne_data.event_id
-        except:
+        except Exception:
             pass
         # stim channel
         try:
             events = mne.find_events(self.mne_data)
-            event_ids = {str(e):e for e in np.unique(events[:,-1])}
+            event_ids = {
+                str(e):e for e in np.unique(events[:,-1])
+            }
             return events, event_ids
-        except:
+        except Exception:
             return mne.events_from_annotations(self.mne_data)
 
     def get_event_list(self) -> tuple[list[list[int]], dict[str, int]]:
@@ -238,11 +242,19 @@ class Raw:
     def get_row_info(self) -> tuple[str, str, str, int, float, int, str]:
         """Return the information of the raw data for displaying in the UI table.
 
-        Returns: (Filename, subject name, session name, number of channels, sample frequency, number of epochs, whether the data has event)
+        Returns: (
+            Filename, subject name, session name, number of channels, 
+            sample frequency, number of epochs, whether the data has event
+        )
         """
         channel = self.get_nchan()
         sfreq = self.get_sfreq()
         epochs = self.get_epochs_length()
         has_event = self.has_event_str()
-        return self.get_filename(), self.get_subject_name(), self.get_session_name(), channel, sfreq, epochs, has_event
+        return (
+            self.get_filename(), 
+            self.get_subject_name(), 
+            self.get_session_name(), 
+            channel, sfreq, epochs, has_event
+        )
 

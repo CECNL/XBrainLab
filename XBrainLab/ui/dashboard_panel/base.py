@@ -5,7 +5,10 @@ class PanelBase(tk.LabelFrame):
         self.parent = parent
         self.is_setup = False
 
-        self.grid(row=row, column=column, rowspan=rowspan, columnspan=columnspan, sticky='wesn', padx=10, pady=10)
+        self.grid(
+            row=row, column=column, rowspan=rowspan, 
+            columnspan=columnspan, sticky='wesn', padx=10, pady=10
+        )
 
     def clear_panel(self):
         for child in self.winfo_children():

@@ -87,9 +87,12 @@ def test_mne_raw_info(mne_raw, raw):
     assert raw.get_filter_range() == (0, base_fs / 2)
     assert raw.get_epochs_length() == 1
     assert raw.get_epoch_duration() == base_fs * base_duration
-    assert raw.is_raw() == True
+    assert raw.is_raw()
 
-    assert raw.get_row_info() == ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 4, base_fs, 1, 'no')
+    assert (
+        raw.get_row_info() == 
+        ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 4, base_fs, 1, 'no')
+    )
 
 def test_mne_raw_2_info(mne_raw_2, raw):
     raw.set_mne(mne_raw_2)
@@ -100,9 +103,12 @@ def test_mne_raw_2_info(mne_raw_2, raw):
     assert raw.get_filter_range() == (0, 25)
     assert raw.get_epochs_length() == 1
     assert raw.get_epoch_duration() == 50 * base_duration
-    assert raw.is_raw() == True
+    assert raw.is_raw()
 
-    assert raw.get_row_info() == ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 2, 50, 1, 'no')
+    assert (
+        raw.get_row_info() == 
+        ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 2, 50, 1, 'no')
+    )
 
 # original
 # set_event
@@ -201,7 +207,9 @@ def mne_epoch():
 
     events = np.array([[1, 0, 1], [2, 0, 2], [3, 0, 3], [4, 0, 4]])
     event_id = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
-    epochs = mne.Epochs(mne_raw, events, event_id, tmin=0, tmax=0.1, baseline=None, preload=True)
+    epochs = mne.Epochs(
+        mne_raw, events, event_id, tmin=0, tmax=0.1, baseline=None, preload=True
+    )
     return epochs
 
 @pytest.fixture
@@ -217,9 +225,11 @@ def test_mne_epoch_info(mne_epoch, epoch):
     assert epoch.get_filter_range() == (0, base_fs / 2)
     assert epoch.get_epochs_length() == 4
     assert epoch.get_epoch_duration() == base_fs * 0.1 + 1
-    assert epoch.is_raw() == False
+    assert not epoch.is_raw()
 
-    assert epoch.get_row_info() == ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 2, base_fs, 4, 'yes')
+    assert epoch.get_row_info() == (
+        'sub-01_ses-01_task-rest_eeg.fif', '0', '0', 2, base_fs, 4, 'yes'
+    )
 
 def test_epoch(epoch):
     assert epoch.has_event_str() == 'yes'

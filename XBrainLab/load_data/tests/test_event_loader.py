@@ -1,16 +1,21 @@
-from XBrainLab.load_data import Raw, EventLoader
+from XBrainLab.load_data import EventLoader
 
-from .test_raw import _set_event, raw, mne_raw, epoch, mne_epoch
+from .test_raw import (
+    _set_event, 
+    raw, mne_raw, epoch, mne_epoch # noqa: F401
+)
 
 import pytest
 import numpy as np
 
 @pytest.fixture
 def mock_txt(mocker):
-    mock_generator = mocker.patch('builtins.open', mocker.mock_open(read_data='1 2 3 4'))
+    mock_generator = mocker.patch(
+        'builtins.open', mocker.mock_open(read_data='1 2 3 4')
+    )
     return mock_generator
 
-def test_event_loader(raw):
+def test_event_loader(raw): # noqa: F811
     _set_event(raw)
     event_loader = EventLoader(raw)
     
@@ -20,7 +25,7 @@ def test_event_loader(raw):
     with pytest.raises(AssertionError):
         event_loader.apply()
 
-def _create_event(event_loader, raw):
+def _create_event(event_loader, raw): # noqa: F811
     with pytest.raises(AssertionError):
         event_loader.apply()
     with pytest.raises(ValueError, match='Event name cannot be empty.'):
@@ -37,7 +42,7 @@ def _create_event(event_loader, raw):
         assert events[i, -1] == i + 1
         assert events[i, 0] == i
 
-def test_load_txt(raw, mock_txt):
+def test_load_txt(raw, mock_txt): # noqa: F811
     event_loader = EventLoader(raw)
     event_loader.read_txt('tests/0.txt')
     _create_event(event_loader, raw)
@@ -49,7 +54,7 @@ def mock_mat(mocker):
         mock.return_value = return_value        
     return mock_mat_generator
 
-def test_mat_1d(raw, mock_mat):
+def test_mat_1d(raw, mock_mat): # noqa: F811
     event_loader = EventLoader(raw)
 
     mock_mat({
@@ -58,7 +63,7 @@ def test_mat_1d(raw, mock_mat):
     event_loader.read_mat('tests/0.mat')
     _create_event(event_loader, raw)
 
-def test_mat_3d(raw, mock_mat):
+def test_mat_3d(raw, mock_mat): # noqa: F811
     event_loader = EventLoader(raw)
     mock_mat({
         'label': np.array([[0, 0, 1],
@@ -69,7 +74,7 @@ def test_mat_3d(raw, mock_mat):
     event_loader.read_mat('tests/0.mat')
     _create_event(event_loader, raw)
 
-def test_mat_malformed(raw, mock_mat):
+def test_mat_malformed(raw, mock_mat): # noqa: F811
     event_loader = EventLoader(raw)
     mock_mat({
         'label': np.array([[[0]]])
@@ -78,16 +83,18 @@ def test_mat_malformed(raw, mock_mat):
         event_loader.read_mat('tests/0.mat')
 
 
-def test_mat_multi_key(raw, mock_mat):
+def test_mat_multi_key(raw, mock_mat): # noqa: F811
     event_loader = EventLoader(raw)
     mock_mat({
         'label': np.array([[0, 0, 1]]),
         'error': True
     })
-    with pytest.raises(ValueError, match='Mat file should contain exactly one variable.'):
+    with pytest.raises(
+        ValueError, match='Mat file should contain exactly one variable.'
+    ):
         event_loader.read_mat('tests/0.mat')
 
-def test_create_event_inconsistent(epoch, mock_mat):
+def test_create_event_inconsistent(epoch, mock_mat): # noqa: F811
     event_loader = EventLoader(epoch)
     mock_mat({
         'label': np.array([[0, 0, 1]])

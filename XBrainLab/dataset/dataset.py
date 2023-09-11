@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from copy import deepcopy
 from .epochs import Epochs
 from .data_splitter import DataSplittingConfig
 from ..utils import validate_type
@@ -78,7 +77,12 @@ class Dataset:
         """Return the information of the dataset for displaying in UI treeview.
         
         Returns:
-            (selected: str, name: str, train_number: int, val_number: int, test_number: int)
+            (selected: str, 
+             name: str, 
+             train_number: int, 
+             val_number: int, 
+             test_number: int
+            )
         """
         train_number, val_number, test_number = self.get_all_trial_numbers()
         selected = 'O' if self.is_selected else 'X'
@@ -130,7 +134,11 @@ class Dataset:
         self.remaining_mask &= False
 
     ## filter
-    def intersection_with_subject_by_idx(self, mask: np.ndarray, idx: int) -> np.ndarray:
+    def intersection_with_subject_by_idx(
+        self, 
+        mask: np.ndarray, 
+        idx: int
+    ) -> np.ndarray:
         """Return the intersection of the mask and the mask of target subject."""
         return mask & self.epoch_data.pick_subject_mask_by_idx(idx)
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 import numpy as np
 import scipy.io
-import tkinter as tk
 
 from . import Raw
 from ..utils import validate_type
@@ -41,7 +40,8 @@ class EventLoader:
         label_list = []
         with open(selected_file, encoding='utf-8', mode='r') as fp:
             for line in fp.readlines():
-                label_list += [int(l.rstrip()) for l in line.split(' ')] # for both (n,1) and (1,n) of labels
+                # for both (n,1) and (1,n) of labels
+                label_list += [int(segment.rstrip()) for segment in line.split(' ')] 
             fp.close()
         self.label_list = label_list
         return label_list
@@ -49,7 +49,8 @@ class EventLoader:
     def read_mat(self, selected_file: str) -> list:
         """Read event data from mat file.
 
-        The mat file should contain exactly one variable, which is a list of event codes.
+        The mat file should contain exactly one variable, 
+        which is a list of event codes.
 
         Args:
             selected_file: Path to the mat file.
@@ -101,7 +102,10 @@ class EventLoader:
             # label_list in (n,3) format
             if len(self.label_list.shape) > 1:
                 # get new event id mapping
-                event_id = {event_name_map[i]: i for i in np.unique(self.label_list[:,-1])}
+                event_id = {
+                    event_name_map[i]: i 
+                    for i in np.unique(self.label_list[:,-1])
+                }
                 events = self.label_list
             # label_list in (n,) format
             else:
@@ -111,12 +115,18 @@ class EventLoader:
                 events = np.zeros((len(self.label_list), 3))
                 events[:,0] = range(len(self.label_list))
                 events[:,-1] = self.label_list
-                print('UserWarning: Event array created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
+                print((
+                    'UserWarning: Event array created without onset timesample. '
+                    'Please proceed with caution if operating on raw data '
+                    'without annotations.'
+                ))
 
             # check if event array is consistent with raw data
             if not self.raw.is_raw():
                 if self.raw.get_epochs_length() != len(events):
-                    raise ValueError(f'Inconsistent number of events (got {len(events)})')
+                    raise ValueError(
+                        f'Inconsistent number of events (got {len(events)})'
+                    )
             self.events = events
             self.event_id = event_id
             return events, event_id

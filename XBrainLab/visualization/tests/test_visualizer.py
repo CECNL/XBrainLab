@@ -34,7 +34,8 @@ def get_preprocessed_data_list(n_class):
             data = np.zeros((len(events), len(ch_names), epoch_duration * fs))
             for i in range(len(events)):
                 data[i, :, :] = base + events[i, 0]
-            epochs = mne.EpochsArray(data, info, events=events, tmin=0, event_id=event_id)
+            epochs = mne.EpochsArray(data, info, events=events, 
+                                     tmin=0, event_id=event_id)
             raw = Raw(f"test/sub-{subject}_ses-{session}.fif", epochs)
             raw.set_subject_name(subject)
             raw.set_session_name(session)

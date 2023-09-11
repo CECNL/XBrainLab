@@ -1,4 +1,3 @@
-from tabnanny import verbose
 from torchinfo import summary
 from ..script import Script
 import tkinter as tk
@@ -51,8 +50,11 @@ class ModelSummaryWindow(TopWindow):
         self.update_loop()
 
     def check_data(self):
-        if type(self.trainers) != list or len(self.trainers) == 0:
-            raise InitWindowValidateException(self, 'No valid training plan is generated')
+        if not isinstance(self.trainers, list) or len(self.trainers) == 0:
+            raise InitWindowValidateException(
+                self, 
+                'No valid training plan is generated'
+            )
 
     def on_plan_select(self, var_name, *args):
         self.set_selection(False)
@@ -67,13 +69,17 @@ class ModelSummaryWindow(TopWindow):
 
 
     def update_loop(self):
-        if not self.trainer is None:
+        if self.trainer is not None:
             if self.current_plot is None or self.current_plot != self.trainer:
                 self.current_plot = self.trainer
-                model_instance = self.trainer.model_holder.get_model(self.trainer.dataset.get_epoch_data().get_model_args()).to(self.trainer.option.get_device())
-                X, y = self.trainer.dataset.get_training_data()
+                model_instance = self.trainer.model_holder.get_model(
+                    self.trainer.dataset.get_epoch_data().get_model_args()
+                ).to(self.trainer.option.get_device())
+                X, _ = self.trainer.dataset.get_training_data()
                 train_shape = (self.trainer.option.bs, 1, *X.shape[-2:])
-                summary_object = summary(model_instance,input_size = train_shape,verbose = 0)
+                summary_object = summary(
+                    model_instance,input_size = train_shape,verbose = 0
+                )
                 self.summary.delete("1.0", "end")
                 self.summary.insert(tk.END, str(summary_object))
 

@@ -2,7 +2,17 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 class EditableTreeView(ttk.Treeview):
-    def __init__(self, parent, editableCols=[], datas=None, deletable=False, delete_callback=None, column_width=100, height=5, **key) -> None:
+    def __init__(
+        self, 
+        parent, 
+        editableCols=[], 
+        datas=None, 
+        deletable=False, 
+        delete_callback=None, 
+        column_width=100, 
+        height=5, 
+        **key
+    ) -> None:
         super().__init__(parent, height=height, **key)
         self.editableCols = editableCols
         self.datas = datas
@@ -41,7 +51,7 @@ class EditableTreeView(ttk.Treeview):
             x, y, width, height = self.bbox(item, col) 
             value = self.set(item, col)
 
-            self.editingEntry = ttk.Entry(self, justify='center')  # create edition entry
+            self.editingEntry = ttk.Entry(self, justify='center') # edition entry
             self.editingEntry.place(x=x, y=y, width=width, height=height,
                         anchor='nw')  # display entry on top of cell
             self.editingEntry.insert(0, value)  # put former value in entry
@@ -51,7 +61,11 @@ class EditableTreeView(ttk.Treeview):
             self.editingEntry.bind('<FocusOut>', self.submitEntry)
             self.editingEntry.bind('<Return>', self.submitEntry)
             self.editingEntry.focus_set()
-        elif self.identify_region(event.x, event.y) == 'tree' and self.deletable and self.item(item)['text'] != '':
+        elif (
+            self.identify_region(event.x, event.y) == 'tree' 
+            and self.deletable 
+            and self.item(item)['text'] != ''
+        ):
             idx = self.find_child_pos(item)
             self.delete(item)
             if self.datas is not None:

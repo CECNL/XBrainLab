@@ -1,6 +1,4 @@
-import tkinter as tk
-
-from ..base import TopWindow, InitWindowValidateException
+from ..base import TopWindow
 from ..script import Script
 
 class PreprocessBase(TopWindow):

@@ -33,7 +33,9 @@ def preprocessed_data_list():
             data = np.zeros((len(events), len(ch_names), epoch_duration * fs))
             for i in range(len(events)):
                 data[i, :, :] = base + events[i, 0]
-            epochs = mne.EpochsArray(data, info, events=events, tmin=0, event_id=event_id)
+            epochs = mne.EpochsArray(
+                data, info, events=events, tmin=0, event_id=event_id
+            )
             raw = Raw(f"test/sub-{subject}_ses-{session}.fif", epochs)
             raw.set_subject_name(subject)
             raw.set_session_name(session)
@@ -61,7 +63,12 @@ def test_epochs_subject_attributes(epochs):
     for subject in range(len(subject_list)):
         for session in range(len(session_list)):
             i = subject * len(session_list) + session
-            assert (epochs.get_subject_list()[i * block_size: (i + 1) * block_size] == subject).all()
+            assert (
+                epochs.get_subject_list()[
+                    i * block_size: (i + 1) * block_size
+                ] == 
+                subject
+            ).all()
     assert set(epochs.get_subject_map().values()) == set(subject_list)
     assert epochs.get_subject_index_list() == list(range(len(subject_list)))
 
@@ -69,14 +76,24 @@ def test_epochs_session_attributes(epochs):
     for subject in range(len(subject_list)):
         for session in range(len(session_list)):
             i = subject * len(session_list) + session
-            assert (epochs.get_session_list()[i * block_size: (i + 1) * block_size] == session).all()
+            assert (
+                epochs.get_session_list()[
+                    i * block_size: (i + 1) * block_size
+                ] == 
+                session
+            ).all()
     assert set(epochs.get_session_map().values()) == set(session_list)
 
 def test_epochs_label_attributes(epochs):
     for subject in range(len(subject_list)):
         for session in range(len(session_list)):
             i = subject * len(session_list) + session
-            assert (epochs.get_label_list()[i * block_size: (i + 1) * block_size] == np.arange(n_class).repeat(n_trial)).all()
+            assert (
+                epochs.get_label_list()[
+                    i * block_size: (i + 1) * block_size
+                ] == 
+                np.arange(n_class).repeat(n_trial)
+            ).all()
     assert set(epochs.get_label_map().values()) == set(event_id.keys())
     
 def test_epochs_copy(epochs):
@@ -113,14 +130,21 @@ def test_epochs_get_by_index(epochs):
         assert epochs.get_label_name(idx) == name
 
 def test_epochs_info(epochs):
-    assert epochs.get_data_length() == block_size * len(subject_list) * len(session_list)
+    assert (
+        epochs.get_data_length() == 
+        block_size * len(subject_list) * len(session_list)
+    )
     assert epochs.get_model_args() == {
         'n_classes': len(event_id),
         'channels' : len(ch_names),
         'samples'  : epoch_duration * fs,
         'sfreq'    : fs
     }
-    assert epochs.get_data().shape == (block_size * len(subject_list) * len(session_list), len(ch_names), epoch_duration * fs)
+    assert (
+        epochs.get_data().shape == 
+        (block_size * len(subject_list) * len(session_list), 
+         len(ch_names), epoch_duration * fs)
+    )
     assert epochs.get_label_number() == len(ch_names)
     assert epochs.get_channel_names() == ch_names
     assert np.isclose(epochs.get_epoch_duration(), epoch_duration)
@@ -139,9 +163,14 @@ def test_epochs_generate_mask_target(full_filter_preview_mask):
             assert subject_idx in full_filter_preview_mask[label_idx]
             for session_idx in range(len(session_list)):
                 assert session_idx in full_filter_preview_mask[label_idx][subject_idx]
-                target_filter_mask, counter = full_filter_preview_mask[label_idx][subject_idx][session_idx]
+                target_filter_mask, counter = (
+                    full_filter_preview_mask[label_idx][subject_idx][session_idx]
+                )
                 assert counter == 0
-                assert target_filter_mask.shape == (block_size * len(session_list) * len(subject_list),)
+                assert (
+                    target_filter_mask.shape == 
+                    (block_size * len(session_list) * len(subject_list),)
+                )
                 assert sum(target_filter_mask) == n_trial
 
 def test_epochs_generate_mask_target_partial(epochs):
@@ -154,9 +183,12 @@ def test_epochs_generate_mask_target_partial(epochs):
             assert subject_idx in filter_preview_mask[label_idx]
             for session_idx in range(len(session_list)):
                 assert session_idx in filter_preview_mask[label_idx][subject_idx]
-                target_filter_mask, counter = filter_preview_mask[label_idx][subject_idx][session_idx]
+                target_filter_mask, counter = \
+                    filter_preview_mask[label_idx][subject_idx][session_idx]
                 assert counter == 0
-                assert target_filter_mask.shape == (block_size * len(session_list) * len(subject_list),)
+                assert target_filter_mask.shape == (
+                    block_size * len(session_list) * len(subject_list),
+                )
                 if subject_idx == 0:
                     assert sum(target_filter_mask) == 0
                 else:
@@ -183,12 +215,13 @@ def test_epochs_update_mask_target(epochs, full_filter_preview_mask):
     for label_idx in range(len(event_id)):
         for subject_idx in range(len(subject_list)):
             for session_idx in range(len(session_list)):
+                target = full_filter_preview_mask[label_idx][subject_idx][session_idx]
                 if subject_idx == 0:
-                    assert full_filter_preview_mask[label_idx][subject_idx][session_idx][1] == n_trial
-                    assert sum(full_filter_preview_mask[label_idx][subject_idx][session_idx][0]) == 0
+                    assert (target[1] == n_trial)
+                    assert sum(target[0]) == 0
                 else:
-                    assert full_filter_preview_mask[label_idx][subject_idx][session_idx][1] == 0
-                    assert sum(full_filter_preview_mask[label_idx][subject_idx][session_idx][0]) == n_trial
+                    assert target[1] == 0
+                    assert sum(target[0]) == n_trial
 
 def _test_epochs_get_real_num_param():
     params = [
@@ -200,7 +233,9 @@ def _test_epochs_get_real_num_param():
         params.append((i, SplitUnit.RATIO, int(i * 4)))
     return params
 
-@pytest.mark.parametrize('value, split_unit, expected', _test_epochs_get_real_num_param())
+@pytest.mark.parametrize(
+        'value, split_unit, expected', _test_epochs_get_real_num_param()
+    )
 @pytest.mark.parametrize('mask, clean_mask', [
     (np.ones(16, dtype=bool), None),
     (np.zeros(16, dtype=bool), np.ones(16, dtype=bool))
@@ -208,7 +243,12 @@ def _test_epochs_get_real_num_param():
 def test_epochs_get_real_num(epochs, value, split_unit, expected, mask, clean_mask):
     target_type = np.arange(4).repeat(4)
     group_idx = 0
-    assert expected == epochs._get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
+    assert (
+        expected == 
+        epochs._get_real_num(
+            target_type, value, split_unit, mask, clean_mask, group_idx
+        )
+    )
 
 def _test_epochs_get_real_num_partial_param():
     params = [
@@ -220,14 +260,19 @@ def _test_epochs_get_real_num_partial_param():
         params.append((i, SplitUnit.RATIO, int(i * 3)))
     return params
 
-@pytest.mark.parametrize('value, split_unit, expected', _test_epochs_get_real_num_partial_param())
+@pytest.mark.parametrize(
+    'value, split_unit, expected', 
+    _test_epochs_get_real_num_partial_param()
+)
 def test_epochs_get_real_num_partial(epochs, value, split_unit, expected):
     target_type = np.arange(4).repeat(4)
     group_idx = 0
     mask = np.ones(16, dtype=bool)
     clean_mask = None
     mask[:4] = False
-    assert expected == epochs._get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
+    assert expected == epochs._get_real_num(
+        target_type, value, split_unit, mask, clean_mask, group_idx
+    )
 
 
 @pytest.mark.parametrize('value, group_idx, expected, is_partial', [
@@ -253,7 +298,9 @@ def test_epochs_get_real_num_k_fold(epochs, value, group_idx, expected, is_parti
         mask[:4] = False
     clean_mask = None
     
-    assert expected == epochs._get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
+    assert expected == epochs._get_real_num(
+        target_type, value, split_unit, mask, clean_mask, group_idx
+    )
 
 
 def test_epochs_get_real_num_not_implemented(epochs):
@@ -276,7 +323,9 @@ def test_epochs_pick(mocker, epochs, selected_num, is_partial):
     group_idx = 0
     mocker.patch.object(epochs, '_get_real_num', return_value=selected_num)
 
-    ret, new_mask = epochs._pick(target_type, mask, clean_mask, value, split_unit, group_idx)
+    ret, new_mask = epochs._pick(
+        target_type, mask, clean_mask, value, split_unit, group_idx
+    )
 
     assert (new_mask == mask).all()
     if is_partial:
@@ -318,7 +367,9 @@ def test_epochs_pick_manual(epochs):
     (SplitUnit.KFOLD, False),
     (SplitUnit.RATIO, False),
 ])
-def test_epochs_pick_by_wrapper(mocker, epochs, func_name, split_unit, is_manual, target_type_name):
+def test_epochs_pick_by_wrapper(
+    mocker, epochs, func_name, split_unit, is_manual, target_type_name
+):
     pick_mock = mocker.patch.object(epochs, '_pick')
     manual_mock = mocker.patch.object(epochs, '_pick_manual')
     
@@ -341,7 +392,8 @@ def test_epochs_pick_by_wrapper(mocker, epochs, func_name, split_unit, is_manual
     else:
         pick_mock.assert_called_once()
         manual_mock.assert_not_called()
-        (_target_type, _mask, _clean_mask, _value, _split_unit, _group_idx), _ = pick_mock.call_args
+        (_target_type, _mask, _clean_mask, _value, _split_unit, _group_idx), _ = \
+            pick_mock.call_args
         assert (_target_type == target_type).all()
         assert (_mask == mask).all()
         assert _clean_mask == clean_mask
@@ -352,7 +404,9 @@ def test_epochs_pick_by_wrapper(mocker, epochs, func_name, split_unit, is_manual
 def test_epochs_pick_manual_trial(epochs):
     mask = np.ones(block_size * len(subject_list) * len(session_list), dtype=bool)
     clean_mask = None
-    value = np.random.randint(0, 2, size=block_size * len(subject_list) * len(session_list), dtype=bool)
+    value = np.random.randint(
+        0, 2, size=block_size * len(subject_list) * len(session_list), dtype=bool
+    )
 
     result, _ = epochs.pick_trial(mask, clean_mask, value, SplitUnit.MANUAL, 0)
     assert (result == value).all()
@@ -378,19 +432,34 @@ def _test_epochs_pick_by_trial_partial_param():
     is_partial = True
     total_count = block_size * (len(subject_list) - 1) * len(session_list)
     params = [
-        (SplitUnit.NUMBER, i, _generate_expected_epochs_pick_by_trial_param(i, is_partial), 0, is_partial)
+        (
+            SplitUnit.NUMBER, i, 
+            _generate_expected_epochs_pick_by_trial_param(i, is_partial), 0, is_partial
+        )
         for i in range( block_size * len(subject_list) * len(session_list) + 2 )
     ]
     params += [
-        (SplitUnit.KFOLD, 1, _generate_expected_epochs_pick_by_trial_param(total_count, is_partial), 0, is_partial)
+        (
+            SplitUnit.KFOLD, 1, 
+            _generate_expected_epochs_pick_by_trial_param(total_count, is_partial), 
+            0, is_partial
+        )
     ]
     for i in range(4):
         params.append(
-            (SplitUnit.KFOLD, 10, _generate_expected_epochs_pick_by_trial_param(3, is_partial), i, is_partial)
+            (
+                SplitUnit.KFOLD, 10, 
+                _generate_expected_epochs_pick_by_trial_param(3, is_partial), 
+                i, is_partial
+            )
         )
     for i in range(2):
         params.append(
-            (SplitUnit.KFOLD, 10, _generate_expected_epochs_pick_by_trial_param(2, is_partial), 4 + i, is_partial),
+            (
+                SplitUnit.KFOLD, 10, 
+                _generate_expected_epochs_pick_by_trial_param(2, is_partial), 
+                4 + i, is_partial
+            ),
         )
 
     for i in np.arange(0, 1, 0.1):
@@ -404,15 +473,39 @@ def _test_epochs_pick_by_trial_param():
     is_partial = False
     total_count = block_size * len(subject_list) * len(session_list)
     params += [
-        (SplitUnit.NUMBER, i, _generate_expected_epochs_pick_by_trial_param(i, is_partial), 0, is_partial)
+        (
+            SplitUnit.NUMBER, i, 
+            _generate_expected_epochs_pick_by_trial_param(i, is_partial), 
+            0, is_partial
+        )
         for i in range( block_size * len(subject_list) * len(session_list) + 2 )
     ]
     params += [
-        (SplitUnit.KFOLD, 1, _generate_expected_epochs_pick_by_trial_param(total_count, is_partial), 0, is_partial),
-        (SplitUnit.KFOLD, 10, _generate_expected_epochs_pick_by_trial_param(4, is_partial), 0, is_partial),
-        (SplitUnit.KFOLD, 10, _generate_expected_epochs_pick_by_trial_param(4, is_partial), 1, is_partial),
-        (SplitUnit.KFOLD, 10, _generate_expected_epochs_pick_by_trial_param(4, is_partial), 2, is_partial),
-        (SplitUnit.KFOLD, 10, _generate_expected_epochs_pick_by_trial_param(3, is_partial), 6, is_partial),
+        (
+            SplitUnit.KFOLD, 1, 
+            _generate_expected_epochs_pick_by_trial_param(total_count, is_partial), 
+            0, is_partial
+        ),
+        (
+            SplitUnit.KFOLD, 10, 
+            _generate_expected_epochs_pick_by_trial_param(4, is_partial), 
+            0, is_partial
+        ),
+        (
+            SplitUnit.KFOLD, 10, 
+            _generate_expected_epochs_pick_by_trial_param(4, is_partial), 
+            1, is_partial
+        ),
+        (
+            SplitUnit.KFOLD, 10, 
+            _generate_expected_epochs_pick_by_trial_param(4, is_partial), 
+            2, is_partial
+        ),
+        (
+            SplitUnit.KFOLD, 10, 
+            _generate_expected_epochs_pick_by_trial_param(3, is_partial), 
+            6, is_partial
+        ),
     ]
     for i in np.arange(0, 1, 0.1):
         count = int(i * total_count)
@@ -421,17 +514,26 @@ def _test_epochs_pick_by_trial_param():
     params += _test_epochs_pick_by_trial_partial_param()
     return params
 
-@pytest.mark.parametrize('split_unit, value, expected, group_idx, is_partial', _test_epochs_pick_by_trial_param())
+@pytest.mark.parametrize(
+        'split_unit, value, expected, group_idx, is_partial', 
+        _test_epochs_pick_by_trial_param()
+    )
 @pytest.mark.parametrize('clean_mask', [
     None, np.ones(block_size * len(subject_list) * len(session_list), dtype=bool)
 ])
-def test_epochs_pick_by_trial(epochs, clean_mask, split_unit, value, expected, group_idx, is_partial):
+def test_epochs_pick_by_trial(
+    epochs, clean_mask, 
+    split_unit, value, expected, 
+    group_idx, is_partial
+):
     mask = np.ones(block_size * len(subject_list) * len(session_list), dtype=bool)
     if is_partial:
         if clean_mask is not None:
             clean_mask[:block_size  * len(session_list)] = False
         mask[:block_size  * len(session_list)] = False
-    result, new_mask = epochs.pick_trial(mask, clean_mask, value, split_unit, group_idx)
+    result, new_mask = epochs.pick_trial(
+        mask, clean_mask, value, split_unit, group_idx
+    )
     assert (new_mask == mask).all()
     assert sum(result) == sum(expected)
     assert (result == expected).all()

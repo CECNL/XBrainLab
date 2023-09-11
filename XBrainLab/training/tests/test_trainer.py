@@ -30,12 +30,12 @@ def test_trainer(mocker, training_plan_holders):
     
     trainer.set_interrupt()
     interrupt_mock.assert_called_once()
-    assert trainer.interrupt == True
+    assert trainer.interrupt
     assert trainer.get_progress_text() == 'Interrupting'
 
     trainer.clear_interrupt()
     clear_interrupt_mock.assert_called_once()
-    assert trainer.interrupt == False
+    assert trainer.interrupt is False
     assert trainer.get_progress_text() == 'Pending'
     
 def test_trainer_custom_progress_text(training_plan_holders):
@@ -50,7 +50,7 @@ def test_trainer_run(mocker, training_plan_holders, interact):
     def job():
         import threading
         if interact:
-            assert trainer.is_running() == True
+            assert trainer.is_running()
             assert not isinstance(threading.current_thread(), threading._MainThread)
             call_count = job_mock.call_count
             trainer.run()
@@ -64,7 +64,7 @@ def test_trainer_run(mocker, training_plan_holders, interact):
     job_mock.side_effect = job
     trainer.run(interact=interact)
     job_mock.assert_called_once()
-    assert trainer.is_running() == False
+    assert trainer.is_running() is False
 
 def test_trainer_job(mocker, training_plan_holders):
     trainer = Trainer(training_plan_holders)
@@ -82,7 +82,7 @@ def test_trainer_job(mocker, training_plan_holders):
     for train_mock in train_mock_list:
         train_mock.assert_called_once()
     assert trainer.get_progress_text() == 'Pending'
-    assert trainer.is_running() == False
+    assert trainer.is_running() is False
 
 def test_trainer_interrupt(mocker, training_plan_holders):
     trainer = Trainer(training_plan_holders)

@@ -5,10 +5,24 @@ import pytest
 import os
 
 @pytest.mark.parametrize('output, label, expected', [
-    (np.array([[0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), np.array([2, 1, 0]), np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])),
-    (np.array([[0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), np.array([0, 1, 2]), np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])),
-    (np.array([[0.1, 0.2, 0.7], [0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), np.array([2, 2, 1, 0]), np.array([[1, 0, 0], [0, 1, 0], [0, 0, 2]])),
-    (np.array([[0.9, 0.2, 0.7], [0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), np.array([2, 2, 1, 0]), np.array([[1, 0, 0], [0, 1, 0], [1, 0, 1]])),
+    (
+        np.array([[0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), 
+        np.array([2, 1, 0]), np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    ),
+    (
+        np.array([[0.1, 0.2, 0.7], [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), 
+        np.array([0, 1, 2]), np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
+    ),
+    (
+        np.array([[0.1, 0.2, 0.7], [0.1, 0.2, 0.7], 
+                  [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), 
+        np.array([2, 2, 1, 0]), np.array([[1, 0, 0], [0, 1, 0], [0, 0, 2]])
+    ),
+    (
+        np.array([[0.9, 0.2, 0.7], [0.1, 0.2, 0.7], 
+                  [0.3, 0.4, 0.3], [0.5, 0.2, 0.3]]), 
+        np.array([2, 2, 1, 0]), np.array([[1, 0, 0], [0, 1, 0], [1, 0, 1]])
+    ),
 ])
 def test_calculate_confusion(output, label, expected):
     confusion = calculate_confusion(output, label)
@@ -58,7 +72,12 @@ def test_export(mocker):
     output = [1]
     eval_record = EvalRecord(label, output, gradient)
     eval_record.export('target_path')
-    torch_mock.assert_called_once_with({'label': label, 'output': output, 'gradient': gradient}, 'target_path/eval')
+    torch_mock.assert_called_once_with(
+        {
+            'label': label, 'output': output, 'gradient': gradient
+        }, 
+        'target_path/eval'
+    )
 
 @pytest.fixture
 def clean_csv():

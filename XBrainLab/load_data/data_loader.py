@@ -44,19 +44,23 @@ class RawDataLoader(list):
             self.check_loaded_data_consistency(raw_data, idx=0)
             _, event_id = raw_data.get_event_list()
             if not event_id:
-                raise ValueError(f"No label has been loaded for {raw_data.get_filename()}")
+                raise ValueError(
+                    f"No label has been loaded for {raw_data.get_filename()}"
+                )
         if len(self) == 0:
-            raise ValueError(f"No dataset has been loaded")
+            raise ValueError("No dataset has been loaded")
 
     def check_loaded_data_consistency(self, raw: Raw, idx: int = -1):
-        """Validate the loaded raw data consistency with the raw data in the dataset at the given index.
+        """Validate the loaded raw data consistency with the raw data in the dataset 
+           at the given index.
 
         Args:
             raw: Loaded raw data.
             idx: Index of the raw data in the dataset. Default to the last one.
         
         Raises:
-            ValueError: If the loaded raw data is inconsistent with the raw data in the dataset.
+            ValueError: If the loaded raw data is inconsistent with 
+                        the raw data in the dataset.
         """
         validate_type(raw, Raw, 'raw')
         # valide if the dataset is empty
@@ -64,17 +68,23 @@ class RawDataLoader(list):
             return
         # check channel number
         if self[idx].get_nchan() != raw.get_nchan():
-            raise ValueError(f'Dataset channel numbers inconsistent (got {raw.get_nchan()}).')
+            raise ValueError(
+                f'Dataset channel numbers inconsistent (got {raw.get_nchan()}).'
+            )
         # check sfreq
         if self[idx].get_sfreq() != raw.get_sfreq():
-            raise ValueError(f'Dataset sample frequency inconsistent (got {raw.get_sfreq()}).')
+            raise ValueError(
+                f'Dataset sample frequency inconsistent (got {raw.get_sfreq()}).'
+            )
         # check same data type
         if self[idx].is_raw() != raw.is_raw():
-            raise ValueError(f'Dataset type inconsistent.')
+            raise ValueError('Dataset type inconsistent.')
         # check epoch trial size
         if not raw.is_raw():
             if self[idx].get_epoch_duration() != raw.get_epoch_duration():
-                raise ValueError(f'Epoch duration inconsistent (got {raw.get_epoch_duration()}).')
+                raise ValueError(
+                    f'Epoch duration inconsistent (got {raw.get_epoch_duration()}).'
+                )
     
     def append(self, raw: Raw) -> None:
         """Append the loaded raw data to the dataset.

@@ -1,6 +1,5 @@
 from .base import PreprocessBase
 from ..load_data import Raw
-from typing import List
 class Resample(PreprocessBase):
 	"""Preprocessing class for resampling data.
 
@@ -19,7 +18,9 @@ class Resample(PreprocessBase):
 				new_mne = preprocessed_data.get_mne().resample(sfreq=sfreq)
 				preprocessed_data.set_mne(new_mne)
 			else:
-				new_mne, new_events = preprocessed_data.get_mne().resample(sfreq=sfreq, events=events)
+				new_mne, new_events = preprocessed_data.get_mne().resample(
+					sfreq=sfreq, events=events
+				)
 				preprocessed_data.set_mne(new_mne)
 				preprocessed_data.set_event(new_events, event_id)
 		else:

@@ -26,7 +26,9 @@ class Trainer():
             Thread for training in background
     """
     def __init__(self, training_plan_holders: List[TrainingPlanHolder]):
-        validate_list_type(training_plan_holders, TrainingPlanHolder, 'training_plan_holders')
+        validate_list_type(
+            training_plan_holders, TrainingPlanHolder, 'training_plan_holders'
+        )
         self.interrupt = False
         self.progress_text = Status.PENDING
         self.training_plan_holders = training_plan_holders
@@ -44,7 +46,11 @@ class Trainer():
             plan_holder.set_interrupt()
 
     def clear_interrupt(self) -> None:
-        """Set interrupt flag to False and clear interrupt flag of all training plan holders"""
+        """Reset interrupt flag
+
+        Set interrupt flag to False and 
+        clear interrupt flag of all training plan holders
+        """
         self.progress_text = Status.PENDING
         self.interrupt = False
         for plan_holder in self.training_plan_holders:
@@ -95,7 +101,8 @@ class Trainer():
                 Whether to force update
 
         Raises:
-            ValueError: If training is still in progress and :attr:`force_update` is False
+            ValueError: If training is still in progress and 
+                        :attr:`force_update` is False
         """
         if force_update:
             self.set_interrupt()

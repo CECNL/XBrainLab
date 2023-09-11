@@ -18,7 +18,13 @@ class DataSplitter():
         text: str
             String representation of :attr:`split_type`
     """
-    def __init__(self, split_type: SplitByType | ValSplitByType, value_var: str | None = None, split_unit: SplitUnit | None = None, is_option: bool = True):
+    def __init__(
+        self, 
+        split_type: SplitByType | ValSplitByType, 
+        value_var: str | None = None, 
+        split_unit: SplitUnit | None = None, 
+        is_option: bool = True
+    ):
         validate_type(split_type, (SplitByType, ValSplitByType) ,"split_type")
         if split_unit:
             validate_type(split_unit, SplitUnit ,"split_unit")
@@ -77,7 +83,11 @@ class DataSplitter():
         if not self.is_valid():
             raise ValueError("Splitter is not valid")
         if self.split_unit == SplitUnit.MANUAL:
-            return [int(i) for i in self.value_var.strip().split(' ') if len(i.strip()) > 0]
+            return [
+                int(i) 
+                for i in self.value_var.strip().split(' ')
+                if len(i.strip()) > 0
+            ]
         else:
             return float(self.value_var)
     
@@ -112,7 +122,13 @@ class DataSplittingConfig():
         test_splitter_list: List[:class:`DataSplitter`]
             list of DataSplitter for test set
     """
-    def __init__(self, train_type: TrainingType, is_cross_validation: bool, val_splitter_list: List[DataSplitter], test_splitter_list: List[DataSplitter]):
+    def __init__(
+        self, 
+        train_type: TrainingType, 
+        is_cross_validation: bool, 
+        val_splitter_list: List[DataSplitter], 
+        test_splitter_list: List[DataSplitter]
+    ):
         validate_type(train_type, TrainingType ,"train_type")
         validate_type(is_cross_validation, bool ,"is_cross_validation")
         validate_list_type(val_splitter_list, DataSplitter ,"val_splitter_list")

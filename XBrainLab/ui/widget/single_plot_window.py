@@ -4,11 +4,10 @@ import matplotlib
 import traceback
 try:
     matplotlib.use('TkAgg')
-except Exception as e:
+except Exception:
     traceback.print_exc()
 
 from matplotlib import pyplot as plt
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg,
     NavigationToolbar2Tk
@@ -36,10 +35,16 @@ class SinglePlotWindow(TopWindow):
         self.update_idletasks()
         width = self.figure_canvas.get_tk_widget().winfo_width()
         heigh = self.figure_canvas.get_tk_widget().winfo_height()
-        target_width, target_height = [int(s * self.fig_param['dpi']) for s in self.fig_param['figsize']]
+        target_width, target_height = [
+            int(s * self.fig_param['dpi']) for s in self.fig_param['figsize']
+        ]
         target_width -= width
         target_height -= heigh
-        self.geometry(f"{self.winfo_width() + target_width}x{self.winfo_height() + target_height}")
+        self.geometry((f"{self.winfo_width() + target_width}"
+                       "x"
+                       f"{self.winfo_height() + target_height}"
+                      )
+        )
 
     def active_figure(self):
         plt.figure(self.plot_number)

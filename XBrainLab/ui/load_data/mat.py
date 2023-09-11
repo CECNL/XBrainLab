@@ -1,4 +1,3 @@
-import tkinter as tk
 import scipy.io
 
 from .base import LoadDict
@@ -12,5 +11,5 @@ class LoadMat(LoadDict):
 
     def _load(self, filepath):
         selected_data = scipy.io.loadmat(filepath)
-        self.script_history.add_cmd(f"data = scipy.io.loadmat(filepath)")
+        self.script_history.add_cmd("data = scipy.io.loadmat(filepath)")
         return self.handle_dict(filepath, selected_data)

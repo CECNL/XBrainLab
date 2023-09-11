@@ -62,7 +62,9 @@ class TrainingSchemePanel(PanelBase):
             if val_splitter.is_option:
                 ## init widget
                 val_split_by_label = tk.Label(validation_frame, text=val_splitter.text)
-                val_split_type_label = tk.Label(validation_frame, text=val_splitter.split_unit.value)
+                val_split_type_label = tk.Label(
+                    validation_frame, text=val_splitter.split_unit.value
+                )
                 value_var = val_splitter.value_var
                 if len(value_var) > 10:
                     value_var = value_var[:10] + '...'
@@ -73,12 +75,16 @@ class TrainingSchemePanel(PanelBase):
                 val_split_entry_label.grid(row=row + 1, column=1)
                 row += 2
             else:
-                tk.Label(validation_frame, text=val_splitter.text).grid(row=row, column=0, columnspan=2, pady=5)
+                tk.Label(validation_frame, text=val_splitter.text).grid(
+                    row=row, column=0, columnspan=2, pady=5
+                )
 
         # test frame
         row = 0
         if config.is_cross_validation:
-            tk.Label(testing_frame, text='Cross Validation').grid(row=row, column=0, columnspan=2)
+            tk.Label(testing_frame, text='Cross Validation').grid(
+                row=row, column=0, columnspan=2
+            )
             row += 1
         idx = 0
         for test_splitter in test_splitter_list:
@@ -86,7 +92,9 @@ class TrainingSchemePanel(PanelBase):
                 idx += 1
                 ## init widget
                 test_split_by_label = tk.Label(testing_frame, text=test_splitter.text)
-                test_split_type_label = tk.Label(testing_frame, text=test_splitter.split_unit.value)
+                test_split_type_label = tk.Label(
+                    testing_frame, text=test_splitter.split_unit.value
+                )
                 value_var = test_splitter.value_var
                 if len(value_var) > 10:
                     value_var = value_var[:10] + '...'
@@ -97,5 +105,7 @@ class TrainingSchemePanel(PanelBase):
                 test_split_entry_label.grid(row=row + 1, column=1)
                 row += 2
             else:
-                tk.Label(testing_frame, text=test_splitter.text).grid(row=row, column=0, columnspan=2, pady=5, sticky='news')
+                tk.Label(testing_frame, text=test_splitter.text).grid(
+                    row=row, column=0, columnspan=2, pady=5, sticky='news'
+                )
                 row += 1

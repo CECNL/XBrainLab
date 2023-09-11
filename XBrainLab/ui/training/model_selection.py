@@ -33,13 +33,17 @@ class ModelSelectionWindow(TopWindow):
         ## model params
         params_frame = tk.LabelFrame(self, text='model parameters')
         columns = ('param', 'value')
-        params_tree = EditableTreeView(params_frame, editableCols=['#2'], columns=columns, show='headings')
+        params_tree = EditableTreeView(
+            params_frame, editableCols=['#2'], columns=columns, show='headings'
+        )
         params_tree.pack(fill=tk.BOTH, expand=True)
 
         ## pretrained weight
         pretrained_weight_label = tk.Label(self, text='Pretrained weight: ')
         pretrained_weight_disp_label = tk.Label(self)
-        pretrained_weight_btn = tk.Button(self, text='load', command=self.load_pretrained_weight)
+        pretrained_weight_btn = tk.Button(
+            self, text='load', command=self.load_pretrained_weight
+        )
         
         model_opt_label.grid(row=1, column=0)
         model_opt.grid(row=1, column=1)
@@ -71,7 +75,10 @@ class ModelSelectionWindow(TopWindow):
             for param in params:
                 if param in ARG_DICT_SKIP_SET:
                     continue
-                value = value = '' if params[param].default == inspect._empty else params[param].default
+                if params[param].default == inspect._empty:
+                    value = ''
+                else:
+                    value = params[param].default
                 self.params_tree.insert('', index='end', values=(param, value))
                 contain = True
         if contain:
@@ -88,7 +95,9 @@ class ModelSelectionWindow(TopWindow):
             self.pretrained_weight_btn.config(text='load')
             return
         
-        filepath = tk.filedialog.askopenfilename(parent=self, filetypes=(("model/weights", "*"),))
+        filepath = tk.filedialog.askopenfilename(
+            parent=self, filetypes=(("model/weights", "*"),)
+        )
         if filepath:
             self.pretrained_weight_path = filepath
             filename = os.path.basename(filepath)
@@ -97,7 +106,6 @@ class ModelSelectionWindow(TopWindow):
 
     def confirm(self):
         self.params_tree.submitEntry() # close editing tables
-        reason = None    
         
         target_model = self.model_map[self.selected_model_name.get()]
         model_params_map = {}
@@ -105,12 +113,19 @@ class ModelSelectionWindow(TopWindow):
             param, value = self.params_tree.item(item)['values']
             model_params_map[param] = value
         
-        self.model_holder = ModelHolder(target_model, model_params_map, self.pretrained_weight_path)
+        self.model_holder = ModelHolder(
+            target_model, model_params_map, self.pretrained_weight_path
+        )
         self.script_history = Script()
         self.script_history.add_import("from XBrainLab.training import ModelHolder")
         self.script_history.add_import("from XBrainLab import model_base")
 
-        self.script_history.add_cmd(f"model_holder = ModelHolder(target_model=model_base.{target_model.__name__}, model_params_map={repr(model_params_map)}, pretrained_weight_path={repr(self.pretrained_weight_path)})")
+        self.script_history.add_cmd((
+            "model_holder = ModelHolder("
+            f"target_model=model_base.{target_model.__name__}, "
+            f"model_params_map={repr(model_params_map)}, "
+            f"pretrained_weight_path={repr(self.pretrained_weight_path)})"
+        ))
         self.destroy()
 
     def _get_result(self):

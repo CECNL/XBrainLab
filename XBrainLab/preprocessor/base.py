@@ -2,7 +2,6 @@ from ..load_data import Raw
 from ..utils import validate_list_type
 from copy import deepcopy
 from typing import List
-from ..load_data import Raw
 
 class PreprocessBase:
     """Base class for preprocessors.
@@ -19,7 +18,8 @@ class PreprocessBase:
         """Check if the data is valid.
 
         Raises:
-            ValueError: If the data is either empty, not a list of :class:`XBrainLab.preprocessor.Raw` or not valid.
+            ValueError: If the data is either empty, 
+                        not a list of :class:`XBrainLab.preprocessor.Raw` or not valid.
         """
         if not self.preprocessed_data_list:
             raise ValueError("No valid data is loaded")

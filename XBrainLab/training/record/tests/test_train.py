@@ -1,7 +1,11 @@
 from XBrainLab.training.record import TrainRecord, TrainRecordKey, RecordKey, EvalRecord
 from XBrainLab.utils import set_seed
 
-from ...tests.test_training_plan import export_mocker, model_holder, dataset, training_option, epochs, preprocessed_data_list, y, FakeModel, CLASS_NUM
+from ...tests.test_training_plan import (
+    export_mocker, model_holder, dataset, training_option, # noqa: F401
+    epochs, preprocessed_data_list, y, # noqa: F401
+    FakeModel, CLASS_NUM
+)
 
 import pytest
 import numpy as np
@@ -9,7 +13,7 @@ import os
 import torch
 from matplotlib import pyplot as plt
 
-def test_train_record(mocker, dataset, training_option, model_holder):
+def test_train_record(mocker, dataset, training_option, model_holder): # noqa: F811
     repeat = 0
     seed = set_seed(0)
     model = model_holder.get_model({})
@@ -17,7 +21,9 @@ def test_train_record(mocker, dataset, training_option, model_holder):
     TrainRecord(repeat, dataset, model, training_option, seed)
     create_dir_mock.assert_called_once()
 
-def test_train_record_getter(export_mocker, dataset, training_option, model_holder):
+def test_train_record_getter(
+    export_mocker, dataset, training_option, model_holder # noqa: F811
+):
     repeat = 0
     seed = set_seed(0)
     model = model_holder.get_model({})
@@ -28,15 +34,15 @@ def test_train_record_getter(export_mocker, dataset, training_option, model_hold
     with pytest.raises(Exception):
         record.get_training_model('error')
     assert isinstance(record.get_training_model('cpu'), FakeModel)
-    assert record.is_finished() == False
+    assert record.is_finished() is False
 
     for i in range(training_option.epoch):
         record.step()
         assert record.get_epoch() == i + 1
-        assert record.is_finished() == False
-    assert record.is_finished() == False
+        assert record.is_finished() is False
+    assert record.is_finished() is False
     record.set_eval_record("test")
-    assert record.is_finished() == True
+    assert record.is_finished()
       
 @pytest.fixture()
 def cleanup():
@@ -45,15 +51,21 @@ def cleanup():
     if os.path.exists('ok'):
         shutil.rmtree('ok')
 
-def test_train_record_create_dir(cleanup, mocker, dataset, training_option, model_holder):
+def test_train_record_create_dir(
+    cleanup, mocker, dataset, training_option, model_holder # noqa: F811
+):
     repeat = 0
     seed = set_seed(0)
     model = model_holder.get_model({})
     record = TrainRecord(repeat, dataset, model, training_option, seed)
-    expected = os.path.join(training_option.get_output_dir(), dataset.get_name(), record.get_name())
+    expected = os.path.join(
+        training_option.get_output_dir(), dataset.get_name(), record.get_name()
+    )
     assert os.path.exists(expected)
 
-def test_train_record_backup_dir(cleanup, mocker, dataset, training_option, model_holder):
+def test_train_record_backup_dir(
+    cleanup, mocker, dataset, training_option, model_holder # noqa: F811
+):
     mkdir = os.makedirs
     move_mock = mocker.patch('shutil.move')
     make_dir_mock = mocker.patch('os.makedirs')
@@ -85,10 +97,12 @@ def test_train_record_backup_dir(cleanup, mocker, dataset, training_option, mode
 
     called_move_mock_args = move_mock.call_args[0]
     assert called_move_mock_args[0] == expected
-    assert called_move_mock_args[1].startswith(os.path.join(expected_backup_root, repeat_name))
+    assert called_move_mock_args[1].startswith(
+        os.path.join(expected_backup_root, repeat_name)
+    )
 
 @pytest.fixture()
-def train_record(export_mocker, dataset, training_option, model_holder):
+def train_record(export_mocker, dataset, training_option, model_holder): # noqa: F811
     repeat = 0
     seed = set_seed(0)
     model = model_holder.get_model({})
@@ -132,13 +146,15 @@ def test_train_record_append_record_with_small_array(train_record):
     assert len(arr) == 6
     assert arr[-1] == 15
     for i in range(5):
-        assert arr[i] == None
+        assert arr[i] is None
 
 @pytest.mark.parametrize("update_type, test_result_key, expected_key", [
     ('val', TrainRecordKey.LOSS, 'best_val_loss'),
     ('test', TrainRecordKey.LOSS, 'best_test_loss')
 ])
-def test_train_record_update_smaller(train_record, update_type, test_result_key, expected_key):
+def test_train_record_update_smaller(
+    train_record, update_type, test_result_key, expected_key
+):
     for i in range(10):
         v = 0.1 / (i + 1)
         train_record.update(update_type, {
@@ -166,7 +182,9 @@ def test_train_record_update_smaller(train_record, update_type, test_result_key,
     ('test', TrainRecordKey.ACC, 'best_test_accuracy'),
     ('test', TrainRecordKey.AUC, 'best_test_auc')
 ])
-def test_train_record_update_larger(train_record, update_type, test_result_key, expected_key):
+def test_train_record_update_larger(
+    train_record, update_type, test_result_key, expected_key
+):
     for i in range(10):
         v = i + 1
         train_record.update(update_type, {
@@ -229,7 +247,9 @@ def test_train_record_step(train_record):
     ('get_acc_figure', TrainRecordKey.ACC),
     ('get_auc_figure', TrainRecordKey.AUC)
 ])
-def test_train_record_test_line_figure(train_record, train, val, test, test_func, add_target):
+def test_train_record_test_line_figure(
+    train_record, train, val, test, test_func, add_target
+):
     counter = 0
     if train:
         counter += 1
@@ -242,14 +262,14 @@ def test_train_record_test_line_figure(train_record, train, val, test, test_func
         train_record.update_test({add_target: 1})
 
     if not train and not val and not test:
-        assert getattr(train_record, test_func)() == None
+        assert getattr(train_record, test_func)() is None
     else:
         figure = getattr(train_record, test_func)()
         assert len(figure.axes[0].lines) == counter
     plt.close('all')
 
 def test_train_record_test_lr_figure(train_record):
-    assert train_record.get_lr_figure() == None
+    assert train_record.get_lr_figure() is None
     train_record.update_statistic({
         TrainRecordKey.LR: 1
     })
@@ -268,17 +288,19 @@ def eval_record():
     return EvalRecord(label, output, gradient)
 
 def test_train_record_test_confusion_figure(train_record, eval_record):
-    assert train_record.get_confusion_figure() == None
+    assert train_record.get_confusion_figure() is None
     train_record.set_eval_record(eval_record)
     figure = train_record.get_confusion_figure()
     assert len(figure.axes[0].images) == 1
     plt.close('all')
 
-@pytest.mark.parametrize("func_name", ['get_acc', 'get_auc', 'get_kappa', 'get_eval_record'])
+@pytest.mark.parametrize("func_name", [
+    'get_acc', 'get_auc', 'get_kappa', 'get_eval_record'
+])
 def test_train_record_eval_record_getter(train_record, eval_record, func_name):
-    assert getattr(train_record, func_name)() == None
+    assert getattr(train_record, func_name)() is None
     train_record.set_eval_record(eval_record)
-    assert getattr(train_record, func_name)() != None
+    assert getattr(train_record, func_name)() is not None
 
 @pytest.mark.parametrize("best_type", ['val', 'test'])
 @pytest.mark.parametrize("key", [i for i in RecordKey()])

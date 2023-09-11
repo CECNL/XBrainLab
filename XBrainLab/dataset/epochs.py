@@ -16,7 +16,8 @@ class TrialSelectionSequence(Enum):
 class Epochs:
     """Class for storing epoch data.
 
-    Handles list of `Raw` objects, which are preprocessed data, and convert them into epoch data.
+    Handles list of `Raw` objects, which are preprocessed data, 
+        and convert them into epoch data.
     With functions to corporate with dataset generator.
 
     Parameters:
@@ -48,10 +49,17 @@ class Epochs:
             List of epoch index within each preprocessed data.
     """
     def __init__(self, preprocessed_data_list: List[Raw]):
-        validate_list_type(preprocessed_data_list, Raw, 'preprocessed_data_list')
+        validate_list_type(
+            instance_list=preprocessed_data_list, 
+            type_class=Raw, 
+            message_name='preprocessed_data_list'
+        )
         for preprocessed_data in preprocessed_data_list:
             if preprocessed_data_list[0].is_raw():
-                raise ValueError(f"Items of preprocessed_data_list must be {Raw.__module__}.Raw of type epoch.")
+                raise ValueError((
+                    "Items of preprocessed_data_list must be "
+                    f"{Raw.__module__}.Raw of type epoch."
+                ))
         
         self.sfreq = None
         # maps
@@ -91,7 +99,8 @@ class Epochs:
             old_labels = old_events[:,2].copy()
 
             for old_event_name, old_event_label in old_event_id.items():
-                events[:,2][ old_labels == old_event_label ] = fixed_event_id[old_event_name]
+                events[:, 2][old_labels == old_event_label] = \
+                    fixed_event_id[old_event_name]
                 event_id[old_event_name] = fixed_event_id[old_event_name]
             preprocessed_data.set_event(events, event_id)
 
@@ -244,16 +253,22 @@ class Epochs:
             Get the list of selected attributes.
             (Enter _pick)
             Calculate the number of ids to be selected. (In _get_real_num)
-            Generate the mask and selected counter filtered by each attribute. (In _generate_mask_target)
+            Generate the mask and selected counter filtered by each attribute. 
+                (In _generate_mask_target)
             while number of epochs to be selected > 0:
-                Get the mask and counter of epochs with least selected counter. (In _get_filtered_mask_pair)
+                Get the mask and counter of epochs with least selected counter. 
+                    (In _get_filtered_mask_pair)
                 Choose one epoch
                 Select all epochs matched the chosen epoch by the attribute.
-                Update the counter of groups that contain the chosen epoch. (In _update_mask_target)
+                Update the counter of groups that contain the chosen epoch. 
+                    (In _update_mask_target)
                 Decrease the number of ids to be selected.
             Return the selected mask.
-        Note: sequence of attributes to be selected can make the result different. (The sequence is defined in _get_filtered_mask_pair)
-        Note: Trial is different from other attributes. (In pick_trial) The index of trial is discarded because it is meaningless so far.
+        Note: sequence of attributes to be selected can make the result different. 
+            (The sequence is defined in _get_filtered_mask_pair)
+        Note: Trial is different from other attributes. 
+            (In pick_trial) The index of trial is discarded 
+                            ecause it is meaningless so far.
     """
     def _generate_mask_target(self, mask: np.ndarray) -> dict:
         """Return mask-counter pair, group by label, subject, and session.
@@ -275,16 +290,22 @@ class Epochs:
                 if subject_idx not in filter_preview_mask[label_idx]:
                     filter_preview_mask[label_idx][subject_idx] = {}
                 for session_idx in unique_session_idx:
-                    filter_mask = (self.label == label_idx) & (self.subject == subject_idx) & (self.session == session_idx)
+                    filter_mask = (
+                        (self.label == label_idx) & 
+                        (self.subject == subject_idx) & 
+                        (self.session == session_idx)
+                    )
                     target_filter_mask = filter_mask & mask 
-                    filter_preview_mask[label_idx][subject_idx][session_idx] = [target_filter_mask, 0]
+                    filter_preview_mask[label_idx][subject_idx][session_idx] = \
+                        [target_filter_mask, 0]
         return filter_preview_mask
 
     def _get_filtered_mask_pair(self, filter_preview_mask: dict) -> list:
         """Return mask-counter pair with least selected group.
 
         Args:
-            filter_preview_mask: Mask-counter pair, group by label, subject, and session.
+            filter_preview_mask: 
+                Mask-counter pair, group by label, subject, and session.
         
         Returns:
             [target_filter_mask, count] with least count.
@@ -314,8 +335,10 @@ class Epochs:
         """Update mask-counter pair by selected mask.
 
         Args:
-            filter_preview_mask: Mask-counter pair, group by label, subject, and session.
-            pos: Mask of selected epochs.
+            filter_preview_mask: 
+                Mask-counter pair, group by label, subject, and session.
+            pos: 
+                Mask of selected epochs.
 
         Returns:
             Updated mask-counter pair.
@@ -340,11 +363,18 @@ class Epochs:
         """Return number of epochs to be selected.
 
         Args:
-            target_type: List of index of target type. Can be list index of subject or session.
-            value: Value of splitting option. Can be ratio, number, or list of manual selection.
+            target_type: 
+                List of index of target type. 
+                Can be list index of subject or session.
+            value: Value of splitting option. 
+                   Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
-            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
+            mask: Mask to filter out remaining epochs, 
+                  ecxluding already selected cross validation part. 
+                  1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, 
+                        including all available selection. 
+                        1D np.ndarray of bool.
             group_idx: Group index of cross validation.
         """
         if clean_mask is None:
@@ -375,17 +405,25 @@ class Epochs:
         """Return mask of selected epochs by splitting option and target type.
 
         Args:
-            target_type: List of index of target type. Can be list index of subject or session.
-            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
-            value: Value of splitting option. Can be ratio, number, or list of manual selection.
+            target_type: List of index of target type. 
+                         Can be list index of subject or session.
+            mask: Mask to filter out remaining epochs, 
+                  ecxluding already selected cross validation part. 
+                  1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, 
+                        including all available selection. 
+                        1D np.ndarray of bool.
+            value: Value of splitting option. 
+                   Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
         
         Returns:
             [selected_mask, remaining_mask]
         """
-        num = self._get_real_num(target_type, value, split_unit, mask, clean_mask, group_idx)
+        num = self._get_real_num(
+            target_type, value, split_unit, mask, clean_mask, group_idx
+        )
         ret = mask & False
         filter_preview_mask = self._generate_mask_target(mask)
         while num > 0:
@@ -410,8 +448,11 @@ class Epochs:
         """Return mask of selected epochs by manual selection.
 
         Args:
-            target_type: List of index of target type. Can be list index of subject or session.
-            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
+            target_type: List of index of target type. 
+                         Can be list index of subject or session.
+            mask: Mask to filter out remaining epochs, 
+                  ecxluding already selected cross validation part. 
+                  1D np.ndarray of bool.
             value: List of manual selection.
         
         Returns:
@@ -433,9 +474,14 @@ class Epochs:
         """Return mask of epochs selected by subject.
 
         Args:
-            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
-            value: Value of splitting option. Can be ratio, number, or list of manual selection.
+            mask: Mask to filter out remaining epochs,
+                  ecxluding already selected cross validation part. 
+                  1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, 
+                        including all available selection. 
+                        1D np.ndarray of bool.
+            value: Value of splitting option. 
+                   Can be ratio, number, or list of manual selection.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
        
@@ -446,7 +492,9 @@ class Epochs:
         if split_unit == SplitUnit.MANUAL:
             return self._pick_manual(target_type, mask, value)
         else:
-            return self._pick(target_type, mask, clean_mask, value, split_unit, group_idx)
+            return self._pick(
+                target_type, mask, clean_mask, value, split_unit, group_idx
+            )
 
     def pick_session(self, 
                      mask: np.ndarray, 
@@ -457,9 +505,15 @@ class Epochs:
         """Return mask of epochs selected by session.
 
         Args:
-            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
-            value: Value of splitting option. Can be ratio, number, or list of manual selection.
+            mask: Mask to filter out remaining epochs, 
+                  ecxluding already selected cross validation part. 
+                  1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, 
+                        including all available selection. 
+                        1D np.ndarray of bool.
+            value: Value of splitting option. 
+                   Can be ratio, number, 
+                   or list of manual selection.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
         
@@ -470,7 +524,9 @@ class Epochs:
         if split_unit == SplitUnit.MANUAL:
             return self._pick_manual(target_type, mask, value)
         else:
-            return self._pick(target_type, mask, clean_mask, value, split_unit, group_idx)
+            return self._pick(
+                target_type, mask, clean_mask, value, split_unit, group_idx
+            )
         
     def pick_trial(self, 
                    mask: np.ndarray, 
@@ -481,10 +537,16 @@ class Epochs:
         """Return mask of epochs selected by trial.
 
         Args:
-            mask: Mask to filter out remaining epochs, ecxluding already selected cross validation part. 1D np.ndarray of bool.
-            clean_mask: Mask to filter out remaining epochs, including all available selection. 1D np.ndarray of bool.
-            value: Value of splitting option. Can be ratio, number, or list of manual selection.
-                   When split_unit is manual selection, value is the boolean mask of selected epochs.
+            mask: Mask to filter out remaining epochs,
+                  ecxluding already selected cross validation part. 
+                  1D np.ndarray of bool.
+            clean_mask: Mask to filter out remaining epochs, 
+                        including all available selection. 
+                        1D np.ndarray of bool.
+            value: Value of splitting option. 
+                   Can be ratio, number, or list of manual selection.
+                   When split_unit is manual selection, 
+                   value is the boolean mask of selected epochs.
             split_unit: SplitUnit of splitting option.
             group_idx: Group index of cross validation.
         

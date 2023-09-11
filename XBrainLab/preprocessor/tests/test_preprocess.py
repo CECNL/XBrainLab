@@ -1,7 +1,10 @@
 from XBrainLab import preprocessor
 from XBrainLab.load_data import Raw
 
-from .test_base import raw, _generate_mne, base_fs
+from .test_base import (
+    raw, # noqa: F401
+    _generate_mne, base_fs 
+)
 
 import mne
 import pytest
@@ -15,7 +18,9 @@ def mne_epoch():
 
     events = np.array([[1, 0, 1], [2, 0, 2], [3, 0, 3], [4, 0, 4]])
     event_id = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
-    epochs = mne.Epochs(mne_raw, events, event_id, tmin=0, tmax=5, baseline=None, preload=True)
+    epochs = mne.Epochs(
+        mne_raw, events, event_id, tmin=0, tmax=5, baseline=None, preload=True
+    )
     return epochs
 
 @pytest.fixture
@@ -38,13 +43,17 @@ def test_channel_selection(target, request):
     assert result.get_nchan() == 2
     assert result.get_preprocess_history()[0] == 'Select 2 Channel'
 
-def test_edit_event_name_raw(raw):
-    with pytest.raises(ValueError, match="Event name can only be edited for epoched data"):
+def test_edit_event_name_raw(raw): # noqa: F811
+    with pytest.raises(
+        ValueError, match="Event name can only be edited for epoched data"
+    ):
         preprocessor.EditEventName([raw])
 
 def test_edit_event_name_epoch(epoch):
     processor = preprocessor.EditEventName([epoch])
-    with pytest.raises(AssertionError, match="New event name not found in old event name."):
+    with pytest.raises(
+        AssertionError, match="New event name not found in old event name."
+    ):
         processor.data_preprocess({'ff': 'a'})
     with pytest.raises(AssertionError, match="No Event name updated."):
         processor.data_preprocess({'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd'})
@@ -123,11 +132,11 @@ def test_epoch_wrong_type(method, epoch):
         method([epoch])
 
 @pytest.mark.parametrize('method', [preprocessor.TimeEpoch, preprocessor.WindowEpoch])
-def test_epoch_wrong_events(method, raw):
+def test_epoch_wrong_events(method, raw): # noqa: F811
     with pytest.raises(ValueError, match="No event markers found.*"):
         method([raw])
         
-def test_sliding_epoch_error(raw):
+def test_sliding_epoch_error(raw): # noqa: F811
     events = np.array([[1, 0, 1], [2, 0, 2], [3, 0, 3], [4, 0, 4]])
     event_id = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
     raw.set_event(events, event_id)
@@ -143,35 +152,57 @@ def annotated_raw():
     data = np.array([[1, 3 ,5, 7, 9, 11, 13, 15, 17, 19],
                      [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]])
     mne_raw = mne.io.RawArray(data, info)
-    raw = Raw('tests/test_data/sub-01_ses-01_task-rest_eeg.fif', mne_raw)
+    annotated_raw = Raw('tests/test_data/sub-01_ses-01_task-rest_eeg.fif', mne_raw)
     events = np.array([[1, 0, 1], [3, 0, 2], [5, 0, 3], [7, 0, 4]])
     event_id = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
-    raw.set_event(events, event_id)
-    return raw
+    annotated_raw.set_event(events, event_id)
+    return annotated_raw
 
 def test_time_epoch_no_epochs(annotated_raw):    
     processor = preprocessor.TimeEpoch([annotated_raw])
     with pytest.raises(ValueError, match="No event markers found."):
-        processor.data_preprocess(baseline=None, selected_event_names=['g'], tmin=0, tmax=1)
+        processor.data_preprocess(
+            baseline=None, selected_event_names=['g'], tmin=0, tmax=1
+        )
     
 
 def test_time_epoch_without_baseline(annotated_raw):    
     processor = preprocessor.TimeEpoch([annotated_raw])
-    processor.data_preprocess(baseline=None, selected_event_names=['a', 'b', 'c', 'd'], tmin=0, tmax=1)
+    processor.data_preprocess(
+        baseline=None, selected_event_names=['a', 'b', 'c', 'd'], tmin=0, tmax=1
+    )
     result = processor.get_preprocessed_data_list()[0]
     assert result.get_event_name_list_str() == 'a,b,c,d'
     assert result.get_mne().get_data().shape == (4, 2, 2)
-    assert np.allclose(result.get_mne().get_data(), np.array([[[3, 5], [4, 6]], [[7, 9], [8, 10]], [[11, 13], [12, 14]], [[15, 17], [16, 18]]]))
-    assert result.get_preprocess_history()[0] == 'Epoching 0 ~ 1 by event (None baseline)'
+    assert np.allclose(
+        result.get_mne().get_data(), 
+        np.array([[[3, 5], [4, 6]], [[7, 9], [8, 10]], 
+                  [[11, 13], [12, 14]], [[15, 17], [16, 18]]])
+    )
+    assert (
+        result.get_preprocess_history()[0] == 
+        'Epoching 0 ~ 1 by event (None baseline)'
+    )
 
 def test_time_epoch_with_baseline(annotated_raw):
     processor = preprocessor.TimeEpoch([annotated_raw])
-    processor.data_preprocess(baseline=(-1, 0), selected_event_names=['a', 'b', 'c', 'd'], tmin=0, tmax=1)
+    processor.data_preprocess(
+        baseline=(-1, 0), 
+        selected_event_names=['a', 'b', 'c', 'd'], 
+        tmin=0, tmax=1
+    )
     result = processor.get_preprocessed_data_list()[0]
     assert result.get_event_name_list_str() == 'a,b,c,d'
     assert result.get_mne().get_data().shape == (4, 2, 2)
-    assert np.allclose(result.get_mne().get_data(), np.array([[[0, 2], [0, 2]], [[0, 2], [0, 2]], [[0, 2], [0, 2]], [[0, 2], [0, 2]]]))
-    assert result.get_preprocess_history()[0] == 'Epoching 0 ~ 1 by event ((-1, 0) baseline)'
+    assert np.allclose(
+        result.get_mne().get_data(), 
+        np.array([[[0, 2], [0, 2]], [[0, 2], [0, 2]], 
+                  [[0, 2], [0, 2]], [[0, 2], [0, 2]]])
+    )
+    assert (
+        result.get_preprocess_history()[0] == 
+        'Epoching 0 ~ 1 by event ((-1, 0) baseline)'
+    )
 
 def test_window_epoch(annotated_raw):
     events = np.array([[0, 0, 1]])
@@ -182,8 +213,18 @@ def test_window_epoch(annotated_raw):
     result = processor.get_preprocessed_data_list()[0]
     assert result.get_event_name_list_str() == 'a'
     assert result.get_mne().get_data().shape == (9, 2, 2)
-    assert np.allclose(result.get_mne().get_data(), np.array([[[1, 3], [2, 4]], [[3, 5], [4, 6]], [[5, 7], [6, 8]], [[7, 9], [8, 10]], [[9, 11], [10, 12]], [[11, 13], [12, 14]], [[13, 15], [14, 16]], [[15, 17], [16, 18]], [[17, 19], [18, 20]]]))
-    assert result.get_preprocess_history()[0] == 'Epoching 2s (1s overlap) by sliding window'
+    assert np.allclose(
+        result.get_mne().get_data(), 
+        np.array([[[1, 3], [2, 4]], [[3, 5], [4, 6]], 
+                  [[5, 7], [6, 8]], [[7, 9], [8, 10]], 
+                  [[9, 11], [10, 12]], [[11, 13], [12, 14]], 
+                  [[13, 15], [14, 16]], [[15, 17], [16, 18]], 
+                  [[17, 19], [18, 20]]])
+    )
+    assert (
+        result.get_preprocess_history()[0] == 
+        'Epoching 2s (1s overlap) by sliding window'
+    )
 
 @pytest.mark.xfail
 def test_normalization_zero_min():

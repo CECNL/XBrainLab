@@ -88,7 +88,7 @@ class TrainingOption:
             try:
                 float(i)
                 return False
-            except:
+            except Exception:
                 return True
 
         if self.gpu_idx is not None:
@@ -125,7 +125,8 @@ class TrainingOption:
         return self.optim.__name__
 
     def get_optim_desc_str(self) -> str:
-        """Return optimizer description string, including optimizer name and parameters"""
+        """Return optimizer description string, 
+           including optimizer name and parameters"""
         return parse_optim_name(self.optim, self.optim_params)
 
     def get_device_name(self) -> str:
@@ -140,7 +141,9 @@ class TrainingOption:
 
     def get_evaluation_option_repr(self) -> str:
         """Return model selection option description string"""
-        return f"{self.evaluation_option.__class__.__name__}.{self.evaluation_option.name}"
+        module_name = self.evaluation_option.__class__.__name__
+        class_name = self.evaluation_option.name
+        return f"{module_name}.{class_name}"
 
     def get_output_dir(self) -> str:
         """Return output directory"""
@@ -158,7 +161,10 @@ class TestOnlyOption(TrainingOption):
         bs: Batch size
     """
     def __init__(self, output_dir: str, use_cpu: bool, gpu_idx: int, bs: int):
-        super().__init__(output_dir, None, None, use_cpu, gpu_idx, 0, bs, 0, 0, TRAINING_EVALUATION.LAST_EPOCH, 1)
+        super().__init__(
+            output_dir, None, None, use_cpu, gpu_idx, 0, bs, 0, 0, 
+            TRAINING_EVALUATION.LAST_EPOCH, 1
+        )
         self.validate()
 
     def validate(self) -> None:
@@ -179,7 +185,7 @@ class TestOnlyOption(TrainingOption):
             try:
                 float(i)
                 return False
-            except:
+            except Exception:
                 return True
 
         if self.gpu_idx is not None:
@@ -215,7 +221,9 @@ class TestOnlyOption(TrainingOption):
         return f"cuda:{self.gpu_idx}"
 
     def get_evaluation_option_repr(self):
-        return f"{self.evaluation_option.__class__.__name__}.{self.evaluation_option.name}"
+        module_name = self.evaluation_option.__class__.__name__
+        class_name = self.evaluation_option.name
+        return f"{module_name}.{class_name}"
 
     def get_output_dir(self):
         return self.output_dir

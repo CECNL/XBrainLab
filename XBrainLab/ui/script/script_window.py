@@ -31,7 +31,9 @@ class ScriptPreview(TopWindow):
         self.txt_edit = txt_edit
     
     def export(self):
-        filepath = tk.filedialog.asksaveasfilename(parent=self, initialfile="script.py", filetypes = (("python files","*.py"),))
+        filepath = tk.filedialog.asksaveasfilename(
+            parent=self, initialfile="script.py", filetypes = (("python files","*.py"),)
+        )
         if filepath:
             content = self.txt_edit.get("1.0", tk.END)
             with open(filepath, 'w') as f:

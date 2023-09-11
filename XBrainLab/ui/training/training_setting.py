@@ -1,12 +1,13 @@
 import tkinter as tk
-import tkinter.filedialog
 import inspect
 import torch
 
 from ..base import TopWindow, ValidateException
 from ..widget import EditableTreeView
 from ..script import Script
-from XBrainLab.training import TrainingOption, TRAINING_EVALUATION, parse_device_name, parse_optim_name
+from XBrainLab.training import (
+    TrainingOption, TRAINING_EVALUATION, parse_device_name, parse_optim_name
+)
 
 class TrainingSettingWindow(TopWindow):
     def __init__(self, parent):
@@ -55,7 +56,9 @@ class TrainingSettingWindow(TopWindow):
         checkpoint_entry.grid(row=6, column=1, sticky='EW')
         evaluation_option.grid(row=7, column=1, sticky='EW')
         repeat_entry.grid(row=8, column=1, sticky='EW')
-        tk.Button(self, text='Confirm', command=self.confirm).grid(row=9, column=0, columnspan=3)
+        tk.Button(self, text='Confirm', command=self.confirm).grid(
+            row=9, column=0, columnspan=3
+        )
         self.columnconfigure([1], weight=1)
         self.rowconfigure(list(range(10)), weight=1)
 
@@ -99,43 +102,59 @@ class TrainingSettingWindow(TopWindow):
                 evaluation_option = i
             
         try:
-            self.training_option = TrainingOption(self.output_dir, self.optim, self.optim_params, 
-                                    self.use_cpu, self.gpu_idx, 
-                                    self.epoch_entry.get(), 
-                                    self.bs_entry.get(), 
-                                    self.lr_entry.get(), 
-                                    self.checkpoint_entry.get(),
-                                    evaluation_option,
-                                    self.repeat_entry.get())
+            self.training_option = TrainingOption(
+                self.output_dir, self.optim, self.optim_params, 
+                self.use_cpu, self.gpu_idx, 
+                self.epoch_entry.get(), 
+                self.bs_entry.get(), 
+                self.lr_entry.get(), 
+                self.checkpoint_entry.get(),
+                evaluation_option,
+                self.repeat_entry.get()
+            )
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
 
         self.script_history = Script()
         self.script_history.add_import("from XBrainLab.training import TrainingOption")
-        self.script_history.add_import("from XBrainLab.training import TRAINING_EVALUATION")
+        self.script_history.add_import(
+            "from XBrainLab.training import TRAINING_EVALUATION"
+        )
         self.script_history.add_import("import torch")
 
-        self.script_history.add_cmd(f"output_dir={repr(self.training_option.output_dir)}")
+        self.script_history.add_cmd(
+            f"output_dir={repr(self.training_option.output_dir)}"
+        )
         self.script_history.add_cmd(f"optim=torch.optim.{self.optim.__name__}")
-        self.script_history.add_cmd(f"optim_params={repr(self.training_option.optim_params)}")
+        self.script_history.add_cmd(
+            f"optim_params={repr(self.training_option.optim_params)}"
+        )
         self.script_history.add_cmd(f"use_cpu={repr(self.training_option.use_cpu)}")
         self.script_history.add_cmd(f"gpu_idx={repr(self.training_option.gpu_idx)}")
         self.script_history.add_cmd(f"epoch={repr(self.training_option.epoch)}")
         self.script_history.add_cmd(f"bs={repr(self.training_option.bs)}")
         self.script_history.add_cmd(f"lr={repr(self.training_option.lr)}")
-        self.script_history.add_cmd(f"checkpoint_epoch={repr(self.training_option.checkpoint_epoch)}")
-        self.script_history.add_cmd(f"evaluation_option={self.training_option.get_evaluation_option_repr()}")
-        self.script_history.add_cmd(f"repeat_num={repr(self.training_option.repeat_num)}")
+        self.script_history.add_cmd(
+            f"checkpoint_epoch={repr(self.training_option.checkpoint_epoch)}"
+        )
+        self.script_history.add_cmd(
+            f"evaluation_option={self.training_option.get_evaluation_option_repr()}"
+        )
+        self.script_history.add_cmd(
+            f"repeat_num={repr(self.training_option.repeat_num)}"
+        )
         
-        self.script_history.add_cmd(f"training_option = TrainingOption(output_dir=output_dir, ")
-        self.script_history.add_cmd(f"optim=optim, optim_params=optim_params, ")
-        self.script_history.add_cmd(f"use_cpu=use_cpu, gpu_idx=gpu_idx, ")
-        self.script_history.add_cmd(f"epoch=epoch, ")
-        self.script_history.add_cmd(f"bs=bs, ")
-        self.script_history.add_cmd(f"lr=lr, ")
-        self.script_history.add_cmd(f"checkpoint_epoch=checkpoint_epoch, ")
-        self.script_history.add_cmd(f"evaluation_option=evaluation_option, ")
-        self.script_history.add_cmd(f"repeat_num=repeat_num)")
+        self.script_history.add_cmd(
+            "training_option = TrainingOption(output_dir=output_dir, "
+        )
+        self.script_history.add_cmd("optim=optim, optim_params=optim_params, ")
+        self.script_history.add_cmd("use_cpu=use_cpu, gpu_idx=gpu_idx, ")
+        self.script_history.add_cmd("epoch=epoch, ")
+        self.script_history.add_cmd("bs=bs, ")
+        self.script_history.add_cmd("lr=lr, ")
+        self.script_history.add_cmd("checkpoint_epoch=checkpoint_epoch, ")
+        self.script_history.add_cmd("evaluation_option=evaluation_option, ")
+        self.script_history.add_cmd("repeat_num=repeat_num)")
         
         self.destroy()
     
@@ -160,7 +179,9 @@ class SetOptimizerWindow(TopWindow):
         
         params_frame = tk.LabelFrame(self, text='Parameters')
         columns = ('param', 'value')
-        params_tree = EditableTreeView(params_frame, editableCols=['#2'], columns=columns, show='headings')
+        params_tree = EditableTreeView(
+            params_frame, editableCols=['#2'], columns=columns, show='headings'
+        )
         params_tree.pack(fill=tk.BOTH, expand=True)
         
         PADDING = 5
@@ -168,7 +189,9 @@ class SetOptimizerWindow(TopWindow):
         algo_label.grid(row=0, column=0, sticky='E', padx=PADDING)
         alg_opt.grid(row=0, column=1, sticky='W', padx=PADDING)
         params_frame.grid(row=1, column=0, columnspan=2, sticky='NEWS')
-        tk.Button(self, text='Confirm', command=self.confirm).grid(row=2, column=0, columnspan=2, pady=PADDING)
+        tk.Button(self, text='Confirm', command=self.confirm).grid(
+            row=2, column=0, columnspan=2, pady=PADDING
+        )
 
 
         self.algo_map = algo_map 
@@ -188,7 +211,10 @@ class SetOptimizerWindow(TopWindow):
             for param in params:
                 if 'lr' in param:
                     continue
-                if sigs.parameters[param].default == inspect._empty or sigs.parameters[param].default is None:
+                if (
+                    sigs.parameters[param].default == inspect._empty 
+                    or sigs.parameters[param].default is None
+                ):
                     value = ''
                 else:
                     value = sigs.parameters[param].default
@@ -216,7 +242,7 @@ class SetOptimizerWindow(TopWindow):
                         value = float(value)
                     optim_params[param] = value
             target([torch.Tensor()], lr=1, **optim_params)
-        except:
+        except Exception:
             reason = 'Invalid parameter'
         
         if reason:
