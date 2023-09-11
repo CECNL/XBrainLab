@@ -10,6 +10,7 @@ from .training_setting import SetDeviceWindow
 from XBrainLab.training import TestOnlyOption, TRAINING_EVALUATION, parse_device_name, parse_optim_name
 
 class TestOnlySettingWindow(TopWindow):
+    __test__ = False # Not a test case
     def __init__(self, parent):
         super().__init__(parent, 'Test Only Setting')
         self.training_option = None

@@ -148,6 +148,7 @@ class TrainingOption:
 
 
 class TestOnlyOption(TrainingOption):
+    __test__ = False # Not a test case
     """Utility class for storing test-only options
 
     Parameters:
