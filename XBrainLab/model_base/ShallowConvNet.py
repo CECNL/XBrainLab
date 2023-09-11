@@ -12,25 +12,20 @@ class ShallowConvNet(nn.Module):
         samples: Number of samples.
         sfreq: Sampling frequency.
     """
-    def __init__(self, n_classes, channels, samples, sfreq):
+    def __init__(self, n_classes, channels, samples, sfreq, pool_len=75, pool_stride=15):
         super(ShallowConvNet, self).__init__()
-        
         self.temporal_filter = 40
         self.spatial_filter = 40
         self.kernel = math.ceil(sfreq * 0.1)
-        
         self.conv1 = nn.Conv2d(1, self.temporal_filter, (1, self.kernel), bias=False)
         self.conv2 = nn.Conv2d(self.temporal_filter, self.spatial_filter, (channels, 1), bias=False)
         self.Bn1   = nn.BatchNorm2d(self.spatial_filter)
         # self.SquareLayer = square_layer()
-        self.AvgPool1 = nn.AvgPool2d((1, 35), stride=(1, 7))
+        self.AvgPool1 = nn.AvgPool2d((1, pool_len), stride=(1, pool_stride))
         # self.LogLayer = Log_layer()
-        self.Drop1 = nn.Dropout(0.25)
-        if self.kernel % 2 == 1:
-            self.outSize = math.ceil(((samples - self.kernel) - 34) / 7)
-        else:
-            self.outSize = math.ceil(((samples - self.kernel) - 35) / 7)
-        self.classifier = nn.Linear(self.spatial_filter*self.outSize, n_classes, bias=True)
+        self.Drop1 = nn.Dropout(0.5)
+        fc_inSize = self._get_size(channels, samples)[1]
+        self.classifier = nn.Linear(fc_inSize, n_classes, bias=True)
         #self.softmax = nn.Softmax()
 
     def forward(self, x):
@@ -43,8 +38,15 @@ class ShallowConvNet(nn.Module):
         x = self.AvgPool1(x)
         x = torch.log(x)
         x = self.Drop1(x)
-        x = x.view(-1, self.spatial_filter*self.outSize)
+        x = x.view(x.size()[0], -1)
         x = self.classifier(x)
 
         #x = self.softmax(x)
         return x
+    def _get_size(self, ch, tsamp):
+        data = torch.ones((1, 1, ch, tsamp))
+        x = self.conv1(data)
+        x = self.conv2(x)
+        x = self.AvgPool1(x)
+        x = x.view(x.size()[0], -1)
+        return x.size()

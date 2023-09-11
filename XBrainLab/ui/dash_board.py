@@ -163,6 +163,7 @@ class DashBoard(tk.Tk):
         try:
             self.study.reset_preprocess()
             tk.messagebox.showinfo(parent=self, title='Success', message='OK')
+            self.study.script_history.add_cmd('study.reset_preprocess()')
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
         self.update_dashboard()

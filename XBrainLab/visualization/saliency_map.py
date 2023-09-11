@@ -13,6 +13,7 @@ class SaliencyMapViz(Visualizer):
             """
         label_number = self.epoch_data.get_label_number()
         # row and col of subplot
+        duration = self.epoch_data.get_epoch_duration()
         rows = 1 if label_number <= 2 else 2
         cols = int(np.ceil(label_number / rows))
         # draw
@@ -33,10 +34,11 @@ class SaliencyMapViz(Visualizer):
             im = plt.imshow(saliency, aspect='auto', cmap=cmap, 
                     vmin=saliency.min(), vmax=saliency.max(),  interpolation='none')
             
-            plt.xlabel("sample")
+            plt.xlabel("time")
             plt.ylabel("channel")
             ch_names = self.epoch_data.get_channel_names()
             plt.yticks(ticks=range(len(ch_names)), labels=ch_names, fontsize=6)
+            plt.xticks(ticks=np.linspace(0, saliency.shape[-1], 5), labels = np.round(np.linspace(0, duration, 5),2))
             plt.colorbar(im, orientation='vertical')
             plt.title(f"Saliency Map of class {self.epoch_data.label_map[labelIndex]}")
         plt.tight_layout()

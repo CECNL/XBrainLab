@@ -153,6 +153,8 @@ class Raw:
 
     def get_tmin(self) -> float:
         """Return the tmin of :attr:`mne_data`."""
+        if self.is_raw():
+            return 0.0
         return self.mne_data.tmin
 
     def get_nchan(self) -> int:

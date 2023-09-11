@@ -17,8 +17,8 @@ class Saliency3D:
         self.neighbor = 3
 
         # load 3d model
-        mesh = pv.read('./XBrainLab/XBrainLab/visualization/3Dmodel/head.ply')
-        mesh2 = pv.read('./XBrainLab/XBrainLab/visualization/3Dmodel/brain.ply')
+        mesh = pv.read('./XBrainLab/visualization/3Dmodel/head.ply')
+        mesh2 = pv.read('./XBrainLab/visualization/3Dmodel/brain.ply')
 
         # get saliency
         labelIndex = epoch_data.event_id[self.selected_event_name]

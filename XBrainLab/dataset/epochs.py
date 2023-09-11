@@ -552,6 +552,10 @@ class Epochs:
         """Return list of channel names."""
         return self.ch_names
     
+    def get_epoch_duration(self) -> float:
+        """Return duration of each epoch in seconds."""
+        return np.round(self.data.shape[-1]/self.sfreq,2)
+    
     def set_channels(self, ch_names: List[str], channel_position: list) -> None:
         """Set channel names and positions.
 
