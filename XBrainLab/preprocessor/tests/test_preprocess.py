@@ -185,8 +185,10 @@ def test_window_epoch(annotated_raw):
     assert np.allclose(result.get_mne().get_data(), np.array([[[1, 3], [2, 4]], [[3, 5], [4, 6]], [[5, 7], [6, 8]], [[7, 9], [8, 10]], [[9, 11], [10, 12]], [[11, 13], [12, 14]], [[13, 15], [14, 16]], [[15, 17], [16, 18]], [[17, 19], [18, 20]]]))
     assert result.get_preprocess_history()[0] == 'Epoching 2s (1s overlap) by sliding window'
 
+@pytest.mark.xfail
 def test_normalization_zero_min():
     raise NotImplementedError
 
+@pytest.mark.xfail
 def test_normalization_zero_min_minmax():
     raise NotImplementedError

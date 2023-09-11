@@ -109,6 +109,7 @@ def test_test_model(dataloader, loss_avg):
     assert test_dict['accuracy'] == (TOTAL_NUM - ERROR_NUM) / (TOTAL_NUM) * 100
     assert np.isclose(test_dict['loss'], loss_avg)
 
+@pytest.mark.xfail
 def test_test_model_auc(mocker, dataloader):
     raise NotImplementedError
 

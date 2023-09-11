@@ -92,8 +92,8 @@ def test_option(kwargs, has_error):
 
     assert option.get_output_dir() == 'ok'
     assert option.get_evaluation_option_repr() == "TRAINING_EVALUATION.VAL_LOSS"
-    
-    assert option.get_device_name() == parse_device_name(args['use_cpu'], args['gpu_idx'])
+    if args['use_cpu'] or (not args['use_cpu'] and torch.cuda.is_available()):
+        assert option.get_device_name() == parse_device_name(args['use_cpu'], args['gpu_idx'])
     assert option.get_device() == "cpu" if args['use_cpu'] else "cuda:" + str(args['gpu_idx'])
 
     assert option.get_optim_name() == "FakeOptim"
