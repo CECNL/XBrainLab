@@ -35,11 +35,11 @@ class Normalize(PreprocessBase):
             command=lambda win=self: win._data_preprocess(), width=8
         ).grid(row=1, columnspan=2)
     def _data_preprocess(self):
-        # try:
-        norm_method = self.norm_ctrl.get()
-        self.return_data = self.preprocessor.data_preprocess(norm_method)
-        # except Exception as e:
-            # raise ValidateException(window=self, message=str(e))
+        try:
+            norm_method = self.norm_ctrl.get()
+            self.return_data = self.preprocessor.data_preprocess(norm_method)
+        except Exception as e:
+            raise ValidateException(window=self, message=str(e))
         self.script_history.add_cmd(f'norm_method={norm_method}')
         self.script_history.add_cmd(
             'study.preprocess(preprocessor=preprocessor.Normalize, norm=norm_method)'

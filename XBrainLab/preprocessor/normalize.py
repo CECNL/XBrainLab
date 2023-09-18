@@ -16,24 +16,18 @@ class Normalize(PreprocessBase):
 		if norm == "zero mean":
 			if preprocessed_data.is_raw():
 				arrdata =  preprocessed_data.get_mne()._data.copy()
-				preprocessed_data._data = (
-					arrdata - 
-					np.multiply(
-						arrdata.mean(axis=-1)[:, None],
-						np.ones_like(arrdata)
-					)
+				preprocessed_data.get_mne()._data = arrdata - np.multiply(
+					arrdata.mean(axis=-1)[:, None],np.ones_like(arrdata)
 				)
 			else:
 				arrdata =  preprocessed_data.get_mne()._data.copy()
 				for ep in range(preprocessed_data.get_epochs_length()):
-					arrdata[ep, :, :] = (
-						arrdata[ep, :, :] - 
-						np.multiply(
-							arrdata[ep, :, :].mean(axis=-1)[:, None],
-							np.ones_like(arrdata[ep, :, :])
+					arrdata[ep, :, :] =  arrdata[ep, :, :] - np.multiply(
+						arrdata[ep, :, :].mean(axis=-1)[:, None],np.ones_like(
+							arrdata[ep, :, :]
 						)
 					)
-				preprocessed_data._data = arrdata
+				preprocessed_data.get_mne()._data = arrdata
 		elif norm== "minmax":
 			if preprocessed_data.is_raw():
 				arrdata =  preprocessed_data.get_mne()._data.copy()
@@ -47,21 +41,20 @@ class Normalize(PreprocessBase):
 					)
 				)
 				arrdata = (arrdata-ch_min)/(ch_max-ch_min+1e-12)
+				preprocessed_data.get_mne()._data = arrdata
 			else:
 				arrdata =  preprocessed_data.get_mne()._data.copy()
 				for ep in range(preprocessed_data.get_epochs_length()):
-					ch_min, ch_max = (
-						np.multiply(
-							arrdata[ep, :, :].min(axis=-1)[:, None],
-							np.ones_like(arrdata[ep, :, :])
-						), 
-						np.multiply(
-							arrdata[ep, :, :].max(axis=-1)[:, None],
-							np.ones_like(arrdata[ep, :, :])
-						)
+					ch_min = np.multiply(
+						arrdata[ep, :, :].min(axis=-1)[:, None],
+						np.ones_like(arrdata[ep, :, :])
+					)
+					ch_max = np.multiply(
+						arrdata[ep, :, :].max(axis=-1)[:, None],
+						np.ones_like(arrdata[ep, :, :])
 					)
 					arrdata[ep, :, :] = (
-						(arrdata[ep, :, :] - ch_min) / 
+						(arrdata[ep, :, :]-ch_min) / 
 						(ch_max-ch_min+1e-12)
 					)
-				preprocessed_data._data = arrdata
+				preprocessed_data.get_mne()._data = arrdata
