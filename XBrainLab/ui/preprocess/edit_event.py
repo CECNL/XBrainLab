@@ -2,7 +2,7 @@ import tkinter as tk
 import numpy as np
 
 from .base import PreprocessBase
-from ..base import ValidateException, InitWindowValidateException
+from ..base import ValidateException
 
 from XBrainLab import preprocessor as Preprocessor
 
@@ -26,7 +26,9 @@ class EditEventNames(PreprocessBase):
         for i, e in enumerate(self.old_event):
             self.new_event_name[e].set(e)
             tk.Label(eventidframe, text=e, width=10).grid(row=i, column=0)
-            tk.Entry(eventidframe, textvariable=self.new_event_name[e], width=10).grid(row=i, column=1)
+            tk.Entry(eventidframe, textvariable=self.new_event_name[e], width=10).grid(
+                row=i, column=1
+            )
         if i:
             eventidframe.rowconfigure(list(range(i+1)), weight=1)
         eventidframe.columnconfigure([0, 1], weight=1)
@@ -42,12 +44,17 @@ class EditEventNames(PreprocessBase):
                 raise ValidateException(self, "Event name cannot be empty")
         
         try:
-            new_event_name = {e: self.new_event_name[e].get() for e in self.new_event_name}
+            new_event_name = {
+                e: self.new_event_name[e].get() for e in self.new_event_name
+            }
             self.return_data = self.preprocessor.data_preprocess(new_event_name)
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
         self.script_history.add_cmd(f'new_event_name={repr(new_event_name)}')
-        self.script_history.add_cmd('study.preprocess(preprocessor=preprocessor.EditEventName, new_event_name=new_event_name)')
+        self.script_history.add_cmd((
+            'study.preprocess('
+            'preprocessor=preprocessor.EditEventName, new_event_name=new_event_name)'
+        ))
         self.ret_script_history = self.script_history
         
         self.destroy()
@@ -73,7 +80,9 @@ class EditEventIds(PreprocessBase):
         for i, e in enumerate(self.old_event_id.values()):
             self.new_event_id[e].set(e)
             tk.Label(eventidframe, text=e, width=10).grid(row=i, column=0)
-            tk.Entry(eventidframe, textvariable=self.new_event_id[e], width=10).grid(row=i, column=1)
+            tk.Entry(eventidframe, textvariable=self.new_event_id[e], width=10).grid(
+                row=i, column=1
+            )
         if i:
             eventidframe.rowconfigure(list(range(i+1)), weight=1)
         eventidframe.columnconfigure([0, 1], weight=1)
@@ -89,12 +98,17 @@ class EditEventIds(PreprocessBase):
                 raise ValidateException(self, "Event id cannot be empty")
         
         try:
-            new_event_id = {e: int(self.new_event_id[e].get()) for e in self.new_event_id.keys()}
+            new_event_id = {
+                e: int(self.new_event_id[e].get()) for e in self.new_event_id.keys()
+            }
             self.return_data = self.preprocessor.data_preprocess(new_event_id)
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
         self.script_history.add_cmd(f'new_event_id={repr(new_event_id)}')
-        self.script_history.add_cmd('study.preprocess(preprocessor=preprocessor.EditEventId, new_event_ids=new_event_id)')
+        self.script_history.add_cmd((
+            'study.preprocess('
+            'preprocessor=preprocessor.EditEventId, new_event_ids=new_event_id)'
+        ))
         self.ret_script_history = self.script_history
         
         self.destroy()

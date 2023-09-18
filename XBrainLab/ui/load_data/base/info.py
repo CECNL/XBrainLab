@@ -54,14 +54,22 @@ class RawInfo:
         script.add_import("import mne")
         data_array = self.reshape_array(data_array, script)
         data_info = mne.create_info(self.nchan, self.sfreq, 'eeg')
-        script.add_cmd(f"data_info = mne.create_info({repr(self.nchan)}, {repr(self.sfreq)}, 'eeg')")
+        script.add_cmd((
+            "data_info = mne.create_info("
+            f"{repr(self.nchan)}, {repr(self.sfreq)}, 'eeg')"
+        ))
         
         if data_type == DataType.RAW.value:
             mne_data = mne.io.RawArray(data_array, data_info)
             script.add_cmd("data = mne.io.RawArray(data, data_info)")
         elif data_type == DataType.EPOCH.value:
-            mne_data = mne.EpochsArray(data = data_array, info=data_info, tmin=self.tmin)
-            script.add_cmd(f"data = mne.EpochsArray(data=data, info=data_info, tmin={repr(self.tmin)})")
+            mne_data = mne.EpochsArray(
+                data=data_array, info=data_info, tmin=self.tmin
+            )
+            script.add_cmd((
+                "data = mne.EpochsArray("
+                f"data=data, info=data_info, tmin={repr(self.tmin)})"
+            ))
         return mne_data, script
    
 class DictInfo(RawInfo):
@@ -110,7 +118,9 @@ class DictInfo(RawInfo):
             raise ValueError('No data key was found')
         
         
-        mne_data, array_script = super().generate_mne(filepath, data_array, data_type)
+        mne_data, array_script = super().generate_mne(
+            filepath, data_array, data_type
+        )
         script += array_script
         # handle event and return raw
         if event_array is None:

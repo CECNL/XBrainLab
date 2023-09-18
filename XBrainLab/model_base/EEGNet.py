@@ -3,7 +3,28 @@ import torch
 import math
 
 class EEGNet(nn.Module):
-    def __init__(self, n_classes, channels, samples, sfreq, F1=8, F2=16, D=2):
+    """Implementation of EEGNet
+    https://iopscience.iop.org/article/10.1088/1741-2552/aace8c/meta
+
+    Parameters:
+        n_classes: Number of classes.
+        channels: Number of channels.
+        samples: Number of samples.
+        sfreq: Sampling frequency.
+        F1: Number of temporal filters.
+        F2: Number of pointwise filters.
+        D: Number of spatial filters within each temporal filter.
+    """
+    def __init__(
+        self, 
+        n_classes: int, 
+        channels: int, 
+        samples: int, 
+        sfreq: float, 
+        F1: int = 8, 
+        F2: int = 16, 
+        D: int = 2
+    ):
         super(EEGNet, self).__init__()
 
         self.tp = samples
@@ -19,22 +40,33 @@ class EEGNet(nn.Module):
         self.conv1 = nn.Sequential(  
         #temporal kernel size(1, floor(sf*0.5)) means 500ms EEG at sf/2
         #padding=(0, floor(sf*0.5)/2) maintain raw data shape 
-            nn.Conv2d(1, self.F1, (1, self.half_sf), padding='valid', bias=False), #62,32
+            nn.Conv2d(
+                1, self.F1, (1, self.half_sf), padding='valid', bias=False
+            ), #62,32
             nn.BatchNorm2d(self.F1)
         )
 
         self.conv2 = nn.Sequential(       
             # spatial kernel size (n_ch, 1)
-            nn.Conv2d(self.F1, self.D*self.F1, (self.ch, 1), groups=self.F1, bias=False),
+            nn.Conv2d(
+                self.F1, self.D*self.F1, (self.ch, 1), groups=self.F1, bias=False
+            ),
             nn.BatchNorm2d(self.D*self.F1),
             nn.ELU(),
             nn.AvgPool2d((1, 4)), #reduce the sf to sf/4
-            nn.Dropout(0.5) # 0.25 in cross-subject classification beacuse the training size are larger 
+            # 0.25 in cross-subject classification beacuse the training size are larger 
+            nn.Dropout(0.5) 
         )
 
         self.conv3 = nn.Sequential(
         # kernel size=(1, floor((sf/4))*0.5) means 500ms EEG at sf/4 Hz 
-            nn.Conv2d(self.D*self.F1, self.D*self.F1, (1, math.floor(self.half_sf/4)), padding='valid', groups=self.D*self.F1, bias=False),
+            nn.Conv2d(
+                self.D*self.F1, 
+                self.D*self.F1, 
+                (1, math.floor(self.half_sf/4)), 
+                padding='valid', 
+                groups=self.D*self.F1, bias=False
+            ),
             nn.Conv2d(self.D*self.F1, self.F2, (1, 1), bias=False),
             nn.BatchNorm2d(self.F2),
             nn.ELU(),
@@ -43,7 +75,9 @@ class EEGNet(nn.Module):
         )
         
         ## (floor((sf/4))/2 * timepoint//32, n_class)
-        # self.classifier = nn.Linear(self.F2* math.ceil(self.tp//32), self.n_class, bias=True)
+        # self.classifier = nn.Linear(
+        #     self.F2* math.ceil(self.tp//32), self.n_class, bias=True
+        # )
         fc_inSize = self._get_size(self.ch, self.tp)[1]
         self.classifier = nn.Linear(fc_inSize, self.n_class, bias=True)
        

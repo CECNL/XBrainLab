@@ -1,21 +1,34 @@
+from __future__ import annotations
 import torch
 import torch.utils.data as Data
 import time
-from copy import deepcopy
 import numpy as np
 from enum import Enum
 import traceback
 from sklearn.metrics import roc_auc_score
 from captum.attr import Saliency
 
-from ..utils import validate_type, set_seed, set_random_state, get_random_state
+from ..utils import validate_type, set_seed
 from ..dataset import Dataset
 from .option import TrainingOption, TRAINING_EVALUATION
-from .record import TrainRecord, EvalRecord
+from .record import TrainRecord, EvalRecord, RecordKey, TrainRecordKey
 from . import ModelHolder
 
+def _test_model(
+    model: torch.nn.Module,
+    dataLoader: Data.DataLoader,
+    criterion: torch.nn.Module
+) -> dict[str, float]:
+    """Test model on given data loader
+    
+    Args:
+        model: Model to be tested
+        dataLoader: Data loader
+        criterion: Loss function
 
-def test_model(model, dataLoader, criterion):
+    Returns:
+        Dictionary of test result, including loss, accuracy and auc
+    """
     model.eval()
     
     running_loss = 0.0
@@ -25,7 +38,6 @@ def test_model(model, dataLoader, criterion):
     with torch.no_grad():
         for inputs, labels in dataLoader:
             outputs = model(inputs)
-            
             loss = criterion(outputs, labels)
             running_loss += loss.item()
             
@@ -33,72 +45,102 @@ def test_model(model, dataLoader, criterion):
             try:
                 if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
                     auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
-                    torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy()[:,-1])
+                    torch.nn.functional.softmax(
+                        outputs, dim=1
+                    ).clone().detach().cpu().numpy()[:,-1])
                 else:
                     auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
-                    torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy(), multi_class='ovr')
-            except: # first few epochs in binary classification might not be able to compute score
+                    torch.nn.functional.softmax(
+                        outputs, dim=1
+                    ).clone().detach().cpu().numpy(), multi_class='ovr')
+            except Exception:
+                # first few epochs in binary classification 
+                # might not be able to compute score
                 pass
             total_count += len(labels)
 
     running_loss /= len(dataLoader)
     acc = correct / total_count * 100
-    auc = auc_score/len(dataLoader)
-    return acc, auc, running_loss
+    auc = auc_score / len(dataLoader)
+    return {
+        RecordKey.ACC: acc,
+        RecordKey.AUC: auc,
+        RecordKey.LOSS: running_loss
+    }
 
-def eval_model(model, dataLoader, criterion):
+def _eval_model(model: torch.nn.Module, dataLoader: Data.DataLoader) -> EvalRecord:
+    """Evaluate model on given data loader
+
+    Evaluate model and compute saliency map for each class
+
+    Args:
+        model: Model to be evaluated
+        dataLoader: Data loader
+    """
     model.eval()
     
     output_list = []
     label_list = []
     
-    ## gradient_list = None
     gradient_list = []
     saliency_inst = Saliency(model)
 
     for inputs, labels in dataLoader:
-        # inputs.requires_grad=True
         inputs.requires_grad = False
-        inputs = inputs.unsqueeze(1)
         outputs = model(inputs)
         
         output_list.append(outputs.detach().cpu().numpy())
         label_list.append(labels.detach().cpu().numpy())
-
-        ## if gradient_list is None:
-        ##     gradient_list = {i: [] for i in range(outputs.shape[-1])}
-        ## for i in gradient_list:
-        ##     inputs.grad = None
-        ##     for output in outputs:
-        ##         output[i].backward(retain_graph=True)
-        ##     gradient_list[i].append(inputs.grad.detach().cpu().numpy())
+        
         inputs.requires_grad=True
-        gradient_list.append(saliency_inst.attribute(inputs,target=labels.detach().cpu().numpy().tolist(), abs=False).detach().cpu().numpy().squeeze())
+        gradient_list.append(
+            saliency_inst.attribute(
+                inputs, target=labels.detach().cpu().numpy().tolist(), abs=False
+            ).detach().cpu().numpy()
+        )
 
     label_list = np.concatenate(label_list)
     output_list = np.concatenate(output_list)
    
-    ## for i in gradient_list:
-    ##     gradient_list[i] = np.concatenate(gradient_list[i])
     gradient_list = np.concatenate(gradient_list)
-    ## gradient_list = {i:gradient_list[np.where(output_list.argmax(axis=-1)==i)] for i in range(output_list.shape[-1])}
-    gradient_list = {i:gradient_list[np.where(label_list==i)] for i in range(output_list.shape[-1])}
+    gradient_list = {
+        i: gradient_list[np.where(label_list==i)]
+        for i in range(output_list.shape[-1])
+    }
     return EvalRecord(label_list, output_list, gradient_list)
 
-def to_holder(X, y, dev, bs, shuffle=False):
+def to_holder(
+    X: np.ndarray, 
+    y: np.ndarray, 
+    dev: str, 
+    bs: int, 
+    shuffle: bool = False
+) -> Data.DataLoader | None:
+    """Convert numpy array to torch data holder
+
+    Args:
+        X: Input data
+        y: Label
+        dev: Device string
+        bs: Batch size
+        shuffle: Whether to shuffle the data
+    """
+
     if len(X) == 0:
         return None
     torchX = torch.tensor(X).float().to(dev)
     torchY = torch.tensor(y).long().to(dev)
 
     dataset = Data.TensorDataset(torchX, torchY)
-    dataloader = Data.DataLoader(dataset,
-                              batch_size=bs,
-                              shuffle=shuffle
-                              )
+    dataloader = Data.DataLoader(
+        dataset,
+        batch_size=bs,
+        shuffle=shuffle
+    )
     return dataloader
 
 class Status(Enum):
+    """Utility class for training status"""
     DONE = 'Finished'
     PENDING = 'Pending'
     INIT = 'Initializing {}'
@@ -106,7 +148,34 @@ class Status(Enum):
     TRAIN = 'Training {}'
 
 class TrainingPlanHolder:
-    def __init__(self, model_holder, dataset, option):
+    """class for storing training plan
+
+    Contains repetition of training plan, 
+        each training plan is a :class:`TrainRecord` object
+
+    Attributes:
+        model_holder: :class:`ModelHolder` object
+            Model holder
+        dataset: :class:`Dataset` object
+            Dataset for the training plan
+        option: :class:`TrainingOption` object
+            Training option
+        train_record_list: List[:class:`TrainRecord`]
+            List of training record generated by the training plan, 
+                used for storing training result
+        interrupt: bool
+            Whether the training is interrupted
+        error: str | None
+            Error message
+        status: str
+            Training status
+    """
+    def __init__(
+        self, 
+        model_holder: ModelHolder, 
+        dataset: Dataset, 
+        option: TrainingOption
+    ):
         self.model_holder = model_holder
         self.dataset = dataset
         self.option = option
@@ -118,12 +187,18 @@ class TrainingPlanHolder:
         self.status = Status.PENDING.value
         for i in range(self.option.repeat_num):
             seed = set_seed(seed=None)
-            model = self.model_holder.get_model(self.dataset.get_epoch_data().get_model_args())
-            self.train_record_list.append(TrainRecord(repeat=i, dataset=self.dataset, model=model, option=self.option, seed=seed))
-        if len(self.train_record_list) == 0:
-            raise ValueError('Invalid training settings.')
+            model = self.model_holder.get_model(
+                self.dataset.get_epoch_data().get_model_args()
+            )
+            self.train_record_list.append(
+                TrainRecord(
+                    repeat=i, dataset=self.dataset, model=model, 
+                    option=self.option, seed=seed
+                )
+            )
           
-    def check_data(self):
+    def check_data(self) -> None:
+        """Check whether the training plan is valid"""
         if not self.dataset:
             raise ValueError('No valid dataset is generated')
         if not self.option:
@@ -136,10 +211,13 @@ class TrainingPlanHolder:
         self.option.validate()
 
     # interact
-    def train(self):
+    def train(self) -> None:
+        """Train the model"""
         try:
             for i in range(self.option.repeat_num):
-                self.status = Status.INIT.value.format(self.train_record_list[i].get_name())
+                self.status = Status.INIT.value.format(
+                    self.train_record_list[i].get_name()
+                )
                 train_record = self.train_record_list[i]
                 train_record.resume()
                 self.train_one_repeat( train_record )
@@ -153,7 +231,8 @@ class TrainingPlanHolder:
             self.error = str(e)
             self.status = Status.PENDING.value
     
-    def get_loader(self):
+    def get_loader(self) -> tuple[Data.DataLoader, Data.DataLoader, Data.DataLoader]:
+        """Return the data loader for training, validation and testing"""
         bs = self.option.bs
         dev = self.option.get_device()
         trainHolder = to_holder(*self.dataset.get_training_data(), dev, bs, True)
@@ -161,32 +240,51 @@ class TrainingPlanHolder:
         testHolder = to_holder(*self.dataset.get_test_data(), dev, bs)
         return trainHolder, valHolder, testHolder
     
-    def get_eval_pair(self, train_record, trainLoader, valLoader, testLoader):
-        target = target_loader = None
-        target = self.model_holder.get_model(self.dataset.get_epoch_data().get_model_args()).to(self.option.get_device())
+    def get_eval_pair(
+        self, 
+        train_record: TrainRecord,
+        valLoader: Data.DataLoader,
+        testLoader: Data.DataLoader
+    ) -> tuple[torch.nn.Module, Data.DataLoader]:
+        """Return the model and data loader for evaluation based on given option"""
+        target_model = target_loader = None
+        target_model = self.model_holder.get_model(
+            self.dataset.get_epoch_data().get_model_args()
+        ).to(self.option.get_device())
         target_loader = testLoader or valLoader
         if self.option.evaluation_option == TRAINING_EVALUATION.VAL_LOSS:
-            if train_record.best_val_loss_model:
-                target.load_state_dict(train_record.best_val_loss_model)
+            model = getattr(train_record, f'best_val_{RecordKey.LOSS}_model')
+            if model:
+                target_model.load_state_dict(model)
             else:
-                target = None
+                target_model = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.TEST_ACC:
-            if train_record.best_test_acc_model:
-                target.load_state_dict(train_record.best_test_acc_model)
+            model = getattr(train_record, f'best_test_{RecordKey.ACC}_model')
+            if model:
+                target_model.load_state_dict(model)
             else:
-                target = None
+                target_model = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.TEST_AUC:
-            if train_record.best_test_auc_model:
-                target.load_state_dict(train_record.best_test_auc_model)
+            model = getattr(train_record, f'best_test_{RecordKey.AUC}_model')
+            if model:
+                target_model.load_state_dict(model)
             else:
-                target = None
+                target_model = None
         elif self.option.evaluation_option == TRAINING_EVALUATION.LAST_EPOCH:
-            target.load_state_dict(train_record.model.state_dict())
-        if target:
-            target = target.eval()
-        return target, target_loader
+            target_model.load_state_dict(train_record.model.state_dict())
+        else:
+            raise NotImplementedError
+        
+        if target_model:
+            target_model = target_model.eval()
+        return target_model, target_loader
 
-    def train_one_repeat(self, train_record):
+    def train_one_repeat(self, train_record: TrainRecord) -> None:
+        """Train one repetition of the training plan
+
+        Args:
+            train_record: Training record for storing training result
+        """
         if train_record.is_finished():
             return
         # init
@@ -201,114 +299,170 @@ class TrainingPlanHolder:
         while train_record.epoch < self.option.epoch:
             if self.interrupt:
                 break
-            cur_epoch = train_record.epoch + 1
-
-            start_time = time.time()
-            running_loss = 0.0
-            model.train()
-            correct = 0
-            auc_score = 0
-            total_count = 0
-            # train one mini batch
-            for inputs, labels in trainLoader:
-                optimizer.zero_grad()
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
-
-                correct += (outputs.argmax(axis=1) == labels).float().sum().item()
-                try:
-                    if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
-                        auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
-                        torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy()[:,-1])
-                    else:
-                        auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(), 
-                        torch.nn.functional.softmax(outputs, dim=1).clone().detach().cpu().numpy(), multi_class='ovr')
-                except:
-                    pass
-                total_count += len(labels)
-                running_loss += loss.item()
-            
-            running_loss /= len(trainLoader)
-            train_acc = correct / total_count * 100
-            train_auc = auc_score/len(trainLoader)
-            train_record.update_train(train_acc, train_auc, running_loss)
-            
-            if valLoader:
-                val_acc, val_auc, val_loss = test_model(model, valLoader, criterion)
-                train_record.update_eval(val_acc, val_auc, val_loss)
-            
-            trainingTime = time.time() - start_time
-
-            if testLoader:
-                test_acc, test_auc, test_loss = test_model(model, testLoader, criterion)
-                train_record.update_test(test_acc, test_auc, test_loss)
-            
-            train_record.step(trainingTime, self.option.lr)
-            if self.option.checkpoint_epoch and train_record.epoch % self.option.checkpoint_epoch == 0:
-                train_record.export_checkpoint()
+            self.train_one_epoch(
+                model, trainLoader, valLoader, testLoader, 
+                optimizer, criterion, train_record
+            )
         
         if train_record.epoch == self.option.epoch:
             self.status = Status.EVAL.value.format(train_record.get_name())
-            target, target_loader = self.get_eval_pair(train_record, trainLoader, valLoader, testLoader)
+            target, target_loader = self.get_eval_pair(
+                train_record, valLoader, testLoader
+            )
             if target and target_loader:
-                eval_record = eval_model(target, target_loader, criterion)
+                eval_record = _eval_model(target, target_loader)
                 train_record.set_eval_record(eval_record)
 
         train_record.export_checkpoint()
-     
-    def set_interrupt(self):
+
+    def train_one_epoch(self, 
+                        model: torch.nn.Module, 
+                        trainLoader: Data.DataLoader,
+                        valLoader: Data.DataLoader,
+                        testLoader: Data.DataLoader,
+                        optimizer: torch.optim.Optimizer,
+                        criterion: torch.nn.Module,
+                        train_record: TrainRecord) -> None:
+        """Train one epoch of the training plan"""
+        start_time = time.time()
+        running_loss = 0.0
+        model.train()
+        correct = 0
+        auc_score = 0
+        total_count = 0
+        # train one mini batch
+        for inputs, labels in trainLoader:
+            if self.interrupt:
+                return
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            correct += (outputs.argmax(axis=1) == labels).float().sum().item()
+            try:
+                if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
+                    auc_score += roc_auc_score(
+                        labels.clone().detach().cpu().numpy(),
+                        torch.nn.functional.softmax(
+                            outputs, dim=1
+                        ).clone().detach().cpu().numpy()[:,-1]
+                    )
+                else:
+                    auc_score += roc_auc_score(
+                        labels.clone().detach().cpu().numpy(), 
+                        torch.nn.functional.softmax(
+                            outputs, dim=1
+                        ).clone().detach().cpu().numpy(), multi_class='ovr')
+            except Exception:
+                pass
+            total_count += len(labels)
+            running_loss += loss.item()
+        
+        running_loss /= len(trainLoader)
+        train_acc = correct / total_count * 100
+        train_auc = auc_score/len(trainLoader)
+        train_record.update_train({
+            RecordKey.LOSS: running_loss,
+            RecordKey.ACC: train_acc,
+            RecordKey.AUC: train_auc
+        })
+        
+        if valLoader:
+            test_result = _test_model(model, valLoader, criterion)
+            train_record.update_eval(test_result)
+        
+        trainingTime = time.time() - start_time
+
+        if testLoader:
+            test_result = _test_model(model, testLoader, criterion)
+            train_record.update_test(test_result)
+        
+        train_record.update_statistic({
+            TrainRecordKey.LR: optimizer.param_groups[0]['lr'],
+            TrainRecordKey.TIME: trainingTime
+        })
+        train_record.step()
+        if (
+            self.option.checkpoint_epoch and 
+            train_record.get_epoch() % self.option.checkpoint_epoch == 0
+        ):
+            train_record.export_checkpoint()
+    
+    def set_interrupt(self) -> None:
+        """Set the training plan to be interrupted"""
         self.interrupt = True
 
-    def clear_interrupt(self):
+    def clear_interrupt(self) -> None:
+        """Clear the interrupt flag and error status"""
         self.error = None
         self.interrupt = False
 
     # getter
-    def get_name(self):
+    def get_name(self) -> str:
+        """Return the name of the training plan"""
         return self.dataset.get_name()
     
-    def get_dataset(self):
+    def get_dataset(self) -> Dataset:
+        """Get the dataset of the training plan"""
         return self.dataset
 
-    def get_plans(self):
+    def get_plans(self) -> list[TrainRecord]:
+        """Get the training records of the training plan"""
         return self.train_record_list
     
     # status
-    def get_training_status(self):
+    def get_training_status(self) -> str:
+        """Return the training status"""
         if self.error:
             return self.error
         return self.status
 
-    def get_training_repeat(self):
+    def get_training_repeat(self) -> int:
+        """Return the index of the current training repetition"""
         for i in range(self.option.repeat_num):
             if not self.train_record_list[i].is_finished():
                 break
         return i
 
-    def get_training_epoch(self):
-        return self.train_record_list[self.get_training_repeat()].epoch
+    def get_training_epoch(self) -> int:
+        """Return the current epoch of the training plan"""
+        return self.train_record_list[self.get_training_repeat()].get_epoch()
 
-    def get_training_evaluation(self):
+    def get_training_evaluation(self) -> tuple:
+        """Return the evaluation result of the training plan
+        
+        Return:
+            Tuple of lr, train_loss, train_acc, train_auc, val_loss, val_acc
+        """
         record = self.train_record_list[self.get_training_repeat()]
-        lr = record.train['lr'][-1] if len(record.train['lr']) > 0 else '-'
-        train_loss = record.train['loss'][-1] if len(record.train['loss']) > 0 else '-'
-        train_auc = record.train['auc'][-1] if len(record.train['auc']) > 0 else '-'
-        train_acc = record.train['acc'][-1] if len(record.train['acc']) > 0 else '-'
-        val_loss = record.val['loss'][-1] if len(record.val['loss']) > 0 else '-'
-        val_acc = record.val['acc'][-1] if len(record.val['acc']) > 0 else '-'
-        val_auc = record.val['auc'][-1] if len(record.val['auc']) > 0 else '-'
+
+        lr = train_loss = train_acc = train_auc = \
+            val_loss = val_acc = val_auc = '-'
+        if len(record.train[TrainRecordKey.LR]) > 0:
+            lr = record.train[TrainRecordKey.LR][-1] 
+        if len(record.train[TrainRecordKey.LOSS]) > 0:
+            train_loss = record.train[TrainRecordKey.LOSS][-1]
+        if len(record.train[TrainRecordKey.AUC]) > 0:
+            train_auc = record.train[TrainRecordKey.AUC][-1]
+        if len(record.train[TrainRecordKey.ACC]) > 0:
+            train_acc = record.train[TrainRecordKey.AUC][-1] 
+        if len(record.val[RecordKey.LOSS]) > 0:
+            val_loss = record.val[RecordKey.LOSS][-1] 
+        if len(record.val[RecordKey.ACC]) > 0:
+            val_acc = record.val[RecordKey.ACC][-1]
+        if len(record.val[RecordKey.AUC]) > 0:
+            val_auc = record.val[RecordKey.AUC][-1] 
         return lr, train_loss, train_acc, train_auc, val_loss, val_acc, val_auc
     
-    def is_finished(self):
+    def is_finished(self) -> bool:
+        """Return whether the training plan is finished"""
         return self.train_record_list[-1].is_finished()
     
-    def get_epoch_progress_text(self):
+    def get_epoch_progress_text(self) -> str:
+        """Return the progress text of the training plan"""
         total = 0
         for train_record in self.train_record_list:
-            total += train_record.epoch
+            total += train_record.get_epoch()
         return f"{total} / {self.option.epoch * self.option.repeat_num}"
-        
-
-        

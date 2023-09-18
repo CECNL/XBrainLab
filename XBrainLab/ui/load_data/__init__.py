@@ -5,3 +5,8 @@ from .cnt import LoadCnt
 from .np import LoadNp
 from .base import DataType
 IMPORT_TYPE_MODULE_LIST = [LoadSet, LoadMat, LoadEdf, LoadCnt, LoadNp]
+
+__all__ = [
+    'DataType', 'IMPORT_TYPE_MODULE_LIST',
+    'LoadSet', 'LoadMat', 'LoadEdf', 'LoadCnt', 'LoadNp'
+]

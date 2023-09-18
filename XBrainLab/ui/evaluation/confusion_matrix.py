@@ -1,4 +1,3 @@
-import tkinter as tk
 from ..widget import PlotFigureWindow
 
 from XBrainLab.visualization import PlotType

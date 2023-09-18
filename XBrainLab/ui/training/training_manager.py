@@ -15,7 +15,8 @@ class TrainingManagerWindow(TopWindow):
         self.training_plan_holders = trainer.get_training_plan_holders()
         self.script_history = Script()
 
-        columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc','auc', 'val_loss', 'val_acc', 'val_auc')
+        columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc',
+                   'auc', 'val_loss', 'val_acc', 'val_auc')
         plan_tree = EditableTreeView(self, columns=columns, show='headings')
 
         status_bar = tk.Label(self, text='IDLE')
@@ -23,7 +24,9 @@ class TrainingManagerWindow(TopWindow):
         button_frame = tk.Frame(self)
         start_btn = tk.Button(button_frame, text='start', command=self.start_training)
         start_btn.pack(side=tk.LEFT)
-        tk.Button(button_frame, text='stop', command=self.stop_training).pack(side=tk.LEFT)
+        tk.Button(button_frame, text='stop', command=self.stop_training).pack(
+            side=tk.LEFT
+        )
 
         plan_tree.pack(fill=tk.BOTH, expand=True)
         status_bar.pack(fill=tk.X)
@@ -41,9 +44,13 @@ class TrainingManagerWindow(TopWindow):
 
     def check_data(self):
         if type(self.trainer) != Trainer:
-            raise InitWindowValidateException(self, 'No valid training plan is generated')
-        if type(self.trainer.get_training_plan_holders()) != list:
-            raise InitWindowValidateException(self, 'No valid training plan is generated')
+            raise InitWindowValidateException(
+                self, 'No valid training plan is generated'
+            )
+        if not isinstance(self.trainer.get_training_plan_holders(), list):
+            raise InitWindowValidateException(
+                self, 'No valid training plan is generated'
+            )
 
     # plot
     def config_menu(self):
@@ -89,7 +96,7 @@ class TrainingManagerWindow(TopWindow):
             raise ValidateException(window=self, message='No training is in progress')
         try:
             not self.trainer.set_interrupt()
-        except:
+        except Exception:
             pass
 
     def finish_training(self):
@@ -112,11 +119,15 @@ class TrainingManagerWindow(TopWindow):
     def update_table(self):
         plan_tree = self.plan_tree
         def get_table_values(plan):
-            return (plan.get_name(), plan.get_training_status(), plan.get_training_epoch(), *plan.get_training_evaluation())
+            return (
+                plan.get_name(), plan.get_training_status(), 
+                plan.get_training_epoch(), *plan.get_training_evaluation()
+            )
         if len(plan_tree.get_children()) == 0:
             # for initialization
             for training_trainer in self.training_plan_holders:
-                update_node = plan_tree.insert("", index='end', values=get_table_values(training_trainer))
+                plan_tree.insert("", index='end', 
+                                 values=get_table_values(training_trainer))
         else:
             # for updating
             for idx, training_plan in enumerate(self.training_plan_holders):

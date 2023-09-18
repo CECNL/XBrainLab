@@ -10,5 +10,7 @@ class LoadCnt(LoadBase):
         
     def _load(self, filepath):
         data = mne.io.read_raw_cnt(filepath, preload=True)
-        self.script_history.add_cmd(f"data = mne.io.read_raw_cnt(filepath, preload=True)")
+        self.script_history.add_cmd(
+            "data = mne.io.read_raw_cnt(filepath, preload=True)"
+        )
         return data

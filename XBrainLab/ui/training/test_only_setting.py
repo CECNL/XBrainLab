@@ -1,15 +1,12 @@
 import tkinter as tk
-import tkinter.filedialog
-import inspect
-import torch
 
 from ..base import TopWindow, ValidateException
-from ..widget import EditableTreeView
 from ..script import Script
 from .training_setting import SetDeviceWindow
-from XBrainLab.training import TestOnlyOption, TRAINING_EVALUATION, parse_device_name, parse_optim_name
+from XBrainLab.training import TestOnlyOption, parse_device_name
 
 class TestOnlySettingWindow(TopWindow):
+    __test__ = False # Not a test case
     def __init__(self, parent):
         super().__init__(parent, 'Test Only Setting')
         self.training_option = None
@@ -31,7 +28,9 @@ class TestOnlySettingWindow(TopWindow):
         bs_entry.grid(row=1, column=1, sticky='EW')
         dev_label.grid(row=4, column=1, sticky='EW')
         output_dir_label.grid(row=5, column=1, sticky='EW')
-        tk.Button(self, text='Confirm', command=self.confirm).grid(row=9, column=0, columnspan=3)
+        tk.Button(self, text='Confirm', command=self.confirm).grid(
+            row=9, column=0, columnspan=3
+        )
         self.columnconfigure([1], weight=1)
         self.rowconfigure(list(range(10)), weight=1)
 
@@ -64,14 +63,18 @@ class TestOnlySettingWindow(TopWindow):
         self.script_history.add_import("from XBrainLab.training import TestOnlyOption")
         self.script_history.add_import("import torch")
 
-        self.script_history.add_cmd(f"output_dir={repr(self.training_option.output_dir)}")
+        self.script_history.add_cmd(
+            f"output_dir={repr(self.training_option.output_dir)}"
+        )
         self.script_history.add_cmd(f"use_cpu={repr(self.training_option.use_cpu)}")
         self.script_history.add_cmd(f"gpu_idx={repr(self.training_option.gpu_idx)}")
         self.script_history.add_cmd(f"bs={repr(self.training_option.bs)}")
         
-        self.script_history.add_cmd(f"training_option = TestOnlyOption(output_dir=output_dir, ")
-        self.script_history.add_cmd(f"use_cpu=use_cpu, gpu_idx=gpu_idx, ")
-        self.script_history.add_cmd(f"bs=bs)")
+        self.script_history.add_cmd(
+            "training_option = TestOnlyOption(output_dir=output_dir, "
+        )
+        self.script_history.add_cmd("use_cpu=use_cpu, gpu_idx=gpu_idx, ")
+        self.script_history.add_cmd("bs=bs)")
         
         self.destroy()
     

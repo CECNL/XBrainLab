@@ -1,4 +1,3 @@
-import numpy as np 
 import tkinter as tk
 import tkinter.ttk as ttk
 from ..base import TopWindow
@@ -23,13 +22,17 @@ class EvaluationTableWindow(TopWindow):
         metric_opt = tk.OptionMenu(self, selected_metric, *metric_list)
         ## tree
         
-        columns = [plan.get_name() for plan in self.trainers[0].get_plans()] + ['Average']
+        columns = [
+            plan.get_name() for plan in self.trainers[0].get_plans()
+        ] + ['Average']
         tree = ttk.Treeview(self, columns=columns, selectmode=tk.BROWSE)
         tree.heading('#0', text='Plan Name')
         for i in columns:
             tree.heading(i, text=i)
         for trainer in self.trainers:
-            tree.insert("", 'end', iid=trainer.get_name(), values=(), text=trainer.get_name())
+            tree.insert(
+                "", 'end', iid=trainer.get_name(), values=(), text=trainer.get_name()
+            )
         tree.insert("", 'end', values=(), text='Average')
 
         metric_opt.grid(row=0, column=0)
@@ -46,8 +49,10 @@ class EvaluationTableWindow(TopWindow):
             self.selected_metric.set(metric.value)
 
     def check_data(self):
-        if type(self.trainers) != list or len(self.trainers) == 0:
-            raise InitWindowValidateException(self, 'No valid training plan is generated')
+        if not isinstance(self.trainers, list) or len(self.trainers) == 0:
+            raise InitWindowValidateException(
+                self, 'No valid training plan is generated'
+            )
 
     def update_loop(self, loop=True):
         if not self.window_exist:

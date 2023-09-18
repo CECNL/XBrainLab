@@ -10,7 +10,7 @@ class TopWindow(tk.Toplevel):
         self.child_list = []
         try:
             parent.append_child_window(self)
-        except:
+        except Exception:
             pass
         # put window
         toplevel_offsetx, toplevel_offsety = parent.winfo_x(), parent.winfo_y()
@@ -39,7 +39,7 @@ class TopWindow(tk.Toplevel):
     def get_result(self):
         try:
             self.wait_window()
-        except:
+        except Exception:
             pass
         
         return self._get_result()
@@ -47,7 +47,7 @@ class TopWindow(tk.Toplevel):
     def get_script_history(self):
         try:
             self.wait_window()
-        except:
+        except Exception:
             pass
         
         return self._get_script_history()
@@ -62,7 +62,7 @@ class TopWindow(tk.Toplevel):
         # remove self from parent
         try:
             self.parent.remove_child_window(self)
-        except:
+        except Exception:
             pass
         self.window_exist = False
         super().destroy()

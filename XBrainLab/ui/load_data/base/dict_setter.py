@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import tkinter as  tk
 import tkinter.ttk as ttk
 
@@ -47,21 +46,35 @@ class DictInfoSetter(TopWindow):
         # ======== data key
         data_key_frame = ttk.LabelFrame(self, text="Select Data key")
         tk.Label(data_key_frame, text="Data key: ").grid(row=0, column=0, sticky='w')
-        tk.OptionMenu(data_key_frame, self.data_key_trace, *key_opt_val).grid(row=0, column=1, sticky='w')
+        tk.OptionMenu(data_key_frame, self.data_key_trace, *key_opt_val).grid(
+            row=0, column=1, sticky='w'
+        )
 
         tk.Label(data_key_frame, text="Shape type: ").grid(row=1, column=0, sticky='w')
-        tk.OptionMenu(data_key_frame, self.shape_type_trace, *shape_option_list).grid(row=1, column=1, sticky='w')
+        tk.OptionMenu(data_key_frame, self.shape_type_trace, *shape_option_list).grid(
+            row=1, column=1, sticky='w'
+        )
 
-        tk.Label(data_key_frame, text="Value shape: ").grid(row=2, column=0, sticky='w')
-        tk.Label(data_key_frame, textvariable=self.data_shape_view).grid(row=2, column=1)
+        tk.Label(data_key_frame, text="Value shape: ").grid(
+            row=2, column=0, sticky='w'
+        )
+        tk.Label(data_key_frame, textvariable=self.data_shape_view).grid(
+            row=2, column=1
+        )
 
         # ======== event key
         event_key_frame = ttk.LabelFrame(self, text="Select Event key")
         tk.Label(event_key_frame, text="Event key: ").grid(row=0, column=0, sticky='w')
-        tk.OptionMenu(event_key_frame, self.event_key_trace, 'None', *key_opt_val).grid(row=0, column=1, sticky='w')
+        tk.OptionMenu(
+            event_key_frame, self.event_key_trace, 'None', *key_opt_val
+        ).grid(row=0, column=1, sticky='w')
         
-        tk.Label(event_key_frame, text="Value shape: ").grid(row=1, column=0, sticky='w')
-        tk.Label(event_key_frame, textvariable=self.event_shape_view).grid(row=1, column=1)
+        tk.Label(event_key_frame, text="Value shape: ").grid(
+            row=1, column=0, sticky='w'
+        )
+        tk.Label(event_key_frame, textvariable=self.event_shape_view).grid(
+            row=1, column=1
+        )
         
         # ==== sampling rate & channel
         self.sfreq_trace = tk.StringVar(self)
@@ -74,27 +87,43 @@ class DictInfoSetter(TopWindow):
         tk.Label(attr_frame, text='Sampling rate').grid(row=0, column=0, sticky='w')
         if self.dict_info.get_sfreq():
             self.sfreq_trace.set(self.dict_info.get_sfreq())
-            tk.Label(attr_frame, textvariable=self.sfreq_trace).grid(row=0, column=1, sticky='w')
+            tk.Label(attr_frame, textvariable=self.sfreq_trace).grid(
+                row=0, column=1, sticky='w'
+            )
         else:
-            tk.Entry(attr_frame, textvariable=self.sfreq_trace).grid(row=0, column=1, sticky='w')    
+            tk.Entry(attr_frame, textvariable=self.sfreq_trace).grid(
+                row=0, column=1, sticky='w'
+            ) 
         if type_ctrl == DataType.EPOCH.value:
             tk.Label(attr_frame, text='tmin').grid(row=1, column=0, sticky='w')
             if self.dict_info.get_tmin() is not None:
                 self.tmin_trace.set(self.dict_info.get_tmin())
-                tk.Label(attr_frame, textvariable=self.tmin_trace).grid(row=1, column=1, sticky='w')
+                tk.Label(attr_frame, textvariable=self.tmin_trace).grid(
+                    row=1, column=1, sticky='w'
+                )
             else:
-                tk.Entry(attr_frame, textvariable=self.tmin_trace).grid(row=1, column=1, sticky='w')    
+                tk.Entry(attr_frame, textvariable=self.tmin_trace).grid(
+                    row=1, column=1, sticky='w'
+                ) 
         tk.Label(attr_frame, text='channel').grid(row=2, column=0, sticky='w')
-        tk.Label(attr_frame, textvariable=self.nchan_trace).grid(row=2, column=1, sticky='w')
+        tk.Label(attr_frame, textvariable=self.nchan_trace).grid(
+            row=2, column=1, sticky='w'
+        )
         tk.Label(attr_frame, text='time').grid(row=3, column=0, sticky='w')
-        tk.Label(attr_frame, textvariable=self.time_trace).grid(row=3, column=1, sticky='w')
+        tk.Label(attr_frame, textvariable=self.time_trace).grid(
+            row=3, column=1, sticky='w'
+        )
 
         # pack
-        tk.Label(self, text="Filename: " + os.path.basename(fp)).pack(padx=5, pady=10, expand=True)
+        tk.Label(self, text="Filename: " + os.path.basename(fp)).pack(
+            padx=5, pady=10, expand=True
+        )
         data_key_frame.pack(padx=5, pady=10, expand=True)
         event_key_frame.pack(padx=5, pady=10, expand=True)
         attr_frame.pack(padx=5, pady=10, expand=True)
-        tk.Button(self, text="Confirm", command=self._key_confirm).pack(padx=5, pady=10, expand=True)
+        tk.Button(self, text="Confirm", command=self._key_confirm).pack(
+            padx=5, pady=10, expand=True
+        )
 
         # init
         self.OPTION = OPTION
@@ -109,7 +138,9 @@ class DictInfoSetter(TopWindow):
             self.nchan_trace.set(-1)
             self.time_trace.set(-1)
         else:
-            shape_idx = self.shape_option_perm[ self.shape_option_list.index( self.shape_type_trace.get() ) ]
+            shape_idx = self.shape_option_perm[
+                self.shape_option_list.index( self.shape_type_trace.get() ) 
+            ]
             ch_idx = shape_idx.index( self.OPTION.CH )
             time_idx = shape_idx.index( self.OPTION.TIME )
             self.nchan_trace.set( data.shape[ch_idx] )
@@ -118,14 +149,16 @@ class DictInfoSetter(TopWindow):
         if self.event_key_trace.get() == 'None':
             self.event_shape_view.set('None')
         else:
-            self.event_shape_view.set(str(self.loaded_mat[self.event_key_trace.get()].shape))
+            self.event_shape_view.set(
+                str(self.loaded_mat[self.event_key_trace.get()].shape)
+            )
         
     def _key_confirm(self):
         # check attr
         try:
             sfreq = float(self.sfreq_trace.get())
             assert sfreq > 0
-        except:
+        except (ValueError, AssertionError):
             raise ValidateException(self, "Invalid sampling rate.")
         
         data_key = self.data_key_trace.get()
@@ -134,7 +167,10 @@ class DictInfoSetter(TopWindow):
         ## check dim
         data = self.loaded_mat[data_key]
         if len(data.shape) != len(self.OPTION):
-            raise ValidateException(self, f"Invalid data dimension, should be ({self.shape_type_trace.get()}).")
+            raise ValidateException(
+                self, 
+                f"Invalid data dimension, should be ({self.shape_type_trace.get()})."
+            )
         nchan = self.nchan_trace.get()
         ntimes = self.time_trace.get()
         # check event
@@ -145,18 +181,23 @@ class DictInfoSetter(TopWindow):
             event = self.loaded_mat[event_key]
             ## check dim
             if len(event.squeeze().shape) != 1:
-                raise ValidateException(self, f"Invalid label dimension, should be (epoch).")
+                raise ValidateException(
+                    self, 
+                    "Invalid label dimension, should be (epoch)."
+                )
         # check tmin if type is epoch
         tmin = None
         if EpochShapeOtion.EPOCH in self.OPTION:
             try:
                 tmin = float(self.tmin_trace.get())
-            except:
+            except ValueError:
                 raise ValidateException(self, "Invalid tmin.")
         
         self.dict_info.add_keys(data_key, event_key)
         self.dict_info.set_attr(sfreq, nchan, ntimes, tmin)
-        shape_idx = self.shape_option_perm[ self.shape_option_list.index( self.shape_type_trace.get() ) ]
+        shape_idx = self.shape_option_perm[
+            self.shape_option_list.index( self.shape_type_trace.get() )
+        ]
         self.dict_info.set_shape_idx(shape_idx, self.OPTION)
         
         self.ret_key = self.dict_info

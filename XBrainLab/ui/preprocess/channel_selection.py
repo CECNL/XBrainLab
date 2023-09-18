@@ -17,7 +17,9 @@ class ChannelSelection(PreprocessBase):
         self.columnconfigure([0], weight=1)
 
         scrollbar = tk.Scrollbar(self)
-        self.listbox = tk.Listbox(self, selectmode="extended", yscrollcommand=scrollbar.set)
+        self.listbox = tk.Listbox(
+            self, selectmode="extended", yscrollcommand=scrollbar.set
+        )
         
         for ch in ch_names:
             self.listbox.insert(tk.END, ch)
@@ -26,7 +28,9 @@ class ChannelSelection(PreprocessBase):
         tk.Label(self, text="Choose Channels: ").grid(row=0, column=0, columnspan=2)
         self.listbox.grid(row=1, column=0, padx=10, pady=10, sticky='news')
         scrollbar.grid(row=1, column=1, pady=10, sticky='news')
-        tk.Button(self, text="Confirm", command=self._data_preprocess, width=8).grid(row=2, column=0, columnspan=2)
+        tk.Button(self, text="Confirm", command=self._data_preprocess, width=8).grid(
+            row=2, column=0, columnspan=2
+        )
 
     def _data_preprocess(self):
         selected_channels = []
@@ -38,7 +42,11 @@ class ChannelSelection(PreprocessBase):
         except Exception as e:
             raise ValidateException(window=self, message=str(e))
         self.script_history.add_cmd(f'selected_channels={repr(selected_channels)}')
-        self.script_history.add_cmd('study.preprocess(preprocessor=preprocessor.ChannelSelection, selected_channels=selected_channels)')
+        self.script_history.add_cmd((
+            'study.preprocess('
+            'preprocessor=preprocessor.ChannelSelection, '
+            'selected_channels=selected_channels)'
+        ))
         self.ret_script_history = self.script_history
             
         self.destroy()

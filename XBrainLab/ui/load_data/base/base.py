@@ -3,7 +3,6 @@ import tkinter.ttk as ttk
 from tkinter import filedialog
 
 from enum import Enum
-import re, os
 
 from ...base import TopWindow, ValidateException, InitWindowValidateException
 from ...script import Script
@@ -33,14 +32,30 @@ class EditRaw(TopWindow): # called when double click on treeview
         self.event_script_history = None
         self.ret_script_history = None
 
-        tk.Label(self, text="Filepath: ").grid(row=0, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Filename: ").grid(row=1, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Subject: ").grid(row=2, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Session: ").grid(row=3, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Channels: ").grid(row=4, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Sampling Rate: ").grid(row=5, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Epochs: ").grid(row=6, column=0, sticky='w', padx=10, pady=2)
-        tk.Label(self, text="Events: ").grid(row=7, column=0, sticky='w', padx=10, pady=2)
+        tk.Label(self, text="Filepath: ").grid(
+            row=0, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Filename: ").grid(
+            row=1, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Subject: ").grid(
+            row=2, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Session: ").grid(
+            row=3, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Channels: ").grid(
+            row=4, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Sampling Rate: ").grid(
+            row=5, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Epochs: ").grid(
+            row=6, column=0, sticky='w', padx=10, pady=2
+        )
+        tk.Label(self, text="Events: ").grid(
+            row=7, column=0, sticky='w', padx=10, pady=2
+        )
 
         tk.Label(self, text=raw.get_filepath()).grid(row=0, column=1, sticky='w')
         tk.Label(self, text=raw.get_filename()).grid(row=1, column=1, sticky='w')
@@ -53,7 +68,9 @@ class EditRaw(TopWindow): # called when double click on treeview
         self.event_label.grid(row=7, column=1, sticky='w')
         
         tk.Button(self, text="Delete", command=self._delete_row).grid(row=8, column=0)
-        tk.Button(self, text="Load Events", command=self._load_events).grid(row=8, column=1)
+        tk.Button(self, text="Load Events", command=self._load_events).grid(
+            row=8, column=1
+        )
         tk.Button(self, text="Confirm", command=self.confirm).grid(row=8, column=2)
 
         self.subject_var.set(raw.get_subject_name())
@@ -87,16 +104,26 @@ class EditRaw(TopWindow): # called when double click on treeview
             try:
                 self.raw.set_event(self.events, self.event_id)
                 self.script_history.add_script(self.event_script_history)
-                self.script_history.add_cmd(f"event_loader.apply()")
-            except:
-                raise ValidateException(self, f'Inconsistent number of events with epochs length (got {len(self.events)})')
+                self.script_history.add_cmd("event_loader.apply()")
+            except Exception:
+                raise ValidateException(
+                    self, 
+                    (
+                        'Inconsistent number of events '
+                        f'with epochs length (got {len(self.events)})'
+                    )
+                )
         
         if self.subject_var.get() != self.raw.get_subject_name():
             self.raw.set_subject_name(self.subject_var.get())
-            self.script_history.add_cmd(f"raw_data.set_subject_name({repr(self.subject_var.get())})")
+            self.script_history.add_cmd(
+                f"raw_data.set_subject_name({repr(self.subject_var.get())})"
+            )
         if self.session_var.get() != self.raw.get_session_name():
             self.raw.set_session_name(self.session_var.get())
-            self.script_history.add_cmd(f"raw_data.set_session_name({repr(self.session_var.get())})")
+            self.script_history.add_cmd(
+                f"raw_data.set_session_name({repr(self.session_var.get())})"
+            )
         
         self.ret_script_history = self.script_history
         self.destroy()
@@ -125,8 +152,14 @@ class LoadBase(TopWindow):
         type_frame = ttk.LabelFrame(self, text="Data type")
         self.type_ctrl = tk.StringVar()
         self.type_ctrl.set(DataType.RAW.value)
-        self.type_raw = tk.Radiobutton(type_frame, text="Raw", value=DataType.RAW.value, variable=self.type_ctrl)
-        self.type_epoch = tk.Radiobutton(type_frame, text="Epochs", value=DataType.EPOCH.value, variable=self.type_ctrl)
+        self.type_raw = tk.Radiobutton(
+            type_frame, text="Raw", 
+            value=DataType.RAW.value, variable=self.type_ctrl
+        )
+        self.type_epoch = tk.Radiobutton(
+            type_frame, text="Epochs", 
+            value=DataType.EPOCH.value, variable=self.type_ctrl
+        )
         self.type_raw.grid(row=0, column=0,sticky="w")
         self.type_epoch.grid(row=0, column=1,sticky="w")
 
@@ -134,11 +167,20 @@ class LoadBase(TopWindow):
         attr_frame = ttk.LabelFrame(self, text="Data attributes")
         attr_frame.columnconfigure([0], weight=1)
         attr_frame.rowconfigure([0], weight=1)
-        attr_header = ["Filename", "Subject", "Session", "Channels", "Sampling Rate", "Epochs", "Events"]
-        self.data_attr_treeview = ttk.Treeview(attr_frame, columns=attr_header, show='headings', selectmode="browse") # filepath not displayed
-        self.data_attr_scrollbar = tk.Scrollbar(attr_frame, orient ="vertical",command = self.data_attr_treeview.yview)
+        attr_header = [
+            "Filename", "Subject", "Session", "Channels", 
+            "Sampling Rate", "Epochs", "Events"
+        ]
+        self.data_attr_treeview = ttk.Treeview(
+            attr_frame, columns=attr_header, show='headings', selectmode="browse"
+        ) # filepath not displayed
+        self.data_attr_scrollbar = tk.Scrollbar(
+            attr_frame, orient ="vertical",command = self.data_attr_treeview.yview
+        )
         for h in attr_header:
-            self.data_attr_treeview.column(h, width=len(h)*8+10, anchor=tk.CENTER) # for setting width
+            self.data_attr_treeview.column(
+                h, width=len(h)*8+10, anchor=tk.CENTER
+            ) # for setting width
             self.data_attr_treeview.heading(h, text=h, anchor=tk.CENTER)
         self.data_attr_treeview.grid(row=0, column=0, sticky='nwes')
         self.data_attr_scrollbar.grid(row=0, column=1, sticky='nse')
@@ -153,13 +195,23 @@ class LoadBase(TopWindow):
         self.event_ids_var = tk.StringVar()
         self.filename_template_var = tk.StringVar(self)
         tk.Label(stat_frame, text="Dataset loaded: ").grid(row=0, column=0, sticky='w')
-        tk.Label(stat_frame, textvariable=self.raw_data_len_var).grid(row=0, column=1, sticky='w')
+        tk.Label(stat_frame, textvariable=self.raw_data_len_var).grid(
+            row=0, column=1, sticky='w'
+        )
         tk.Label(stat_frame, text="Loaded type: ").grid(row=1, column=0, sticky='w')
-        tk.Label(stat_frame, textvariable=self.type_ctrl).grid(row=1, column=1, sticky='w')
+        tk.Label(stat_frame, textvariable=self.type_ctrl).grid(
+            row=1, column=1, sticky='w'
+        )
         tk.Label(stat_frame, text="Event name: ").grid(row=2, column=0, sticky='w')
-        tk.Label(stat_frame, textvariable=self.event_ids_var, wraplength=175).grid(row=2, column=1, sticky='w')
-        tk.Label(stat_frame, text="Filename template: ").grid(row=3, column=0, sticky='w')
-        tk.Entry(stat_frame, textvariable=self.filename_template_var).grid(row=4, column=0, columnspan=2, sticky='ew')
+        tk.Label(stat_frame, textvariable=self.event_ids_var, wraplength=175).grid(
+            row=2, column=1, sticky='w'
+        )
+        tk.Label(stat_frame, text="Filename template: ").grid(
+            row=3, column=0, sticky='w'
+        )
+        tk.Entry(stat_frame, textvariable=self.filename_template_var).grid(
+            row=4, column=0, columnspan=2, sticky='ew'
+        )
         self.stat_frame_row_count = 5
 
         # ==== functional buttons ====
@@ -230,9 +282,14 @@ class LoadBase(TopWindow):
                 raise ValidateException(window=self, message=str(e))
             if self.filename_template_var.get():
                 raw_data.parse_filename(regex=self.filename_template_var.get())
-                self.script_history.add_cmd(f"raw_data.parse_filename(regex={repr(self.filename_template_var.get())})")
+                self.script_history.add_cmd((
+                    "raw_data.parse_filename("
+                    f"regex={repr(self.filename_template_var.get())})"
+                ))
             
-            self.data_attr_treeview.insert('', iid=filepath, index="end", values=raw_data.get_row_info())
+            self.data_attr_treeview.insert(
+                '', iid=filepath, index="end", values=raw_data.get_row_info()
+            )
             self.data_loader.append(raw_data)
             self.script_history.add_cmd("data_loader.append(raw_data)")
 
@@ -241,11 +298,19 @@ class LoadBase(TopWindow):
     def check_data_type(self, data_type):
         if data_type != self.type_ctrl.get():
             if self.data_loader:
-                raise ValidateException(self, 'Unable to load type raw and epochs at the same time')
+                raise ValidateException(
+                    self, 'Unable to load type raw and epochs at the same time'
+                )
             if data_type == DataType.RAW.value:
-                tk.messagebox.showwarning(parent=self, title="Warning", message="Detected data of dimension 2, switch to raw loading")
+                tk.messagebox.showwarning(
+                    parent=self, title="Warning", 
+                    message="Detected data of dimension 2, switch to raw loading"
+                )
             elif data_type == DataType.EPOCH.value:
-                tk.messagebox.showwarning(parent=self, title="Warning", message="Detected data of dimension 3, switch to epochs loading")
+                tk.messagebox.showwarning(
+                    parent=self, title="Warning", 
+                    message="Detected data of dimension 3, switch to epochs loading"
+                )
             self.type_ctrl.set(data_type)    
     #
     def update_panel(self):
@@ -269,13 +334,16 @@ class LoadBase(TopWindow):
         else:
             self.event_ids_var.set('None')
     
-    def edit(self, event): # open window for editing subject/session/load data on double click
+    def edit(self, event): 
+        # open window for editing subject/session/load data on double click
         selected_row = self.data_attr_treeview.focus()
         raw_data = self.data_loader.get_loaded_raw(selected_row)
         if not raw_data:
             return
         self.script_history.newline()
-        self.script_history.add_cmd(f"raw_data = data_loader.get_loaded_raw({repr(selected_row)})")
+        self.script_history.add_cmd(
+            f"raw_data = data_loader.get_loaded_raw({repr(selected_row)})"
+        )
         self.script_history.add_cmd("raw_data.get_event_list()")
         edit_module = EditRaw(self, raw_data)
         del_row = edit_module.get_result()

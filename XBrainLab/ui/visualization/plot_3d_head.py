@@ -1,6 +1,3 @@
-import os
-import shutil
-import mne
 import numpy as np
 from scipy.spatial import ConvexHull
 import pyvista as pv
@@ -22,7 +19,8 @@ class Saliency3D:
 
         # get saliency
         labelIndex = epoch_data.event_id[self.selected_event_name]
-        self.saliency = eval_record.gradient[labelIndex]#[eval_record.label == labelIndex]
+        # [eval_record.label == labelIndex]
+        self.saliency = eval_record.gradient[labelIndex]
         self.saliency = self.saliency.mean(axis=0)
         self.scalar_bar_range = [self.saliency.min(), self.saliency.max()]
 
@@ -42,14 +40,19 @@ class Saliency3D:
             pos_on_3d.append(center)
         self.pos_on_3d = np.asarray(pos_on_3d)
 
-        self.chs = [pv.Sphere(radius=0.005, center=self.pos_on_3d[i, :]) for i in range(self.saliency.shape[0])]
+        self.chs = [
+            pv.Sphere(radius=0.005, center=self.pos_on_3d[i, :]) 
+            for i in range(self.saliency.shape[0])
+        ]
 
         # set plotter
         self.plotter = pv.Plotter(window_size=[750, 750])
         self.plotter.background_color = "lightslategray"
         self.head = mesh
         self.brain = mesh2.scale((0.001, 0.001, 0.001), inplace=False).triangulate()
-        #self.head1 = self.head.clip_closed_surface('z', origin=[0, 0, self.pos_on_3d[:, 2].min()]) # upper half head
+        # self.head1 = self.head.clip_closed_surface(
+        #     'z', origin=[0, 0, self.pos_on_3d[:, 2].min()]
+        # ) # upper half head
         self.head1 = ChannelConvexHull(self.pos_on_3d)
         self.scalar = np.zeros(self.head1.n_points)
         self.channelActor = []
@@ -71,24 +74,31 @@ class Saliency3D:
         self.param['save'] = save
         for i in range(self.head1.n_points):
             dist = [np.linalg.norm(self.head1.points[i] - ch) for ch in self.pos_on_3d]
-            dist_idx = np.argsort(dist)[:self.neighbor]  # id of #neighbor cloest points
+            dist_idx = np.argsort(dist)[:self.neighbor] # id of #neighbor cloest points
             dist = np.array([dist[id] for id in dist_idx])
-            self.scalar[i] = InverseDistWeightedSum(dist, self.saliency[dist_idx, self.param['timestamp'] - 1])
+            self.scalar[i] = InverseDistWeightedSum(
+                dist, self.saliency[dist_idx, self.param['timestamp'] - 1]
+            )
         try:
             self.plotter.update_scalars(self.scalar, self.head1)
             self.plotter.update_scalar_bar_range(self.scalar_bar_range, '')
-        except:
+        except Exception:
             pass
 
         if self.channelActor != []:
             for actor in self.channelActor:
                 actor.SetVisibility(self.channelBox.ctrl)
         if save:
-            self.plotter.save_graphic(f"event-{self.selected_event_name}_time-{self.param['timestamp']}_saliency3d.svg")
+            self.plotter.save_graphic((
+                f"event-{self.selected_event_name}_"
+                f"time-{self.param['timestamp']}_saliency3d.svg"
+            ))
 
         if self.headBox.ctrl:
-            if self.headActor == None:
-                self.headActor = self.plotter.add_mesh(self.head, opacity=0.3, color='w')
+            if self.headActor is None:
+                self.headActor = self.plotter.add_mesh(
+                    self.head, opacity=0.3, color='w'
+                )
         else:
             self.plotter.remove_actor(self.headActor)
             self.headActor = None
@@ -111,7 +121,9 @@ class Saliency3D:
             color_on='white',
             color_off='grey',
         )
-        self.plotter.add_text('Save', position=(60, 147), color='white', shadow=True, font_size=8)
+        self.plotter.add_text(
+            'Save', position=(60, 147), color='white', shadow=True, font_size=8
+        )
 
         self.plotter.add_checkbox_button_widget(
             self.channelBox,
@@ -121,7 +133,9 @@ class Saliency3D:
             color_on='white',
             color_off='grey',
         )
-        self.plotter.add_text('Show channel', position=(60, 197), color='white', shadow=True, font_size=8)
+        self.plotter.add_text(
+            'Show channel', position=(60, 197), color='white', shadow=True, font_size=8
+        )
 
         self.plotter.add_checkbox_button_widget(
             self.headBox,
@@ -131,13 +145,18 @@ class Saliency3D:
             color_on='white',
             color_off='grey',
         )
-        self.plotter.add_text('Show head', position=(60, 247), color='white', shadow=True, font_size=8)
+        self.plotter.add_text(
+            'Show head', position=(60, 247), color='white', shadow=True, font_size=8
+        )
 
         self.plotter.camera_position = 'xy'
         self.plotter.camera.zoom(0.8)
 
         self.channelActor = [self.plotter.add_mesh(ch, color='w') for ch in self.chs]
-        self.plotter.add_mesh(self.head1, opacity=0.7, scalars=self.scalar, cmap=self.cmap, show_scalar_bar=False)
+        self.plotter.add_mesh(
+            self.head1, opacity=0.7, 
+            scalars=self.scalar, cmap=self.cmap, show_scalar_bar=False
+        )
         self.plotter.add_scalar_bar('', interactive=False, vertical=False)
         self.plotter.update_scalar_bar_range(self.scalar_bar_range, '')
         self.plotter.add_mesh(self.brain, color='w')
@@ -145,7 +164,10 @@ class Saliency3D:
         self.plotter.show_bounds()
 
         if self.param['save']:
-            self.plotter.save_graphic(f"event-{self.selected_event_name}_time-{self.param['timestamp']}_saliency3d.svg")
+            self.plotter.save_graphic((
+                f"event-{self.selected_event_name}_"
+                f"time-{self.param['timestamp']}_saliency3d.svg"
+            ))
 
         return self.plotter
 
@@ -163,9 +185,12 @@ def InverseDistWeightedSum(dist, val):
     return np.sum(val/dist)/(np.sum([1/d for d in dist]))
 
 def ChannelConvexHull(ch_pos):
-    # faster than pyvista delaunay? :https://gist.github.com/flutefreak7/bd621a9a836c8224e92305980ed829b9
+    # faster than pyvista delaunay? :
+    # https://gist.github.com/flutefreak7/bd621a9a836c8224e92305980ed829b9
     hull = ConvexHull(ch_pos)
-    faces = np.hstack((np.ones((len(hull.simplices),1))*3, hull.simplices)).astype(np.int32)
+    faces = np.hstack(
+        (np.ones((len(hull.simplices),1))*3, hull.simplices)
+    ).astype(np.int32)
     poly = pv.PolyData(hull.points, faces.ravel())
     return poly
     # cloud = pv.PolyData(ch_pos)

@@ -7,13 +7,21 @@ class TrainingSettingPanel(PanelBase):
         frame = tk.Frame(self)
         tk.Label(frame, text='Epoch').grid(row=0, column=0, sticky='e', padx=10)
         tk.Label(frame, text='Batch size').grid(row=1, column=0, sticky='e', padx=10)
-        tk.Label(frame, text='Learning rate').grid(row=2, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Learning rate').grid(
+            row=2, column=0, sticky='e', padx=10
+        )
         tk.Label(frame, text='Optimizer').grid(row=3, column=0, sticky='e', padx=10)
         tk.Label(frame, text='device').grid(row=4, column=0, sticky='e', padx=10)
-        tk.Label(frame, text='Output Directory').grid(row=5, column=0, sticky='e', padx=10)
-        tk.Label(frame, text='CheckPoint epoch').grid(row=6, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Output Directory').grid(
+            row=5, column=0, sticky='e', padx=10
+        )
+        tk.Label(frame, text='CheckPoint epoch').grid(
+            row=6, column=0, sticky='e', padx=10
+        )
         tk.Label(frame, text='Evaluation').grid(row=7, column=0, sticky='e', padx=10)
-        tk.Label(frame, text='Repeat Number').grid(row=8, column=0, sticky='e', padx=10)
+        tk.Label(frame, text='Repeat Number').grid(
+            row=8, column=0, sticky='e', padx=10
+        )
         tk.Label(frame, text='Model').grid(row=9, column=0, sticky='e', padx=10)
 
         self.epoch_label = tk.Label(frame, text='Epoch')

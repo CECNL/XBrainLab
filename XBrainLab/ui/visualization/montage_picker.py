@@ -1,7 +1,6 @@
 import tkinter as tk
 from ..base import TopWindow, InitWindowValidateException, ValidateException
 from ..script import Script
-import os
 import numpy as np
 import mne
 
@@ -35,7 +34,9 @@ class PickMontageWindow(TopWindow):
         option_list.grid(row=1, column=0, sticky='news')
         button_frame.grid(row=1, column=1)
         seleced_list.grid(row=1, column=2, sticky='news')
-        tk.Button(self, text='confirm', command=self.confirm).grid(row=2, column=0, columnspan=3)
+        tk.Button(self, text='confirm', command=self.confirm).grid(
+            row=2, column=0, columnspan=3
+        )
         self.columnconfigure([0,2], weight=1)
         self.rowconfigure([1], weight=1)
 
@@ -49,7 +50,9 @@ class PickMontageWindow(TopWindow):
     
     def check_data(self):
         if not self.channel_names:
-            raise InitWindowValidateException(self, 'No valid channel name is provided')
+            raise InitWindowValidateException(
+                self, 'No valid channel name is provided'
+            )
 
     def add(self):
         selected = self.get_selected()
@@ -89,7 +92,13 @@ class PickMontageWindow(TopWindow):
         montage = mne.channels.make_standard_montage(self.selected_montage.get())
         chs = self.get_selected()
         if len(chs) != len(self.channel_names):
-            raise ValidateException(window=self, message=f'Number of channels mismatch ({len(chs)} != {len(self.channel_names)})')
+            raise ValidateException(
+                window=self, 
+                message=(
+                    'Number of channels mismatch '
+                    f'({len(chs)} != {len(self.channel_names)})'
+                )
+            )
         positions = np.array([montage.get_positions()['ch_pos'][ch] for ch in chs])
         self.chs = chs
         self.positions = positions
@@ -98,9 +107,17 @@ class PickMontageWindow(TopWindow):
         self.script_history.add_import("import mne")
         self.script_history.add_import("import numpy as np")
         
-        self.script_history.add_cmd(f"montage = mne.channels.make_standard_montage({repr(self.selected_montage.get())})")
+        self.script_history.add_cmd((
+            "montage = mne.channels.make_standard_montage("
+            f"{repr(self.selected_montage.get())}"
+            ")"
+        ))
         self.script_history.add_cmd(f"chs = {repr(chs)}")
-        self.script_history.add_cmd("positions = np.array([montage.get_positions()['ch_pos'][ch] for ch in chs])")
+        self.script_history.add_cmd((
+            "positions = np.array("
+            "[montage.get_positions()['ch_pos'][ch] for ch in chs]"
+            ")"
+        ))
     
         self.destroy()
 
