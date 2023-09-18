@@ -33,7 +33,7 @@ class Visualizer:
         if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize, dpi=self.dpi)
         plt.clf()
-        self._get_plt(*args, **kwargs)
+        return self._get_plt(*args, **kwargs)
         
 
     def get_gradient(self, labelIndex: int) -> np.ndarray:

@@ -13,7 +13,7 @@ from .ui.script import Script
 
 from typing import List
 from .preprocessor.base import PreprocessBase
-from .visualization import PlotType
+from .visualization import PlotType, VisualizerType
 from .evaluation import Metric
 
 class XBrainLab:
@@ -506,7 +506,7 @@ class XBrainLab:
     @ui_func_wrapper
     def show_grad_plot(
         self, 
-        plot_type: PlotType, 
+        plot_type: VisualizerType, 
         plan_name: str, 
         real_plan_name: str, 
         absolute: bool, 
@@ -531,7 +531,7 @@ class XBrainLab:
     @ui_func_wrapper
     def show_grad_topo_plot(
         self, 
-        plot_type: PlotType, 
+        plot_type: VisualizerType, 
         plan_name: str, 
         real_plan_name: str, 
         absolute: bool, 
@@ -552,6 +552,29 @@ class XBrainLab:
             plot_type=plot_type, plan_name=plan_name, 
             real_plan_name=real_plan_name, absolute=absolute
         )
+    
+    @ui_func_wrapper
+    def show_grad_eval_plot(
+        self, 
+        plot_type: VisualizerType, 
+        plan_name: str, 
+        real_plan_name: str,
+        trainers: List[TrainingPlanHolder]
+    ) -> None:
+        """Show evaluation figure window.
+        
+        Args:
+            plot_type: The plot type.
+            plan_name: The name of training plan.
+            real_plan_name: The name of real plan under training plan.
+            trainers: The list of :class:`XBrainLab.training.TrainingPlanHolder`.
+        """
+        from .ui.visualization import PlotEvalRecordFigureWindow
+        PlotEvalRecordFigureWindow(
+            parent=self.ui, trainers=trainers,
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name
+        )
+    
 
     @ui_func_wrapper
     def show_performance(

@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 
+from ..base import ValidateException
 from .base import PreprocessBase
 from enum import Enum
 

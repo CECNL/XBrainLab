@@ -23,7 +23,7 @@ class PlotFigureWindow(SinglePlotWindow):
         self.current_plot = None
         self.script_history = Script()
         self.script_history.add_import(
-            "from XBrainLab.visualization import PlotType"
+            "from XBrainLab.visualization import PlotType, VisualizerType"
         )
         self.plot_gap = 0
 

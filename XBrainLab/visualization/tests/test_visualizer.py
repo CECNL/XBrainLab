@@ -1,4 +1,4 @@
-from XBrainLab.visualization import SaliencyMapViz, SaliencyTopoMapViz
+from XBrainLab.visualization import VisualizerType
 from XBrainLab.training.record import EvalRecord
 from XBrainLab.load_data import Raw
 from XBrainLab.dataset import Epochs
@@ -42,13 +42,27 @@ def get_preprocessed_data_list(n_class):
             result.append(raw)
     return result
 
+def get_abs_visualizer():
+    return [
+        VisualizerType.SaliencyMap,
+        VisualizerType.SaliencyTopoMap,
+    ]
+
+def get_remaining_visualizer():
+    abs_visualizer = get_abs_visualizer()
+    all_visualizer = [
+        i for i in VisualizerType 
+        if i not in abs_visualizer
+    ]
+    return all_visualizer
+
 @pytest.mark.parametrize("absolute", [True, False])
 @pytest.mark.parametrize("epochs, n_class", [
     (Epochs(get_preprocessed_data_list(2)), 2),
     (Epochs(get_preprocessed_data_list(3)), 3),
     (Epochs(get_preprocessed_data_list(4)), 4),
 ])
-@pytest.mark.parametrize("visualizer", [SaliencyMapViz, SaliencyTopoMapViz])
+@pytest.mark.parametrize("visualizer", get_abs_visualizer())
 @pytest.mark.parametrize("mask_out", [True, False])
 def test_map(absolute, epochs, n_class, visualizer, mask_out):
     label = np.ones(10)
@@ -61,7 +75,30 @@ def test_map(absolute, epochs, n_class, visualizer, mask_out):
         n_class -= 1
     epochs.set_channels(ch_names, np.random.rand(len(ch_names), 3))
     eval_record = EvalRecord(label, output, gradient)
-    visualizer = visualizer(eval_record, epochs)
-    visualizer.get_plt(absolute)
+    visualizer = visualizer.value(eval_record, epochs)
+    assert visualizer.get_plt(absolute) is not None
+    assert sum([len(i.images) for i in visualizer.fig.axes]) == n_class
+    plt.close(visualizer.fig)
+
+@pytest.mark.parametrize("epochs, n_class", [
+    (Epochs(get_preprocessed_data_list(2)), 2),
+    (Epochs(get_preprocessed_data_list(3)), 3),
+    (Epochs(get_preprocessed_data_list(4)), 4),
+])
+@pytest.mark.parametrize("mask_out", [True, False])
+@pytest.mark.parametrize("visualizer", get_remaining_visualizer())
+def test_eval_plot(epochs, n_class, mask_out, visualizer):
+    label = np.ones(10)
+    output = np.ones((10, 2))
+    gradient = {
+        i: np.zeros((10, 2, 100)) for i in range(n_class)
+    }
+    if mask_out:
+        gradient[0] = np.array([])
+        n_class -= 1
+    epochs.set_channels(ch_names, np.random.rand(len(ch_names), 3))
+    eval_record = EvalRecord(label, output, gradient)
+    visualizer = visualizer.value(eval_record, epochs)
+    assert visualizer.get_plt() is not None
     assert sum([len(i.images) for i in visualizer.fig.axes]) == n_class
     plt.close(visualizer.fig)

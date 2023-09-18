@@ -14,6 +14,7 @@ PREPROCESS_MODULE_LIST = [
 
 __all__ = [
     "PREPROCESS_MODULE_LIST",
-    "ChannelSelection", "Normalize", "Filtering", "Resample", "TimeEpoch", "WindowEpoch",
+    "ChannelSelection", "Normalize", "Filtering", 
+    "Resample", "TimeEpoch", "WindowEpoch",
     "EditEventNames", "EditEventIds", "Export"
 ]
