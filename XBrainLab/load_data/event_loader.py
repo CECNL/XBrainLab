@@ -26,7 +26,8 @@ class EventLoader:
         mat_content = scipy.io.loadmat(selected_file)
         mat_key = [k for k in mat_content.keys() if not k.startswith('_')]
         if len(mat_key) > 1:
-            tk.messagebox.showwarning(parent=self, title="Warning", message="File expected to contain only corresponding event data.")
+            tk.messagebox.showerror(parent=self, title="Error", message="File expected to contain only corresponding event data.")
+        # TODO: select event name
         else:
             mat_key = mat_key[0]
         event_content = mat_content[mat_key].squeeze().astype(np.int32)
@@ -42,16 +43,20 @@ class EventLoader:
             for e in new_event_name:
                 if not new_event_name[e].strip():
                     raise ValueError("event name cannot be empty")
+            if isinstance(self.label_list, list):
+                self.label_list = np.array(self.label_list)
             
-            if len(self.label_list.shape)>1:
+            if len(self.label_list.shape)==2 and self.label_list.shape[-1]==3:
                 event_id = {new_event_name[i]: i for i in np.unique(self.label_list[:,-1])}
                 events = self.label_list
-            else:
+            elif len(self.label_list.shape)==1:
                 event_id = {new_event_name[i]: i for i in list(set(self.label_list))}
                 events = np.zeros((len(self.label_list), 3), dtype=np.int32)
                 print('UserWarning: Event array created without onset timesample. Please proceed with caution if operating on raw data without annotations.')
                 events[:,0] = range(len(self.label_list))
                 events[:,-1] = self.label_list
+            else:
+                tk.messagebox.showerror(parent=self, title='Error', message=f"Invalid event shape. (got{self.label_list.shape})")
                 
             if not self.raw.is_raw():
                 if self.raw.get_epochs_length() != len(events):
