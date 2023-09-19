@@ -1,3 +1,4 @@
+"Module for training configuration and managing."
 from .model_holder import ModelHolder
 from .option import (
     TRAINING_EVALUATION,

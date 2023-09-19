@@ -18,3 +18,6 @@ This is the reference for classes and functions of XBrainLab.
     :maxdepth: 2
 
     load_data
+    preprocessor
+    dataset
+    training
