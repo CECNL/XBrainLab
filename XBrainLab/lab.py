@@ -203,7 +203,7 @@ class XBrainLab:
         """Generate training plan.
 
         Helper function to 
-        generate :class:`XBrainLab.training.TrainingPlanHolder` 
+        generate :class:`XBrainLab.training.TrainingPlanHolder`
         from model holder, datasets and training option, and then 
         generate :class:`XBrainLab.training.Trainer` from training plan holders.
 

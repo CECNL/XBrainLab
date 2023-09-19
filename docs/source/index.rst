@@ -9,7 +9,7 @@ XBrainLab's documentation homepage
 .. toctree::
    :hidden:
 
-   
+   Get Started <started>
    API reference <python_reference>
 
 

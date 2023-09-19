@@ -1,3 +1,4 @@
+"Module for holding and splitting preprocessed data."
 from .epochs import Epochs
 from .data_splitter import DataSplitter, DataSplittingConfig
 from .dataset_generator import DatasetGenerator

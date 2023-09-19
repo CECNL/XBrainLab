@@ -1,3 +1,4 @@
+"Module for preprocessing loaded data."
 from .channel_selection import ChannelSelection
 from .normalize import Normalize
 from .filtering import Filtering
