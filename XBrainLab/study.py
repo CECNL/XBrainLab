@@ -185,9 +185,9 @@ class Study:
     def generate_plan(self, force_update: bool = False) -> None:
         """Generate training plan.
 
-        Helper function to
+        Helper function to 
         generate :class:`XBrainLab.training.TrainingPlanHolder`
-        from model holder, datasets and training option, and then
+        from model holder, datasets and training option, and then 
         generate :class:`XBrainLab.training.Trainer` from training plan holders.
 
         Args:

@@ -10,7 +10,7 @@ Load data from files
    :no-inherited-members:
 
 .. autosummary::
-   :toctree: load_data/
+   :toctree: auto_doc/
    
 	Raw
    RawDataLoader
