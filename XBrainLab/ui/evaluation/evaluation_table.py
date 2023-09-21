@@ -96,7 +96,7 @@ class EvaluationTableWindow(TopWindow):
             self.after(1000, self.update_loop)
         if not loop:
             self.script_history.add_import("from XBrainLab.evaluation import Metric")
-            self.script_history.add_ui_cmd(f"study.show_performance(metric=Metric.{metric.name})")
+            self.script_history.add_ui_cmd(f"lab.show_performance(metric=Metric.{metric.name})")
 
     def _get_script_history(self):
         return self.script_history

@@ -40,6 +40,6 @@ class PreprocessBase:
             preprocessed_data.add_preprocess(self.get_preprocess_desc(*args, **kargs))
         return self.preprocessed_data_list
 
-    def _data_preprocess(self, *args, **kargs) -> None:
+    def _data_preprocess(self, preprocessed_data: Raw, *args, **kargs) -> None:
         """Preprocess the data."""
         raise NotImplementedError

@@ -744,8 +744,8 @@ def test_dataset_generator_prepare_reuslt(
         assert generator.is_clean()
 
 def test_dataset_generator_apply(epochs): # noqa: F811
-    from XBrainLab import XBrainLab
-    lab = XBrainLab()
+    from XBrainLab import Study
+    study = Study()
     is_cross_validation = False
     test_splitter_list = val_splitter_list = []
     config = DataSplittingConfig(
@@ -753,5 +753,5 @@ def test_dataset_generator_apply(epochs): # noqa: F811
     )
     generator = DatasetGenerator(epochs, config)
     generator.datasets = [Dataset(epochs, config)]
-    generator.apply(lab)
-    assert lab.datasets == generator.datasets
+    generator.apply(study)
+    assert study.datasets == generator.datasets

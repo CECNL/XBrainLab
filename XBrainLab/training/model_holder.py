@@ -15,7 +15,7 @@ class ModelHolder:
         self, 
         target_model: type, 
         model_params_map: dict, 
-        pretrained_weight_path: str | None
+        pretrained_weight_path: str | None = None
     ):
         self.target_model = target_model
         self.model_params_map = model_params_map

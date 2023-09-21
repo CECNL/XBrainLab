@@ -1,3 +1,4 @@
+from .base import PreprocessBase
 from .channel_selection import ChannelSelection
 from .normalize import Normalize
 from .filtering import Filtering
@@ -8,6 +9,7 @@ from .edit_event import EditEventName, EditEventId
 from .export import Export
 
 __all__ = [
+    'PreprocessBase',
     'ChannelSelection',
     'Normalize',
     'Filtering',

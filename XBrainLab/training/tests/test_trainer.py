@@ -2,9 +2,16 @@ from XBrainLab.training import TrainingPlanHolder, Trainer
 
 import pytest
 
+class FakePlan:
+    def __init__(self, i):
+        self.i = i
+    def get_name(self):
+        return str(self.i)
+
 class FakeTrainingPlanHolder(TrainingPlanHolder):
     def __init__(self, i):
         self.i = i
+        self.train_record_list = [FakePlan('test')]
 
     def get_name(self):
         return 'Fake' + str(self.i)
@@ -91,3 +98,26 @@ def test_trainer_interrupt(mocker, training_plan_holders):
     trainer.set_interrupt()
     trainer.job()
     train_mock.assert_not_called()
+
+@pytest.mark.parametrize(
+    'plan_name, real_plan_name, error_stage',
+    [
+        ['Fake', 'test', 1],
+        ['Fake0', 'test', 0],
+        ['Fake1', 'test', 0],
+        ['Fake1', 'tests', 2]
+    ]
+)
+def test_trainer_get_plan(
+    training_plan_holders, plan_name, real_plan_name, error_stage
+):
+    trainer = Trainer(training_plan_holders)
+    if error_stage == 0:
+        trainer.get_real_training_plan(plan_name, real_plan_name)
+    else:
+        if error_stage == 1:
+            error = '.*training plan.*'
+        else:
+            error = '.*real plan.*'
+        with pytest.raises(ValueError, match=error):
+            trainer.get_real_training_plan(plan_name, real_plan_name)

@@ -3,7 +3,7 @@ from . import Raw
 
 from typing import List, TYPE_CHECKING
 if TYPE_CHECKING:
-    from .. import XBrainLab
+    from .. import Study
 
 
 class RawDataLoader(list):
@@ -95,13 +95,13 @@ class RawDataLoader(list):
         self.check_loaded_data_consistency(raw)
         super().append(raw)
 
-    def apply(self, study: 'XBrainLab') -> None:
+    def apply(self, study: 'Study') -> None:
         """Apply the loaded raw data to the study.
 
         Args:
             study: XBrainLab Study to apply the loaded raw data.
         """
-        from .. import XBrainLab
-        validate_type(study, XBrainLab, 'study')
+        from .. import Study
+        validate_type(study, Study, 'study')
         self.validate()
         study.set_loaded_data_list(self)

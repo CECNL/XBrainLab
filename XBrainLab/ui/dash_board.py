@@ -22,7 +22,7 @@ from .script import Script, ScriptType, ScriptPreview
 from XBrainLab.dataset import Epochs
 
 class DashBoard(tk.Tk):
-    def __init__(self, study):
+    def __init__(self, study, script_history):
         super().__init__()
         # window
         self.child_list = []
@@ -43,9 +43,8 @@ class DashBoard(tk.Tk):
         self.training_status_panel = TrainingStatusPanel(self, row=1, column=2)
 
         self.study = study
-        self.script_history = self.study.get_script()
-        if not self.script_history:
-            self.clear_script()
+        self.script_history = script_history
+        self.clear_script()
         
         self.after(1, self.update_dashboard)
         self.after(1, lambda: self.update_dashboard(loop=True))
@@ -353,14 +352,22 @@ class DashBoard(tk.Tk):
             return ui_script
 
     def clear_script(self):
-        self.script_history = Script()
+        if not self.script_history:
+            self.script_history = Script()
+        self.script_history.reset()
+        self.script_history.add_import('from XBrainLab import Study')
+        self.script_history.add_import('from XBrainLab.ui import XBrainLab')
+
         if self.study.loaded_data_list:
-            self.script_history.add_cmd('# study = XBrainLab()')  
+            self.script_history.add_cmd('# study = Study()')  
         else:
-            self.script_history.add_import('from XBrainLab import XBrainLab')
-            self.script_history.add_cmd('study = XBrainLab()')
-        self.script_history.add_ui_cmd('# study = XBrainLab()')  
-        self.study.set_script(self.script_history)
+            self.script_history.add_cmd('study = Study()')
+            
+        self.script_history.add_ui_cmd('# study = Study()')  
+        self.script_history.add_ui_cmd('lab = XBrainLab(study)')
+
+    def get_script(self):
+        return self.script_history
 
     # clean
     def clean_datasets(self):

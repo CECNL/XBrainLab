@@ -38,6 +38,21 @@ class Trainer():
         """Return list of training plan holders"""
         return self.training_plan_holders
 
+    def get_real_training_plan(
+            self, 
+            plan_name: str, real_plan_name: str
+        ) -> TrainingPlanHolder:
+        """Return training plan by name"""
+        for training_plan_holder in self.training_plan_holders:
+            if training_plan_holder.get_name() == plan_name:
+                for plan in training_plan_holder.get_plans():
+                    if plan.get_name() == real_plan_name:
+                        return plan
+                raise ValueError(
+                    f'No real plan named "{real_plan_name}" for "{plan_name}"'
+                )
+        raise ValueError(f'No training plan named "{plan_name}"')
+
     def set_interrupt(self) -> None:
         """Set interrupt flag to True and interrupt all training plan holders"""
         self.progress_text = Status.INTING

@@ -5,41 +5,23 @@
 
 XBrainLab is a EEG decoding toolbox with deep learning dedicated to neuroscience discoveries.
 
-## Requirements
-
-- Python >= 3.9
-- Pytorch >= 1.9 CUDA version
-- numpy <= 1.23.4
-- MNE-python
-- scikit-learn
-- Captum
-- torchinfo
-- pyvista
-
-<!--
-##
-package manager
-
--->
-
-## Get Started
-
-After installing XBrainLab, the file structure should be:
-
-XBrainLab/\
-├─ XBrainLab/\
-├─ .gitignore\
-├─ LICENSE\
-├─ README.md\
-├─ run.py
-
-
-Initial content of run.py:
+## Installation
+### From latest code
 ```
-import XBrainLab
+pip install --upgrade git+https://github.com/CECNL/XBrainLab
+```
 
-study = XBrainLab()
-study.show_ui()
+## Getting Started
+Type in your terminal, and the GUI application will start automatically.
+```
+XBrainLab
+```
+Or run the following code in your python console.
+```
+from XBrainLab.ui import XBrainLab
+
+lab = XBrainLab()
+lab.show_ui()
 ```
 ## Quick Overview
 

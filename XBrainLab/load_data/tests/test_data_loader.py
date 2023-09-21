@@ -1,5 +1,5 @@
 from XBrainLab.load_data import Raw, RawDataLoader
-from XBrainLab import XBrainLab
+from XBrainLab import Study
 
 from .test_raw import _generate_mne, _set_event
 
@@ -95,5 +95,5 @@ def test_apply():
     raw = Raw('test/mt.fif', raw_mne)
     _set_event(raw)
     
-    lab = XBrainLab()
+    lab = Study()
     RawDataLoader([raw]).apply(lab)

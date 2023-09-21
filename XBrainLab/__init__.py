@@ -1,3 +1,3 @@
-from .lab import XBrainLab
+from .study import Study
 
-__all__ = ['XBrainLab']
+__all__ = ['Study']

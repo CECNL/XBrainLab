@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 import numpy as np
 
 from .option import TrainingType, SplitByType, ValSplitByType
@@ -6,6 +6,8 @@ from .dataset import Dataset
 from . import DataSplittingConfig, Epochs
 
 from ..utils import validate_type
+if TYPE_CHECKING:
+    from .. import Study
 
 class DatasetGenerator:
     """Class for generating dataset from epoch data and splitting configuration.
@@ -313,9 +315,9 @@ class DatasetGenerator:
         self.preview_failed = False
         Dataset.SEQ = 0
     
-    def apply(self, study) -> None:
+    def apply(self, study: 'Study') -> None:
         """Apply the generated datasets to the study."""
-        from ..lab import XBrainLab
-        validate_type(study, XBrainLab, 'study')
+        from .. import Study
+        validate_type(study, Study, 'study')
         self.prepare_reuslt()
         study.set_datasets(self.datasets)

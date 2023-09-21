@@ -33,7 +33,7 @@ def test_base(raw):
         base.get_preprocess_desc()
     
     with pytest.raises(NotImplementedError):
-        base._data_preprocess()
+        base._data_preprocess(None)
 
 
 def test_inherit(raw):

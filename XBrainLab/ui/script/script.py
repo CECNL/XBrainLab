@@ -5,6 +5,9 @@ def get_id():
 
 class Script:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.import_list = set()
         self.command_list = []
         self.ui_command_list = []

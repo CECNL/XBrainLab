@@ -86,7 +86,7 @@ class PlotFigureWindow(SinglePlotWindow):
 
     def add_plot_command(self):
         self.script_history.add_ui_cmd((
-            "study.show_plot(plot_type="
+            "lab.show_plot(plot_type="
             f"{self.plot_type.__class__.__name__}.{self.plot_type.name}, "
             f"plan_name={repr(self.selected_plan_name.get())}, "
             f"real_plan_name={repr(self.selected_real_plan_name.get())})"
