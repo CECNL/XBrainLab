@@ -1,16 +1,17 @@
 import tkinter as tk
 
-from .base import PreprocessBase
-from ..base import ValidateException
-
 from XBrainLab import preprocessor as Preprocessor
+
+from ..base import ValidateException
+from .base import PreprocessBase
+
 
 class WindowEpoch(PreprocessBase):
     command_label = "Window Epoch"
     def __init__(self, parent, preprocessed_data_list):
         preprocessor = Preprocessor.WindowEpoch(preprocessed_data_list)
         super().__init__(parent, "Window Epoch", preprocessor)
-        
+
         self.rowconfigure([0, 1], weight=1)
         self.columnconfigure([1], weight=1)
 
@@ -46,15 +47,15 @@ class WindowEpoch(PreprocessBase):
                 overlap = float(self.field_var['overlap'].get())
             self.return_data = self.preprocessor.data_preprocess(duration, overlap)
         except Exception as e:
-            raise ValidateException(window=self, message=str(e))
+            raise ValidateException(window=self, message=str(e)) from e
 
-        self.script_history.add_cmd(f'duration={repr(duration)}')
-        self.script_history.add_cmd(f'overlap={repr(overlap)}')
-        self.script_history.add_cmd((
+        self.script_history.add_cmd(f'duration={duration!r}')
+        self.script_history.add_cmd(f'overlap={overlap!r}')
+        self.script_history.add_cmd(
             'study.preprocess('
             'preprocessor=preprocessor.WindowEpoch, '
             'duration=duration, overlap=overlap)'
-        ))
+        )
         self.ret_script_history = self.script_history
 
         self.destroy()

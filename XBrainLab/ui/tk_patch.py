@@ -1,20 +1,21 @@
-import traceback
-import tkinter as tk
-from .base import CustomException
 import inspect
+import tkinter as tk
+import traceback
+
+from .base import CustomException
+
 
 class Catcher:
     def __init__(self, func, subst, widget):
-        self.func = func 
+        self.func = func
         self.subst = subst
         self.widget = widget
         self.win = None
-        if hasattr(func, '__self__'):
-            if isinstance(self.func.__self__, tk.Toplevel):
-                self.win = self.func.__self__
+        if hasattr(func, '__self__') and isinstance(self.func.__self__, tk.Toplevel):
+            self.win = self.func.__self__
         for param, value in inspect.signature(self.func).parameters.items():
             if (
-                (param == 'win' or param == 'window') 
+                param in ('win','window')
                 and isinstance(value.default, tk.Toplevel)
             ):
                 self.win = value.default

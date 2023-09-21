@@ -1,6 +1,8 @@
-from .base import PanelBase
 import tkinter as tk
 
+from .base import PanelBase
+
+MAX_VALUE_LEN = 10
 class TrainingSchemePanel(PanelBase):
     def __init__(self, parent, **args):
         super().__init__(parent, text='Training Scheme', **args)
@@ -14,10 +16,10 @@ class TrainingSchemePanel(PanelBase):
         # test frame
         testing_frame = tk.LabelFrame(self, text='Testing')
         testing_frame.grid_columnconfigure([0, 1], weight=1)
-        
+
         self.training_label = training_label
         self.validation_frame = validation_frame
-        self.testing_frame = testing_frame     
+        self.testing_frame = testing_frame
 
     def show_instruction(self):
         self.clear_panel()
@@ -28,7 +30,7 @@ class TrainingSchemePanel(PanelBase):
         training_label = self.training_label
         validation_frame = self.validation_frame
         testing_frame = self.testing_frame
-        
+
         training_label.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
         testing_frame.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
         validation_frame.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
@@ -52,10 +54,10 @@ class TrainingSchemePanel(PanelBase):
             return
 
         config = datasets[0].config
-        
+
         training_label.config(text=config.train_type.value)
         val_splitter_list, test_splitter_list = config.get_splitter_option()
-        
+
         # val frame
         row = 0
         for val_splitter in val_splitter_list:
@@ -66,8 +68,8 @@ class TrainingSchemePanel(PanelBase):
                     validation_frame, text=val_splitter.split_unit.value
                 )
                 value_var = val_splitter.value_var
-                if len(value_var) > 10:
-                    value_var = value_var[:10] + '...'
+                if len(value_var) > MAX_VALUE_LEN:
+                    value_var = value_var[:MAX_VALUE_LEN] + '...'
                 val_split_entry_label = tk.Label(validation_frame, text=value_var)
                 ## pack
                 val_split_by_label.grid(row=row + 0, column=0, columnspan=2)
@@ -96,8 +98,8 @@ class TrainingSchemePanel(PanelBase):
                     testing_frame, text=test_splitter.split_unit.value
                 )
                 value_var = test_splitter.value_var
-                if len(value_var) > 10:
-                    value_var = value_var[:10] + '...'
+                if len(value_var) > MAX_VALUE_LEN:
+                    value_var = value_var[:MAX_VALUE_LEN] + '...'
                 test_split_entry_label = tk.Label(testing_frame, text=value_var)
                 ## pack
                 test_split_by_label.grid(row=row + 0, column=0, columnspan=2)

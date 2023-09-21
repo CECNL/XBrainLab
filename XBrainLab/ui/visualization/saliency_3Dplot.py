@@ -8,18 +8,18 @@ from .plot_3d_head import Saliency3D
 class Saliency3DPlotWindow(TopWindow):
     command_label = '3D Saliency plot'
     def __init__(
-        self, 
-        parent, 
-        trainers, 
-        plan_name=None, 
-        real_plan_name=None, 
+        self,
+        parent,
+        trainers,
+        plan_name=None,
+        real_plan_name=None,
         absolute=None
     ):
         super().__init__(parent, self.command_label)
         self.trainers = trainers
 
         self.trainer_map = {trainer.get_name(): trainer for trainer in trainers}
-        trainer_list = ['---'] + list(self.trainer_map.keys())
+        trainer_list = ['---', *list(self.trainer_map.keys())]
 
         tk.Label(self, text="Select a plan: ").grid(row=3, column=0, sticky="w")
         self.selected_plan_name = ttk.Combobox(
@@ -45,17 +45,17 @@ class Saliency3DPlotWindow(TopWindow):
         self.selected_event_name.grid(row=5, column=1, sticky="w")
         self.selected_event_name.current(0)
 
-        tk.Button(self, text="Confirm", 
+        tk.Button(self, text="Confirm",
                   command=self._show_plot, width=8).grid(row=6, columnspan=2)
 
     def _change_plan(self, event):
         if self.selected_plan_name.get() != '---':
             self.real_plan_opt = {
-                plan.get_name(): plan 
+                plan.get_name(): plan
                 for plan in self.trainer_map[self.selected_plan_name.get()].get_plans()
             }
             self.selected_real_plan_name['value'] = \
-                ['---'] + list(self.real_plan_opt.keys())
+                ['---', *list(self.real_plan_opt.keys())]
         else:
             self.selected_real_plan_name['value'] = ['---']
 
@@ -63,14 +63,14 @@ class Saliency3DPlotWindow(TopWindow):
         if self.selected_real_plan_name.get() != '---':
             real_plan = self.real_plan_opt[self.selected_real_plan_name.get()]
             self.selected_event_name['value'] = \
-                ['---'] + list(real_plan.dataset.get_epoch_data().event_id.keys())
+                ['---', *list(real_plan.dataset.get_epoch_data().event_id.keys())]
         else:
             self.selected_event_name['value'] = ['---']
 
     def _show_plot(self):
         if (
-            self.selected_plan_name.get() != '---' 
-            and self.selected_real_plan_name.get() != '---' 
+            self.selected_plan_name.get() != '---'
+            and self.selected_real_plan_name.get() != '---'
             and self.selected_event_name.get() != '---'
         ):
             real_plan = self.real_plan_opt[self.selected_real_plan_name.get()]

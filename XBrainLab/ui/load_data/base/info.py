@@ -1,10 +1,11 @@
-import numpy as np
 import mne
+import numpy as np
+
+from XBrainLab.load_data import Raw
 
 from ...script import Script
-
 from .base import DataType
-from XBrainLab.load_data import Raw
+
 
 class RawInfo:
     def __init__(self):
@@ -38,14 +39,15 @@ class RawInfo:
 
     def reshape_array(self, data, script):
         reshape_idx = []
-        if len(data.shape) > 2:
+        MAX_DATA_DIM = 2
+        if len(data.shape) > MAX_DATA_DIM:
             epoch_idx = self.channel_info.index(self.channel_type.EPOCH)
             reshape_idx = [epoch_idx]
         ch_idx = self.channel_info.index(self.channel_type.CH)
         time_idx = self.channel_info.index(self.channel_type.TIME)
         reshape_idx += [ch_idx, time_idx]
         data = np.transpose(data, reshape_idx)
-        script.add_cmd(f"data = np.transpose(data, axes={repr(reshape_idx)})")
+        script.add_cmd(f"data = np.transpose(data, axes={reshape_idx!r})")
         return data
 
     def generate_mne(self, filepath, data_array, data_type):
@@ -54,11 +56,11 @@ class RawInfo:
         script.add_import("import mne")
         data_array = self.reshape_array(data_array, script)
         data_info = mne.create_info(self.nchan, self.sfreq, 'eeg')
-        script.add_cmd((
+        script.add_cmd(
             "data_info = mne.create_info("
-            f"{repr(self.nchan)}, {repr(self.sfreq)}, 'eeg')"
-        ))
-        
+            f"{self.nchan!r}, {self.sfreq!r}, 'eeg')"
+        )
+
         if data_type == DataType.RAW.value:
             mne_data = mne.io.RawArray(data_array, data_info)
             script.add_cmd("data = mne.io.RawArray(data, data_info)")
@@ -66,12 +68,12 @@ class RawInfo:
             mne_data = mne.EpochsArray(
                 data=data_array, info=data_info, tmin=self.tmin
             )
-            script.add_cmd((
+            script.add_cmd(
                 "data = mne.EpochsArray("
-                f"data=data, info=data_info, tmin={repr(self.tmin)})"
-            ))
+                f"data=data, info=data_info, tmin={self.tmin!r})"
+            )
         return mne_data, script
-   
+
 class DictInfo(RawInfo):
     def __init__(self):
         super().__init__()
@@ -90,7 +92,7 @@ class DictInfo(RawInfo):
         if not self.data_keys.intersection(selected_data.keys()):
             return False
         return True
-    
+
     def add_keys(self, data, event):
         self.data_keys.add(data)
         if event:
@@ -103,21 +105,21 @@ class DictInfo(RawInfo):
         data_array = event_array = None
 
         for k in self.event_keys:
-            if k in selected_data.keys():
+            if k in selected_data:
                 event_array = selected_data[k]
-                script.add_cmd(f"event = data[{repr(k)}]")
+                script.add_cmd(f"event = data[{k!r}]")
                 break
 
         for k in self.data_keys:
-            if k in selected_data.keys():
+            if k in selected_data:
                 data_array = selected_data[k]
-                script.add_cmd(f"data = data[{repr(k)}]")
+                script.add_cmd(f"data = data[{k!r}]")
                 break
-                
+
         if data_array is None:
             raise ValueError('No data key was found')
-        
-        
+
+
         mne_data, array_script = super().generate_mne(
             filepath, data_array, data_type
         )

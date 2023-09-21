@@ -1,11 +1,12 @@
 import tkinter as tk
-import tkinter.ttk as ttk
+from enum import Enum
+from tkinter import ttk
+
+from XBrainLab import preprocessor as Preprocessor
 
 from ..base import ValidateException
 from .base import PreprocessBase
-from enum import Enum
 
-from XBrainLab import preprocessor as Preprocessor
 
 class NormType(Enum):
     zeromean = 'zero mean'
@@ -27,12 +28,12 @@ class Normalize(PreprocessBase):
             norm_frame, text="Min-max",
             value=NormType.minmax.value, variable=self.norm_ctrl
         )
-        
+
         norm_frame.grid(row=0, column=0, columnspan=2, sticky='w', padx=10, pady=10)
-        self.norm_zeromean.grid(row=0, column=0,sticky="w")
-        self.norm_minmax.grid(row=0, column=1,sticky="w")
+        self.norm_zeromean.grid(row=0, column=0, sticky="w")
+        self.norm_minmax.grid(row=0, column=1, sticky="w")
         tk.Button(
-            self, text="Confirm", 
+            self, text="Confirm",
             command=lambda win=self: win._data_preprocess(), width=8
         ).grid(row=1, columnspan=2)
     def _data_preprocess(self):
@@ -40,7 +41,7 @@ class Normalize(PreprocessBase):
             norm_method = self.norm_ctrl.get()
             self.return_data = self.preprocessor.data_preprocess(norm_method)
         except Exception as e:
-            raise ValidateException(window=self, message=str(e))
+            raise ValidateException(window=self, message=str(e)) from e
         self.script_history.add_cmd(f'norm_method={norm_method}')
         self.script_history.add_cmd(
             'study.preprocess(preprocessor=preprocessor.Normalize, norm=norm_method)'

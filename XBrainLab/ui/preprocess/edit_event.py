@@ -1,10 +1,12 @@
 import tkinter as tk
+
 import numpy as np
 
-from .base import PreprocessBase
-from ..base import ValidateException
-
 from XBrainLab import preprocessor as Preprocessor
+
+from ..base import ValidateException
+from .base import PreprocessBase
+
 
 class EditEventNames(PreprocessBase):
     #  menu state disable
@@ -18,7 +20,7 @@ class EditEventNames(PreprocessBase):
             self.old_event.update(event_id)
 
         self.new_event_name = {k: tk.StringVar() for k in self.old_event}
-        
+
         self.rowconfigure([0], weight=1)
         self.columnconfigure([0, 1], weight=1)
 
@@ -39,24 +41,24 @@ class EditEventNames(PreprocessBase):
 
     def _confirm(self):
         # update parent event data
-        for _, new_event_name in self.new_event_name.items():
+        for new_event_name in self.new_event_name.values():
             if not new_event_name.get().strip():
                 raise ValidateException(self, "Event name cannot be empty")
-        
+
         try:
             new_event_name = {
                 e: self.new_event_name[e].get() for e in self.new_event_name
             }
             self.return_data = self.preprocessor.data_preprocess(new_event_name)
         except Exception as e:
-            raise ValidateException(window=self, message=str(e))
-        self.script_history.add_cmd(f'new_event_name={repr(new_event_name)}')
-        self.script_history.add_cmd((
+            raise ValidateException(window=self, message=str(e)) from e
+        self.script_history.add_cmd(f'new_event_name={new_event_name!r}')
+        self.script_history.add_cmd(
             'study.preprocess('
             'preprocessor=preprocessor.EditEventName, new_event_name=new_event_name)'
-        ))
+        )
         self.ret_script_history = self.script_history
-        
+
         self.destroy()
 
 class EditEventIds(PreprocessBase):
@@ -65,14 +67,14 @@ class EditEventIds(PreprocessBase):
     def __init__(self, parent, preprocessed_data_list):
         preprocessor = Preprocessor.EditEventId(preprocessed_data_list)
         super().__init__(parent, "Edit Event Ids", preprocessor)
-        self.old_event, self.old_event_id = np.zeros((0, 3)), dict()
+        self.old_event, self.old_event_id = np.zeros((0, 3)), {}
         for preprocessed_data in preprocessor.get_preprocessed_data_list():
             event, event_id = preprocessed_data.get_event_list()
             self.old_event = np.concatenate((self.old_event, event), axis=0)
             self.old_event_id.update(event_id)
 
         self.new_event_id = {v: tk.StringVar() for v in self.old_event_id.values()}
-        
+
         self.rowconfigure([0], weight=1)
         self.columnconfigure([0, 1], weight=1)
 
@@ -93,22 +95,22 @@ class EditEventIds(PreprocessBase):
 
     def _confirm(self):
         # update parent event data
-        for _, new_event_id in self.new_event_id.items():
+        for new_event_id in self.new_event_id.values():
             if not new_event_id.get().strip():
                 raise ValidateException(self, "Event id cannot be empty")
-        
+
         try:
             new_event_id = {
-                e: int(self.new_event_id[e].get()) for e in self.new_event_id.keys()
+                e: int(self.new_event_id[e].get()) for e in self.new_event_id
             }
             self.return_data = self.preprocessor.data_preprocess(new_event_id)
         except Exception as e:
-            raise ValidateException(window=self, message=str(e))
-        self.script_history.add_cmd(f'new_event_id={repr(new_event_id)}')
-        self.script_history.add_cmd((
+            raise ValidateException(window=self, message=str(e)) from e
+        self.script_history.add_cmd(f'new_event_id={new_event_id!r}')
+        self.script_history.add_cmd(
             'study.preprocess('
             'preprocessor=preprocessor.EditEventId, new_event_ids=new_event_id)'
-        ))
+        )
         self.ret_script_history = self.script_history
-        
+
         self.destroy()

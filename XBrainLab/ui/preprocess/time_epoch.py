@@ -1,9 +1,10 @@
 import tkinter as tk
 
+from XBrainLab import preprocessor as Preprocessor
+
 from ..base import TopWindow, ValidateException
 from .base import PreprocessBase
 
-from XBrainLab import preprocessor as Preprocessor
 
 class TimeEpoch(PreprocessBase):
     command_label = "Time Epoch"
@@ -12,7 +13,7 @@ class TimeEpoch(PreprocessBase):
         super().__init__(parent, "Time Epoch", preprocessor)
 
         data_field = [
-            "select_events", "epoch_tmin", "epoch_tmax", 
+            "select_events", "epoch_tmin", "epoch_tmax",
             "baseline_tmin", "baseline_tmax", "doRemoval"
         ]
         self.field_var = {key: tk.StringVar() for key in data_field}
@@ -44,8 +45,8 @@ class TimeEpoch(PreprocessBase):
             row=2, column=1, sticky="ew", padx=5
         )
 
-        tk.Checkbutton(self, text='Do Baseline Removal', 
-                       variable=self.field_var['doRemoval'], 
+        tk.Checkbutton(self, text='Do Baseline Removal',
+                       variable=self.field_var['doRemoval'],
                        onvalue=1, offvalue=0, command=self._click_checkbox
                        ).grid(row=3, columnspan=3, sticky="w", pady=(15, 2))
         tk.Label(self, text="min: ").grid(row=4, column=0, sticky="w", padx=5)
@@ -79,18 +80,18 @@ class TimeEpoch(PreprocessBase):
         baseline = None
         if self.field_var['doRemoval'].get() == "1":
             if self.field_var['baseline_tmin'].get() != "":
-                baseline_tmin = float(self.field_var['baseline_tmin'].get()) 
+                baseline_tmin = float(self.field_var['baseline_tmin'].get())
             else:
                 baseline_tmin = None
             if self.field_var['baseline_tmax'].get() != "":
-                baseline_tmax = float(self.field_var['baseline_tmax'].get()) 
+                baseline_tmax = float(self.field_var['baseline_tmax'].get())
             else:
                 baseline_tmax = None
             baseline = (baseline_tmin, baseline_tmax)
 
         # Check input value
         if (
-            self.field_var['epoch_tmin'].get() == "" 
+            self.field_var['epoch_tmin'].get() == ""
             or self.field_var['epoch_tmax'].get() == ""
         ):
             raise ValidateException(window=self, message="Invalid epoch range")
@@ -98,7 +99,7 @@ class TimeEpoch(PreprocessBase):
         if not self.event_id:
             raise ValidateException(window=self, message="No event was selected")
         selected_event_names = list(self.event_id.keys())
-        
+
         try:
             tmin = float(self.field_var['epoch_tmin'].get())
             tmax = float(self.field_var['epoch_tmax'].get())
@@ -106,19 +107,19 @@ class TimeEpoch(PreprocessBase):
                 baseline, selected_event_names, tmin, tmax
             )
         except Exception as e:
-            raise ValidateException(window=self, message=str(e))
-        
+            raise ValidateException(window=self, message=str(e)) from e
+
         self.script_history.add_cmd(
-            f'selected_event_names={repr(selected_event_names)}'
+            f'selected_event_names={selected_event_names!r}'
         )
-        self.script_history.add_cmd(f'baseline={repr(baseline)}')
-        self.script_history.add_cmd(f'tmin={repr(tmin)}')
-        self.script_history.add_cmd(f'tmax={repr(tmax)}')
-        self.script_history.add_cmd((
+        self.script_history.add_cmd(f'baseline={baseline!r}')
+        self.script_history.add_cmd(f'tmin={tmin!r}')
+        self.script_history.add_cmd(f'tmax={tmax!r}')
+        self.script_history.add_cmd(
             'study.preprocess(preprocessor=preprocessor.TimeEpoch, '
             'baseline=baseline, selected_event_names=selected_event_names, '
             'tmin=tmin, tmax=tmax)'
-        ))
+        )
         self.ret_script_history = self.script_history
 
         self.destroy()
@@ -143,18 +144,18 @@ class SelectEvents(TopWindow):
         scrollbar = tk.Scrollbar(self)
         self.listbox = tk.Listbox(
             self, selectmode="multiple", yscrollcommand=scrollbar.set
-        ) 
+        )
         for event_name in event_id_set:
             self.listbox.insert(tk.END, event_name)
         scrollbar.config(command=self.listbox.yview)
-        
+
         tk.Label(self, text="Choose Events: ").grid(row=0, column=0, columnspan=2)
         self.listbox.grid(row=1, column=0, padx=10, pady=10, sticky='news')
         scrollbar.grid(row=1, column=1, pady=10, sticky='news')
         tk.Button(self, text="Confirm", command=self._getEventID, width=8).grid(
             row=2, column=0, columnspan=2
         )
-        
+
         self.event_id_set = event_id_set
 
     def _getEventID(self):

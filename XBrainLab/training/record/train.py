@@ -1,15 +1,19 @@
 from __future__ import annotations
+
 import os
 import shutil
-import torch
 import time
+from copy import deepcopy
+
+import torch
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
-from copy import deepcopy
-from ...utils import set_random_state, get_random_state
+
 from ...dataset import Dataset
 from ...training import TrainingOption
+from ...utils import get_random_state, set_random_state
 from .eval import EvalRecord, calculate_confusion
+
 
 class RecordKey:
     "Utility class for accessing the statistics of the testing record"
@@ -21,7 +25,7 @@ class RecordKey:
         keys = dir(self)
         keys = [getattr(self, key) for key in keys if not key.startswith('_')]
         return iter(keys)
-    
+
 class TrainRecordKey(RecordKey):
     "Utility class for accessing the statistics of the training record"
     TIME = 'time'
@@ -58,15 +62,15 @@ class TrainRecord:
         best_test_auc_model: :class:`torch.nn.Module` | None
             Model with best test auc, set during training
         train: dict
-            Stores the statistics of each epoch, including loss, accuracy, auc, 
+            Stores the statistics of each epoch, including loss, accuracy, auc,
             time used and learning rate
         val: dict
             Stores the statistics of each epoch, including loss, auc and accuracy
         test: dict
             Stores the statistics of each epoch, including loss, auc and accuracy
         best_record: dict
-            Stores the statistics of the best model, including best validation loss, 
-            best validation auc, best validation accuracy, best test auc, 
+            Stores the statistics of the best model, including best validation loss,
+            best validation auc, best validation accuracy, best test auc,
             best test accuracy, and their corresponding epoch
         epoch: int
             Current epoch
@@ -76,11 +80,11 @@ class TrainRecord:
             Random state for reproducibility
     """
     def __init__(
-        self, 
-        repeat: int, 
-        dataset: Dataset, 
-        model: torch.nn.Module, 
-        option: TrainingOption, 
+        self,
+        repeat: int,
+        dataset: Dataset,
+        model: torch.nn.Module,
+        option: TrainingOption,
         seed: int
     ):
         self.repeat = repeat
@@ -95,7 +99,7 @@ class TrainRecord:
         for key in RecordKey():
             setattr(self, 'best_val_' + key + '_model', None)
             setattr(self, 'best_test_' + key + '_model', None)
-        # 
+        #
         self.train = {i: [] for i in TrainRecordKey()}
         self.val = {i: [] for i in RecordKey()}
         self.test = {i: [] for i in RecordKey()}
@@ -119,7 +123,7 @@ class TrainRecord:
         target_path = os.path.join(
             self.option.get_output_dir(), record_name, repeat_name
         )
-        
+
         if os.path.exists(target_path):
             backup_root = os.path.join(
                 self.option.get_output_dir(), record_name, 'backup'
@@ -127,7 +131,7 @@ class TrainRecord:
             backup_path = os.path.join(backup_root, f"{repeat_name}-{time.time()}")
             os.makedirs(backup_root, exist_ok=True)
             shutil.move(target_path, backup_path)
-        
+
         os.makedirs(target_path)
         self.target_path = target_path
 
@@ -157,7 +161,7 @@ class TrainRecord:
     #
     def append_record(self, val: any, arr: list) -> None:
         """Internal function for appending a value to a statistic array
-        
+
         Fill the array with None if the data is not available before the current epoch
 
         Args:
@@ -178,13 +182,12 @@ class TrainRecord:
             should_update = False
             if 'loss' in key:
                 if (
-                    test_result[key] <= 
+                    test_result[key] <=
                     self.best_record['best_' + update_type + '_' + key]
                 ):
                     should_update = True
-            else:
-                if (
-                    test_result[key] >= 
+            elif (
+                    test_result[key] >=
                     self.best_record['best_' + update_type + '_' + key]
                 ):
                     should_update = True
@@ -193,12 +196,12 @@ class TrainRecord:
                 self.best_record['best_' + update_type + '_' + key + '_epoch'] = \
                     self.get_epoch()
                 setattr(
-                    self, 'best_' + update_type + '_' + key + '_model', 
+                    self, 'best_' + update_type + '_' + key + '_model',
                     deepcopy(self.model.state_dict())
                 )
 
     def update_eval(self, test_result: dict[str, float]) -> None:
-        """Append the validation statistics of the current epoch and 
+        """Append the validation statistics of the current epoch and
         update the best model"""
         self.update('val', test_result)
 
@@ -210,7 +213,7 @@ class TrainRecord:
         """Append the training statistics of the current epoch"""
         for key in test_result:
             self.append_record(test_result[key], self.train[key])
-    
+
     def update_statistic(self, statistic: dict[str, float]) -> None:
         """Append the statistics of the current epoch"""
         for key in statistic:
@@ -223,7 +226,7 @@ class TrainRecord:
     def set_eval_record(self, eval_record: EvalRecord) -> None:
         """Set the evaluation record when training is finished"""
         self.eval_record = eval_record
-    # 
+    #
     def export_checkpoint(self) -> None:
         """Export the checkpoint of the training record"""
         epoch = len(self.train[RecordKey.LOSS])
@@ -231,14 +234,14 @@ class TrainRecord:
             self.eval_record.export(self.target_path)
         for best_type in ['val', 'test']:
             for key in RecordKey():
-                key = 'best_' + best_type + '_' + key + '_model'
-                model = getattr(self, key)
+                full_key = 'best_' + best_type + '_' + key + '_model'
+                model = getattr(self, full_key)
                 if model:
-                    torch.save(model, os.path.join(self.target_path, key))
-        
+                    torch.save(model, os.path.join(self.target_path, full_key))
+
         fname = f'Epoch-{epoch}-model'
         torch.save(self.model.state_dict(), os.path.join(self.target_path, fname))
-        # 
+        #
         record = {
             'train': self.train,
             'val': self.val,
@@ -247,17 +250,17 @@ class TrainRecord:
             'seed': self.seed
         }
         torch.save(record, os.path.join(self.target_path, 'record'))
-        
+
 
     # figure
     def get_loss_figure(
-        self, 
-        fig: Figure = None, 
-        figsize: tuple = (6.4, 4.8), 
+        self,
+        fig: Figure = None,
+        figsize: tuple = (6.4, 4.8),
         dpi: int = 100
     ) -> Figure:
         """Return the line chart of loss during training
-        
+
         Args:
             fig: Figure to be plotted on. If None, a new figure will be created
             figsize: Figure size
@@ -271,12 +274,12 @@ class TrainRecord:
         val_loss_list = self.val[RecordKey.LOSS]
         test_loss_list = self.test[RecordKey.LOSS]
         if (
-            len(training_loss_list) == 0 and 
-            len(val_loss_list) == 0 and 
+            len(training_loss_list) == 0 and
+            len(val_loss_list) == 0 and
             len(test_loss_list) == 0
         ):
             return None
-        
+
         if len(training_loss_list) > 0:
             plt.plot(training_loss_list, 'g', label='Training loss')
         if len(val_loss_list) > 0:
@@ -287,13 +290,13 @@ class TrainRecord:
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
         _ = plt.legend(loc='center left')
-        
+
         return fig
 
     def get_acc_figure(
-        self, 
-        fig: Figure = None, 
-        figsize: tuple = (6.4, 4.8), 
+        self,
+        fig: Figure = None,
+        figsize: tuple = (6.4, 4.8),
         dpi: int = 100
     ) -> Figure:
         """Return the line chart of accuracy during training
@@ -306,17 +309,17 @@ class TrainRecord:
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
-        
+
         training_acc_list = self.train[RecordKey.ACC]
         val_acc_list = self.val[RecordKey.ACC]
         test_acc_list = self.test[RecordKey.ACC]
         if (
-            len(training_acc_list) == 0 and 
-            len(val_acc_list) == 0 and 
+            len(training_acc_list) == 0 and
+            len(val_acc_list) == 0 and
             len(test_acc_list) == 0
         ):
             return None
-        
+
         if len(training_acc_list) > 0:
             plt.plot(training_acc_list, 'g', label='Training accuracy')
         if len(val_acc_list) > 0:
@@ -327,18 +330,18 @@ class TrainRecord:
         plt.xlabel('Epochs')
         plt.ylabel('Accuracy')
         _ = plt.legend(loc='upper left')
-        
+
         return fig
 
     def get_auc_figure(
-        self, 
-        fig: Figure = None, 
-        figsize: tuple = (6.4, 4.8), 
+        self,
+        fig: Figure = None,
+        figsize: tuple = (6.4, 4.8),
         dpi: int = 100
     ) -> Figure:
         """Return the line chart of auc during training
 
-        TODO: 
+        TODO:
 
         Args:
             fig: Figure to be plotted on. If None, a new figure will be created
@@ -348,17 +351,17 @@ class TrainRecord:
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
-        
+
         training_auc_list = self.train[RecordKey.AUC]
         val_auc_list = self.val[RecordKey.AUC]
         test_auc_list = self.test[RecordKey.AUC]
         if (
-            len(training_auc_list) == 0 and 
-            len(val_auc_list) == 0 and 
+            len(training_auc_list) == 0 and
+            len(val_auc_list) == 0 and
             len(test_auc_list) == 0
         ):
             return None
-        
+
         if len(training_auc_list) > 0:
             plt.plot(training_auc_list, 'g', label='Training AUC')
         if len(val_auc_list) > 0:
@@ -369,13 +372,13 @@ class TrainRecord:
         plt.xlabel('Epochs')
         plt.ylabel('AUC')
         _ = plt.legend(loc='upper left')
-        
+
         return fig
-    
+
     def get_lr_figure(
-        self, 
-        fig: Figure = None, 
-        figsize: tuple = (6.4, 4.8), 
+        self,
+        fig: Figure = None,
+        figsize: tuple = (6.4, 4.8),
         dpi: int = 100
     ) -> Figure:
         """Return the line chart of learning rate during training
@@ -388,7 +391,7 @@ class TrainRecord:
         if fig is None:
             fig = plt.figure(figsize=figsize, dpi=dpi)
         plt.clf()
-        
+
         lr_list = self.train[TrainRecordKey.LR]
         if len(lr_list) == 0:
             return None
@@ -400,9 +403,9 @@ class TrainRecord:
         return fig
 
     def get_confusion_figure(
-        self, 
-        fig: Figure = None, 
-        figsize: tuple = (6.4, 4.8), 
+        self,
+        fig: Figure = None,
+        figsize: tuple = (6.4, 4.8),
         dpi: int = 100
     ) -> Figure:
         """Return the confusion matrix of the evaluation record
@@ -421,7 +424,7 @@ class TrainRecord:
         label = self.eval_record.label
         confusion = calculate_confusion(output, label)
         classNum = confusion.shape[0]
-        
+
         ax = fig.add_subplot(111)
         ax.set_title('Confusion matrix')
         ax.set_xlabel('Prediction')
@@ -430,10 +433,10 @@ class TrainRecord:
         for x in range(classNum):
             for y in range(classNum):
                 if confusion[x][y] > (confusion.max() - confusion.min()) / 2:
-                    annot_color = 'k' 
+                    annot_color = 'k'
                 else:
                     annot_color = 'w'
-                ax.annotate(str(confusion[x][y]), xy=(y, x), 
+                ax.annotate(str(confusion[x][y]), xy=(y, x),
                             horizontalalignment='center',
                             verticalalignment='center',
                             color=annot_color
@@ -446,15 +449,15 @@ class TrainRecord:
         plt.yticks(range(classNum), labels)
 
         return fig
-    
+
     # get evaluate
     def get_acc(self) -> float | None:
-        """Get the accuracy of the evaluation record, 
+        """Get the accuracy of the evaluation record,
         None if training is not finished"""
         if not self.eval_record:
             return None
         return self.eval_record.get_acc()
-    
+
     def get_auc(self) -> float | None:
         """Get the auc of the evaluation record, None if training is not finished"""
         if not self.eval_record:

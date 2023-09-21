@@ -1,6 +1,8 @@
-import torch
-import torch.nn as nn
 import math
+
+import torch
+from torch import nn
+
 
 class ShallowConvNet(nn.Module):
     """Implementation of ShallowConvNet
@@ -13,15 +15,15 @@ class ShallowConvNet(nn.Module):
         sfreq: Sampling frequency.
     """
     def __init__(
-        self, 
-        n_classes, 
-        channels, 
-        samples, 
-        sfreq, 
-        pool_len=75, 
+        self,
+        n_classes,
+        channels,
+        samples,
+        sfreq,
+        pool_len=75,
         pool_stride=15
     ):
-        super(ShallowConvNet, self).__init__()
+        super().__init__()
         self.temporal_filter = 40
         self.spatial_filter = 40
         self.kernel = math.ceil(sfreq * 0.1)

@@ -1,5 +1,6 @@
 from enum import Enum
-from itertools import permutations 
+from itertools import permutations
+
 
 class RawShapeOtion(Enum):
     CH = 'channel'

@@ -1,15 +1,17 @@
 from __future__ import annotations
+
 import numpy as np
 import scipy.io
 
-from . import Raw
 from ..utils import validate_type
+from .raw import Raw
+
 
 class EventLoader:
     """Helper class for loading event data.
 
     Attributes:
-        raw: :class:`Raw` 
+        raw: :class:`Raw`
             Raw data.
         label_list: List[int] | None
             List of event codes.
@@ -38,10 +40,10 @@ class EventLoader:
             List of event codes.
         """
         label_list = []
-        with open(selected_file, encoding='utf-8', mode='r') as fp:
+        with open(selected_file, encoding='utf-8') as fp:
             for line in fp.readlines():
                 # for both (n,1) and (1,n) of labels
-                label_list += [int(segment.rstrip()) for segment in line.split(' ')] 
+                label_list += [int(segment.rstrip()) for segment in line.split(' ')]
             fp.close()
         self.label_list = label_list
         return label_list
@@ -49,7 +51,7 @@ class EventLoader:
     def read_mat(self, selected_file: str) -> list:
         """Read event data from mat file.
 
-        The mat file should contain exactly one variable, 
+        The mat file should contain exactly one variable,
         which is a list of event codes.
 
         Args:
@@ -59,7 +61,7 @@ class EventLoader:
             List of event codes.
         """
         mat_content = scipy.io.loadmat(selected_file)
-        mat_key = [k for k in mat_content.keys() if not k.startswith('_')]
+        mat_key = [k for k in mat_content if not k.startswith('_')]
         if len(mat_key) > 1:
             raise ValueError("Mat file should contain exactly one variable.")
         else:
@@ -70,7 +72,7 @@ class EventLoader:
             if event_content.shape[0] == 1:
                 event_content = event_content[0]
             elif event_content.shape[1] == 1:
-                event_content = event_content[:,0]
+                event_content = event_content[:, 0]
         # (n, 3)
         if len(event_content.shape) == 2:
             assert event_content.shape[1] == 3, "Event array should have 3 columns."
@@ -97,14 +99,14 @@ class EventLoader:
             for e in event_name_map:
                 if not event_name_map[e].strip():
                     raise ValueError("Event name cannot be empty.")
-                
+
             self.label_list = np.array(self.label_list)
             # label_list in (n,3) format
             if len(self.label_list.shape) > 1:
                 # get new event id mapping
                 event_id = {
-                    event_name_map[i]: i 
-                    for i in np.unique(self.label_list[:,-1])
+                    event_name_map[i]: i
+                    for i in np.unique(self.label_list[:, -1])
                 }
                 events = self.label_list
             # label_list in (n,) format
@@ -113,20 +115,19 @@ class EventLoader:
                 event_id = {event_name_map[i]: i for i in np.unique(self.label_list)}
                 # create new event array
                 events = np.zeros((len(self.label_list), 3))
-                events[:,0] = range(len(self.label_list))
-                events[:,-1] = self.label_list
-                print((
+                events[:, 0] = range(len(self.label_list))
+                events[:, -1] = self.label_list
+                print(
                     'UserWarning: Event array created without onset timesample. '
                     'Please proceed with caution if operating on raw data '
                     'without annotations.'
-                ))
+                )
 
             # check if event array is consistent with raw data
-            if not self.raw.is_raw():
-                if self.raw.get_epochs_length() != len(events):
-                    raise ValueError(
-                        f'Inconsistent number of events (got {len(events)})'
-                    )
+            if not self.raw.is_raw() and self.raw.get_epochs_length() != len(events):
+                raise ValueError(
+                    f'Inconsistent number of events (got {len(events)})'
+                )
             self.events = events
             self.event_id = event_id
             return events, event_id

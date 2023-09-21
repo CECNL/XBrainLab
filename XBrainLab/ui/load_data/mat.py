@@ -2,6 +2,7 @@ import scipy.io
 
 from .base import LoadDict
 
+
 class LoadMat(LoadDict):
     command_label = "Import MAT file (Matlab array)"
     def __init__(self, parent):

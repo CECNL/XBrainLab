@@ -1,12 +1,16 @@
+import numpy as np
+import pytest
+
 from XBrainLab.load_data import EventLoader
 
 from .test_raw import (
-    _set_event, 
-    raw, mne_raw, epoch, mne_epoch # noqa: F401
+    _set_event,
+    epoch,  # noqa: F401
+    mne_epoch,  # noqa: F401
+    mne_raw,  # noqa: F401
+    raw,  # noqa: F401
 )
 
-import pytest
-import numpy as np
 
 @pytest.fixture
 def mock_txt(mocker):
@@ -18,7 +22,7 @@ def mock_txt(mocker):
 def test_event_loader(raw): # noqa: F811
     _set_event(raw)
     event_loader = EventLoader(raw)
-    
+
     with pytest.raises(ValueError, match='No label has been loaded.'):
         event_loader.create_event({})
 
@@ -46,12 +50,12 @@ def test_load_txt(raw, mock_txt): # noqa: F811
     event_loader = EventLoader(raw)
     event_loader.read_txt('tests/0.txt')
     _create_event(event_loader, raw)
-    
+
 @pytest.fixture
 def mock_mat(mocker):
     def mock_mat_generator(return_value):
         mock = mocker.patch('scipy.io.loadmat', autospec=True)
-        mock.return_value = return_value        
+        mock.return_value = return_value
     return mock_mat_generator
 
 def test_mat_1d(raw, mock_mat): # noqa: F811
@@ -64,7 +68,7 @@ def test_mat_1d(raw, mock_mat): # noqa: F811
     _create_event(event_loader, raw)
 
 @pytest.mark.parametrize(
-    'data', 
+    'data',
     [
         np.array([[1, 2, 3, 4]]),
         np.array([[1], [2], [3], [4]]),
@@ -73,7 +77,7 @@ def test_mat_1d(raw, mock_mat): # noqa: F811
 def test_mat_2d_to_1d(
     raw, # noqa: F811
     mock_mat, data
-): 
+):
     event_loader = EventLoader(raw)
 
     mock_mat({
@@ -113,7 +117,10 @@ def test_mat_multi_key(raw, mock_mat): # noqa: F811
     ):
         event_loader.read_mat('tests/0.mat')
 
-def test_create_event_inconsistent(epoch, mock_mat): # noqa: F811
+def test_create_event_inconsistent(
+    epoch, # noqa: F811
+    mock_mat
+):
     event_loader = EventLoader(epoch)
     mock_mat({
         'label': np.array([[0, 0, 1]])

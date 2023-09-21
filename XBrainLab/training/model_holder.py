@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import torch
+
 
 class ModelHolder:
     """Class for storing model information
@@ -12,9 +14,9 @@ class ModelHolder:
         pretrained_weight_path (str): Path to pretrained weight
     """
     def __init__(
-        self, 
-        target_model: type, 
-        model_params_map: dict, 
+        self,
+        target_model: type,
+        model_params_map: dict,
         pretrained_weight_path: str | None = None
     ):
         self.target_model = target_model
@@ -24,8 +26,8 @@ class ModelHolder:
     def get_model_desc_str(self) -> str:
         """Get model description string, including model name and parameters"""
         option_list = [
-            f"{i}={self.model_params_map[i]}" 
-            for i in self.model_params_map if self.model_params_map[i] 
+            f"{i}={self.model_params_map[i]}"
+            for i in self.model_params_map if self.model_params_map[i]
         ]
         options = ', '.join(option_list)
         return f"{self.target_model.__name__} ({options})"

@@ -1,5 +1,6 @@
-from .base import PreprocessBase
 from ..load_data import Raw
+from .base import PreprocessBase
+
 
 class Filtering(PreprocessBase):
     """Preprocessing class for filtering data.

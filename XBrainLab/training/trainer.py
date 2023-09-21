@@ -3,7 +3,8 @@ from enum import Enum
 from typing import List
 
 from ..utils import validate_list_type
-from . import TrainingPlanHolder
+from .training_plan import TrainingPlanHolder
+
 
 class Status(Enum):
     """Utility class for training status"""
@@ -12,7 +13,7 @@ class Status(Enum):
     INTING = 'Interrupting'
     TRAIN = 'Now training: {}'
 
-class Trainer():
+class Trainer:
     """Class for storing training options and training models
 
     Attributes:
@@ -33,13 +34,13 @@ class Trainer():
         self.progress_text = Status.PENDING
         self.training_plan_holders = training_plan_holders
         self.job_thread = None
-    
+
     def get_training_plan_holders(self) -> List[TrainingPlanHolder]:
         """Return list of training plan holders"""
         return self.training_plan_holders
 
     def get_real_training_plan(
-            self, 
+            self,
             plan_name: str, real_plan_name: str
         ) -> TrainingPlanHolder:
         """Return training plan by name"""
@@ -63,7 +64,7 @@ class Trainer():
     def clear_interrupt(self) -> None:
         """Reset interrupt flag
 
-        Set interrupt flag to False and 
+        Set interrupt flag to False and
         clear interrupt flag of all training plan holders
         """
         self.progress_text = Status.PENDING
@@ -90,7 +91,7 @@ class Trainer():
         """
         if self.is_running():
             return
-        
+
         self.clear_interrupt()
         if interact:
             self.job_thread = threading.Thread(target=self.job)
@@ -110,13 +111,13 @@ class Trainer():
 
     def clean(self, force_update: bool = False) -> None:
         """Stop and clean training job
-        
+
         Parameters:
             force_update: bool
                 Whether to force update
 
         Raises:
-            ValueError: If training is still in progress and 
+            ValueError: If training is still in progress and
                         :attr:`force_update` is False
         """
         if force_update:

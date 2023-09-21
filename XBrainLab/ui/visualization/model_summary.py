@@ -1,8 +1,10 @@
-from torchinfo import summary
-from ..script import Script
 import tkinter as tk
-from ..base.top_window import TopWindow
+
+from torchinfo import summary
+
 from ..base import InitWindowValidateException
+from ..base.top_window import TopWindow
+from ..script import Script
 
 # torchinfo: https://github.com/TylerYep/torchinfo
 
@@ -25,7 +27,7 @@ class ModelSummaryWindow(TopWindow):
         # init data
         ## fetch plan list
         trainer_map = {trainer.get_name(): trainer for trainer in trainers}
-        trainer_list = ['Select a plan'] + list(trainer_map.keys())
+        trainer_list = ['Select a plan', *list(trainer_map.keys())]
 
         #+ gui
         ##+ option menu
@@ -45,14 +47,14 @@ class ModelSummaryWindow(TopWindow):
         self.plan_opt = plan_opt
         self.trainer_map = trainer_map
         self.selected_plan_name = selected_plan_name
-        
+
         self.drawCounter = 0
         self.update_loop()
 
     def check_data(self):
         if not isinstance(self.trainers, list) or len(self.trainers) == 0:
             raise InitWindowValidateException(
-                self, 
+                self,
                 'No valid training plan is generated'
             )
 
@@ -69,8 +71,10 @@ class ModelSummaryWindow(TopWindow):
 
 
     def update_loop(self):
-        if self.trainer is not None:
-            if self.current_plot is None or self.current_plot != self.trainer:
+        if (
+            (self.trainer is not None) and
+            (self.current_plot is None or self.current_plot != self.trainer)
+        ):
                 self.current_plot = self.trainer
                 model_instance = self.trainer.model_holder.get_model(
                     self.trainer.dataset.get_epoch_data().get_model_args()
@@ -78,7 +82,7 @@ class ModelSummaryWindow(TopWindow):
                 X, _ = self.trainer.dataset.get_training_data()
                 train_shape = (self.trainer.option.bs, 1, *X.shape[-2:])
                 summary_object = summary(
-                    model_instance,input_size = train_shape,verbose = 0
+                    model_instance, input_size = train_shape, verbose = 0
                 )
                 self.summary.delete("1.0", "end")
                 self.summary.insert(tk.END, str(summary_object))
@@ -94,15 +98,14 @@ class ModelSummaryWindow(TopWindow):
         if self.selected_plan_name.get() not in self.trainer_map:
             return
 
-        
+
     def set_selection(self, allow):
         state = None
         if not allow:
             self.drawCounter += 1
             if self.plan_opt['state'] != tk.DISABLED:
                 state = tk.DISABLED
-        else:
-            if self.plan_opt['state'] == tk.DISABLED:
+        elif self.plan_opt['state'] == tk.DISABLED:
                 state = tk.NORMAL
         if state:
             self.plan_opt.config(state=state)

@@ -1,9 +1,9 @@
-from XBrainLab.preprocessor.base import PreprocessBase
-from XBrainLab.load_data import Raw
-
 import mne
-import pytest
 import numpy as np
+import pytest
+
+from XBrainLab.load_data import Raw
+from XBrainLab.preprocessor.base import PreprocessBase
 
 base_fs = 500
 base_duration = 10
@@ -31,7 +31,7 @@ def test_base(raw):
 
     with pytest.raises(NotImplementedError):
         base.get_preprocess_desc()
-    
+
     with pytest.raises(NotImplementedError):
         base._data_preprocess(None)
 
@@ -43,7 +43,7 @@ def test_inherit(raw):
 
         def _data_preprocess(self, preprocessed_data, *args, **kargs):
             preprocessed_data.set_subject_name("test_inherit")
-    
+
     preprocessor = InheritedPreprocessor([raw])
     preprocessor.data_preprocess(1)
 

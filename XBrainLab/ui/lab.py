@@ -1,22 +1,24 @@
 from __future__ import annotations
+
+import contextlib
 import traceback
-from typing import List
 
 from XBrainLab import Study
+from XBrainLab.evaluation import Metric
 from XBrainLab.training import TrainingPlanHolder
 from XBrainLab.visualization import PlotType, VisualizerType
-from XBrainLab.evaluation import Metric
 
-from .script import Script
-from .widget import PlotFigureWindow
-from .dash_board import DashBoard
-from .visualization import (
-    PlotABSFigureWindow, 
-    PlotTopoABSFigureWindow,
-    PlotEvalRecordFigureWindow
-)
-from .evaluation import EvaluationTableWindow
 from . import tk_patch
+from .dash_board import DashBoard
+from .evaluation import EvaluationTableWindow
+from .script import Script
+from .visualization import (
+    PlotABSFigureWindow,
+    PlotEvalRecordFigureWindow,
+    PlotTopoABSFigureWindow,
+)
+from .widget import PlotFigureWindow
+
 
 class XBrainLab:
     """Class for XBrainLab study workflow.
@@ -48,31 +50,29 @@ class XBrainLab:
 
     def show_ui(self, interact=False):
         """Show UI.
-        
+
         Args:
-            interact: Whether to run in interactive mode. 
+            interact: Whether to run in interactive mode.
                       If True, the UI will run in a new thread.
-        """  
+        """
         # close previous ui
         try:
             if(self.ui):
                 self.ui.destroy(force=True)
         except Exception:
             pass
-        self.ui = None 
+        self.ui = None
 
         try:
             self.ui = DashBoard(self.study, self.script_history)
             if not interact:
                 self.ui_loop()
-            return self.ui
         except Exception as e:
             traceback.print_exc()
             # recyle ui
-            try:
+            with contextlib.suppress(Exception):
                 self.ui.destroy(force=True)
-            except Exception:
-                pass
+
             # show error message
             try:
                 import tkinter as tk
@@ -83,7 +83,8 @@ class XBrainLab:
             except Exception as e:
                 traceback.print_exc()
                 raise e
-    
+        else:
+            return self.ui
     def ui_loop(self) -> None:
         """Run UI loop in main thread."""
         if self.ui is None or not self.ui.window_exist:
@@ -94,7 +95,7 @@ class XBrainLab:
 
     def ui_func_wrapper(func) -> callable:
         """Decorator for UI related functions.
-        
+
         Helper function to show UI and provide trainers to called function.
         """
         def wrap(*args, **kwargs):
@@ -112,14 +113,14 @@ class XBrainLab:
 
     @ui_func_wrapper
     def show_plot(
-        self, 
-        plot_type: PlotType, 
-        plan_name: str, 
-        real_plan_name: str, 
-        trainers: List[TrainingPlanHolder]
+        self,
+        plot_type: PlotType,
+        plan_name: str,
+        real_plan_name: str,
+        trainers: list[TrainingPlanHolder]
     ) -> None:
         """Show figure window.
-        
+
         Args:
             plot_type: The plot type.
             plan_name: The name of training plan.
@@ -131,15 +132,15 @@ class XBrainLab:
 
     @ui_func_wrapper
     def show_grad_plot(
-        self, 
-        plot_type: VisualizerType, 
-        plan_name: str, 
-        real_plan_name: str, 
-        absolute: bool, 
-        trainers: List[TrainingPlanHolder]
+        self,
+        plot_type: VisualizerType,
+        plan_name: str,
+        real_plan_name: str,
+        absolute: bool,
+        trainers: list[TrainingPlanHolder]
     ) -> None:
         """Show gradient figure window.
-        
+
         Args:
             plot_type: The plot type.
             plan_name: The name of training plan.
@@ -149,21 +150,21 @@ class XBrainLab:
         """
         PlotABSFigureWindow(
             parent=self.ui, trainers=trainers,
-            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name, 
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name,
             absolute=absolute
         )
-    
+
     @ui_func_wrapper
     def show_grad_topo_plot(
-        self, 
-        plot_type: VisualizerType, 
-        plan_name: str, 
-        real_plan_name: str, 
-        absolute: bool, 
-        trainers: List[TrainingPlanHolder]
+        self,
+        plot_type: VisualizerType,
+        plan_name: str,
+        real_plan_name: str,
+        absolute: bool,
+        trainers: list[TrainingPlanHolder]
     ) -> None:
         """Show gradient topographic figure window.
-        
+
         Args:
             plot_type: The plot type.
             plan_name: The name of training plan.
@@ -173,20 +174,20 @@ class XBrainLab:
         """
         PlotTopoABSFigureWindow(
             parent=self.ui, trainers=trainers,
-            plot_type=plot_type, plan_name=plan_name, 
+            plot_type=plot_type, plan_name=plan_name,
             real_plan_name=real_plan_name, absolute=absolute
         )
-    
+
     @ui_func_wrapper
     def show_grad_eval_plot(
-        self, 
-        plot_type: VisualizerType, 
-        plan_name: str, 
+        self,
+        plot_type: VisualizerType,
+        plan_name: str,
         real_plan_name: str,
-        trainers: List[TrainingPlanHolder]
+        trainers: list[TrainingPlanHolder]
     ) -> None:
         """Show evaluation figure window.
-        
+
         Args:
             plot_type: The plot type.
             plan_name: The name of training plan.
@@ -197,13 +198,13 @@ class XBrainLab:
             parent=self.ui, trainers=trainers,
             plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name
         )
-    
+
 
     @ui_func_wrapper
     def show_performance(
-        self, 
-        metric: Metric, 
-        trainers: List[TrainingPlanHolder]
+        self,
+        metric: Metric,
+        trainers: list[TrainingPlanHolder]
     ) -> None:
         """Show performance window.
 
@@ -212,4 +213,3 @@ class XBrainLab:
             trainers: The list of :class:`XBrainLab.training.TrainingPlanHolder`.
         """
         EvaluationTableWindow(self.ui, trainers, metric)
-    

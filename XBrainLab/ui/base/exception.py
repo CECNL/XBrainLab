@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.messagebox
 
+
 class CustomException(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -23,7 +24,7 @@ class ValidateException(CustomException):
     def __init__(self, window, message):
         super().__init__(message)
         self.window = window
-        
+
     def handle_exception(self):
         try:
             if not self.window.window_exist:

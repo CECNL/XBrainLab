@@ -1,18 +1,24 @@
+import numpy as np
+import pytest
+
 from XBrainLab.dataset import Dataset, DataSplittingConfig, TrainingType
+
 from .test_epochs import (
-    epochs, preprocessed_data_list, # noqa: F401
-    block_size, session_list, n_class, n_trial
+    block_size,
+    epochs,  # noqa: F401
+    n_class,
+    n_trial,
+    preprocessed_data_list,  # noqa: F401
+    session_list,
 )
 
-import pytest
-import numpy as np
 
 def test_dataset(
     epochs, # noqa: F811
 ):
     config = DataSplittingConfig(TrainingType.IND, False, [], [])
     dataset = Dataset(epochs, config)
-    
+
     assert dataset.get_epoch_data() == epochs
     assert dataset.get_name() == '0-'
 
@@ -48,7 +54,7 @@ def test_dataset_set_test_mask(
     config = DataSplittingConfig(TrainingType.IND, False, [], [])
     dataset = Dataset(epochs, config)
     mask = np.zeros(epochs.get_data_length(), dtype=bool)
-    
+
     total = epochs.get_data_length()
     # set test
     mask[:3] = True
@@ -118,13 +124,13 @@ def test_dataset_intersection_with_subject_by_idx(
 
 def test_dataset_get_data(
     epochs, # noqa: F811
-): 
+):
     config = DataSplittingConfig(TrainingType.IND, False, [], [])
     dataset = Dataset(epochs, config)
     mask = np.zeros(epochs.get_data_length(), dtype=bool)
     mask[:subject_count] = True
     dataset.set_test(mask)
-    
+
     mask &= False
     mask[subject_count:subject_count * 2] = True
     dataset.set_val(mask)
@@ -133,27 +139,27 @@ def test_dataset_get_data(
     mask[subject_count * 3:] = True
     dataset.discard_remaining_mask(mask)
     dataset.set_remaining_to_train()
-    
+
     X, y = dataset.get_training_data()
     assert (X // 100000 == 3).all()
     assert np.array_equal(
-        y, 
+        y,
         np.tile(np.arange(n_class).repeat(n_trial), len(session_list))
     )
 
     X, y = dataset.get_val_data()
     assert (X // 100000 == 2).all()
     assert np.array_equal(
-        y, 
+        y,
         np.tile(np.arange(n_class).repeat(n_trial), len(session_list))
     )
 
     X, y = dataset.get_test_data()
     assert (X // 100000 == 1).all()
     assert np.array_equal(
-        y, 
+        y,
         np.tile(np.arange(n_class).repeat(n_trial), len(session_list))
     )
-    
+
 
 

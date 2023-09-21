@@ -1,6 +1,7 @@
-from XBrainLab.training import TrainingPlanHolder, Trainer
-
 import pytest
+
+from XBrainLab.training import Trainer, TrainingPlanHolder
+
 
 class FakePlan:
     def __init__(self, i):
@@ -18,9 +19,10 @@ class FakeTrainingPlanHolder(TrainingPlanHolder):
 
 @pytest.fixture
 def training_plan_holders():
-    result = []
-    for i in range(2):
-        result.append(FakeTrainingPlanHolder(i))
+    result = [
+        FakeTrainingPlanHolder(i)
+        for i in range(2)
+    ]
     return result
 
 def test_trainer(mocker, training_plan_holders):
@@ -32,9 +34,9 @@ def test_trainer(mocker, training_plan_holders):
     def interrupt():
         assert trainer.get_progress_text() == 'Interrupting'
     interrupt_mock.side_effect = interrupt
-    
+
     clear_interrupt_mock = mocker.patch.object(holder, 'clear_interrupt')
-    
+
     trainer.set_interrupt()
     interrupt_mock.assert_called_once()
     assert trainer.interrupt
@@ -44,7 +46,7 @@ def test_trainer(mocker, training_plan_holders):
     clear_interrupt_mock.assert_called_once()
     assert trainer.interrupt is False
     assert trainer.get_progress_text() == 'Pending'
-    
+
 def test_trainer_custom_progress_text(training_plan_holders):
     trainer = Trainer(training_plan_holders)
     trainer.progress_text = 'Custom'
@@ -67,7 +69,7 @@ def test_trainer_run(mocker, training_plan_holders, interact):
             trainer.clean(force_update=True)
         else:
             assert isinstance(threading.current_thread(), threading._MainThread)
-        
+
     job_mock.side_effect = job
     trainer.run(interact=interact)
     job_mock.assert_called_once()
@@ -115,9 +117,6 @@ def test_trainer_get_plan(
     if error_stage == 0:
         trainer.get_real_training_plan(plan_name, real_plan_name)
     else:
-        if error_stage == 1:
-            error = '.*training plan.*'
-        else:
-            error = '.*real plan.*'
+        error = '.*training plan.*' if error_stage == 1 else '.*real plan.*'
         with pytest.raises(ValueError, match=error):
             trainer.get_real_training_plan(plan_name, real_plan_name)

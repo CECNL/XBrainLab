@@ -1,16 +1,20 @@
-import torch
 import numpy as np
+import torch
+
 from XBrainLab.utils import seed
+
 
 def test_set_seed():
     result = seed.set_seed()
+    seed_target = 42
     assert isinstance(result, int)
-    assert seed.set_seed(42) == 42
+    assert seed.set_seed(seed_target) == seed_target
 
 def test_get_random_state():
     result = seed.get_random_state()
+    tuple_length = 3
     assert isinstance(result, tuple)
-    assert len(result) == 3
+    assert len(result) == tuple_length
     assert isinstance(result[0], torch.ByteTensor)
     assert isinstance(result[1], tuple)
     assert isinstance(result[2], tuple)

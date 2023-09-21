@@ -1,10 +1,12 @@
-from .base import PreprocessBase
-from ..load_data import Raw
 from typing import List
+
+from ..load_data import Raw
+from .base import PreprocessBase
+
 
 class ChannelSelection(PreprocessBase):
     """Preprocessing class for selecting channels.
-    
+
     Input:
         selected_channels: List of names of selected channels.
     """

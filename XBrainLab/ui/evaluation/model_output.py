@@ -1,6 +1,8 @@
 import tkinter as tk
-from ..base import TopWindow, InitWindowValidateException, ValidateException
+
+from ..base import InitWindowValidateException, TopWindow, ValidateException
 from ..script import Script
+
 
 class ModelOutputWindow(TopWindow):
     command_label = 'Export Model Output (csv)'
@@ -14,7 +16,7 @@ class ModelOutputWindow(TopWindow):
         # init data
         ## fetch plan list
         training_plan_map = {trainer.get_name(): trainer for trainer in trainers}
-        training_plan_list = ['Select a plan'] + list(training_plan_map.keys())
+        training_plan_list = ['Select a plan', *list(training_plan_map.keys())]
         real_plan_list = ['Select repeat']
 
         #+ gui
@@ -28,13 +30,13 @@ class ModelOutputWindow(TopWindow):
         selected_real_plan_name = tk.StringVar(self)
         selected_real_plan_name.set(real_plan_list[0])
         selected_plan_name.trace(
-            'w', 
+            'w',
             lambda *args, win=self: selected_real_plan_name.set(real_plan_list[0])
         ) # reset selection
         real_plan_opt = tk.OptionMenu(self, selected_real_plan_name, *real_plan_list)
 
         tk.Label(self, text='Plan Name: ').grid(
-            row=0, column=0, sticky='e', pady=(10,0)
+            row=0, column=0, sticky='e', pady=(10, 0)
         )
         plan_opt.grid(row=0, column=1, sticky='w')
         tk.Label(self, text='Repeat: ').grid(row=1, column=0, sticky='e')
@@ -42,7 +44,7 @@ class ModelOutputWindow(TopWindow):
         tk.Button(self, text='Export', command=self.export).grid(
             row=2, column=0, columnspan=2
         )
-        self.columnconfigure([0,1], weight=1)
+        self.columnconfigure([0, 1], weight=1)
         self.rowconfigure([2], weight=1)
 
 
@@ -69,11 +71,11 @@ class ModelOutputWindow(TopWindow):
         trainer = self.training_plan_map[self.getvar(var_name)]
         if trainer is None:
             return
-        
+
         self.real_plan_map = {plan.get_name(): plan for plan in trainer.get_plans()}
         for choice in self.real_plan_map:
             self.real_plan_opt['menu'].add_command(
-                label=choice, 
+                label=choice,
                 command=lambda win=self, v=choice: win.selected_real_plan_name.set(v)
             )
 
@@ -86,32 +88,32 @@ class ModelOutputWindow(TopWindow):
         record = real_plan.get_eval_record()
         if not record:
             raise ValidateException(
-                window=self, 
+                window=self,
                 message='No evaluation record for this training plan'
             )
-        
+
         plan_name = self.training_plan_map[self.selected_plan_name.get()].get_name()
         plan_name += '-'+real_plan.get_name()+'.csv'
         filename = tk.filedialog.asksaveasfilename(
-            parent=self, 
-            initialdir=real_plan.target_path, 
-            initialfile=plan_name, 
-            filetypes = (("csv files","*.csv"),)
+            parent=self,
+            initialdir=real_plan.target_path,
+            initialfile=plan_name,
+            filetypes = (("csv files", "*.csv"),)
         )
         if filename:
             record.export_csv(filename)
-            self.script_history.add_cmd(f"filepath={repr(filename)}", newline=True)
+            self.script_history.add_cmd(f"filepath={filename!r}", newline=True)
             self.script_history.add_cmd(
-                f"plan_name={repr(self.selected_plan_name.get())}"
+                f"plan_name={self.selected_plan_name.get()!r}"
             )
             self.script_history.add_cmd(
-                f"real_plan_name={repr(self.selected_real_plan_name.get())}"
+                f"real_plan_name={self.selected_real_plan_name.get()!r}"
             )
             self.script_history.add_cmd(
                 "study.export_output_csv(filepath, plan_name, real_plan_name)"
             )
-            
+
             tk.messagebox.showinfo(parent=self, title='Success', message='Done')
-    
+
     def _get_script_history(self):
         return self.script_history

@@ -1,20 +1,31 @@
-from XBrainLab.training.training_plan import (
-    TrainRecord, ModelHolder, TrainingPlanHolder, TrainingOption
-)
-from XBrainLab.training.record import RecordKey
-from XBrainLab.training.option import TRAINING_EVALUATION
-from XBrainLab.dataset import (
-    DataSplitter, SplitByType, ValSplitByType, SplitUnit, DatasetGenerator,
-    Epochs, DataSplittingConfig, TrainingType
-)
-from XBrainLab.load_data import Raw
-from XBrainLab.utils import set_seed
+import time
 
 import mne
-import torch
-import pytest
 import numpy as np
-import time
+import pytest
+import torch
+
+from XBrainLab.dataset import (
+    DatasetGenerator,
+    DataSplitter,
+    DataSplittingConfig,
+    Epochs,
+    SplitByType,
+    SplitUnit,
+    TrainingType,
+    ValSplitByType,
+)
+from XBrainLab.load_data import Raw
+from XBrainLab.training.option import TRAINING_EVALUATION
+from XBrainLab.training.record import RecordKey
+from XBrainLab.training.training_plan import (
+    ModelHolder,
+    TrainingOption,
+    TrainingPlanHolder,
+    TrainRecord,
+)
+from XBrainLab.utils import set_seed
+
 CLASS_NUM = 4
 ERROR_NUM = 3
 SAMPLE_NUM = CLASS_NUM
@@ -35,7 +46,7 @@ class FakeModel(torch.nn.Module):
         x = self.fc(x)
         x = x.squeeze(1)
         return x
-    
+
 
 @pytest.fixture
 def y():
@@ -64,7 +75,7 @@ def _create_raw(y, subject, session):
     data = np.zeros((len(events), len(ch_names), CLASS_NUM))
     for idx, gt in enumerate(y):
         data[idx, 0, gt] = gt
-            
+
     epochs = mne.EpochsArray(data, info, events=events, tmin=0, event_id=event_id)
     raw = Raw(f"test/sub-{subject}_ses-{session}.fif", epochs)
     raw.set_subject_name(subject)
@@ -73,8 +84,8 @@ def _create_raw(y, subject, session):
 
 @pytest.fixture
 def preprocessed_data_list(y):
-    return [_create_raw(y, '01', '01'), 
-            _create_raw(y, '02', '01'), 
+    return [_create_raw(y, '01', '01'),
+            _create_raw(y, '02', '01'),
             _create_raw(y, '03', '01')
     ]
 
@@ -114,7 +125,7 @@ def training_option():
         'epoch': 10,
         'bs': BS,
         'lr': 0.01,
-        'checkpoint_epoch': 2, 
+        'checkpoint_epoch': 2,
         'evaluation_option': TRAINING_EVALUATION.VAL_LOSS,
         'repeat_num': 5
     }
@@ -163,7 +174,7 @@ def test_training_plan_holder_get_loader(base_holder):
     assert isinstance(trainHolder, torch.utils.data.DataLoader)
     assert isinstance(valHolder, torch.utils.data.DataLoader)
     assert isinstance(testHolder, torch.utils.data.DataLoader)
-    
+
     train_data = next(iter(trainHolder))
     assert train_data[0].shape == (BS, 1, CLASS_NUM)
     assert train_data[1].shape == (BS,)
@@ -173,7 +184,7 @@ def test_training_plan_holder_get_loader(base_holder):
     test_data = next(iter(testHolder))
     assert test_data[0].shape == (BS, 1, CLASS_NUM)
     assert test_data[1].shape == (BS,)
-    
+
     torch.testing.assert_close(test_data[0], val_data[0])
     torch.testing.assert_close(test_data[1], val_data[1])
     with pytest.raises(AssertionError):
@@ -188,7 +199,7 @@ def test_training_plan_holder_get_loader(base_holder):
     (None, None, None),
 ])
 def test_training_plan_holder_get_eval_loader(
-    base_holder, dataset, model_holder, training_option, 
+    base_holder, dataset, model_holder, training_option,
     val_loader, test_loader, expected_loader
 ):
     repeat = 0
@@ -198,7 +209,7 @@ def test_training_plan_holder_get_eval_loader(
     record = TrainRecord(
         repeat=repeat, dataset=dataset, model=model, option=training_option, seed=seed
     )
-    
+
     _, target_loader = base_holder.get_eval_pair(record, val_loader, test_loader)
     assert target_loader == expected_loader
 
@@ -227,7 +238,7 @@ def test_training_plan_holder_get_eval_model(
     if expected:
         expected = np.random.rand(1)
     setattr(record, state_dict_attr_name, expected)
-    
+
     target_model, _ = base_holder.get_eval_pair(record, val_loader, test_loader)
     if expected:
         assert isinstance(target_model, FakeModel)
@@ -241,11 +252,9 @@ def test_training_plan_holder_get_eval_model(
     ('val', None, 'val'),
     (None, None, None),
 ])
-@pytest.mark.parametrize("evaluation_option", [
-    i for i in TRAINING_EVALUATION
-] + [None])
+@pytest.mark.parametrize("evaluation_option", [*list(TRAINING_EVALUATION), None])
 def test_training_plan_holder_get_eval_pair_not_implemented(
-    base_holder, dataset, model_holder, training_option, 
+    base_holder, dataset, model_holder, training_option,
     val_loader, test_loader, expected_loader, evaluation_option
 ):
     repeat = 0
@@ -255,7 +264,7 @@ def test_training_plan_holder_get_eval_pair_not_implemented(
     record = TrainRecord(
         repeat=repeat, dataset=dataset, model=model, option=training_option, seed=seed
     )
-    
+
     if evaluation_option:
         _, target_loader = base_holder.get_eval_pair(record, val_loader, test_loader)
         assert target_loader == expected_loader
@@ -302,7 +311,7 @@ def test_training_plan_holder_one_epoch(mocker, base_holder, interrupt):
     train_record = base_holder.train_record_list[0]
     optimizer = train_record.optim
     criterion = train_record.criterion
-    
+
     update_train_mock = mocker.patch.object(train_record, 'update_train')
     update_val_mock = mocker.patch.object(train_record, 'update_eval')
     update_test_mock = mocker.patch.object(train_record, 'update_test')
@@ -335,14 +344,14 @@ def test_training_plan_holder_one_epoch(mocker, base_holder, interrupt):
     update_test_mock.assert_called_once()
     update_statistic_mock.assert_called_once()
     export_checkpoint_mock.assert_not_called()
-    
+
     step_called_args = update_statistic_mock.call_args[0]
     assert (step_called_args[0]["time"]  - total_time) < 0.1
     assert step_called_args[0]["lr"] == 0.01
 
     update_val_called_args = update_val_mock.call_args[0][0]
     assert update_val_called_args == fake_test_result
-    
+
     update_test_called_args = update_test_mock.call_args[0][0]
     assert update_test_called_args == fake_test_result
 
@@ -354,7 +363,7 @@ def test_training_plan_holder_one_epoch(mocker, base_holder, interrupt):
 @pytest.mark.timeout(10)
 def test_training_plan_holder_train_one_repeat(mocker, base_holder):
     train_record = base_holder.train_record_list[0]
-    
+
     def set_interrupt(*args, **kwargs):
         base_holder.set_interrupt()
     train_one_epoch_mock = mocker.patch.object(base_holder, 'train_one_epoch')
@@ -390,7 +399,7 @@ def test_training_plan_holder_train_one_repeat_status(mocker, base_holder):
     for i in base_holder.get_training_evaluation():
         assert i == "-"
     base_holder.train_one_repeat(train_record)
-   
+
 
 @pytest.mark.timeout(10)
 def test_training_plan_holder_train_one_repeat_empty_training_data(
@@ -414,7 +423,7 @@ def test_training_plan_holder_train_one_repeat_eval(mocker, base_holder):
 @pytest.mark.timeout(10)
 def test_training_plan_holder_train_one_repeat_already_finished(mocker, base_holder):
     train_record = base_holder.train_record_list[0]
-    
+
     mocker.patch.object(train_record, 'is_finished', return_value=True)
     train_one_epoch_mock = mocker.patch.object(base_holder, 'train_one_epoch')
     export_checkpoint_mock = mocker.patch.object(train_record, 'export_checkpoint')
@@ -428,7 +437,7 @@ def test_training_plan_holder_train_one_repeat_already_finished(mocker, base_hol
 @pytest.mark.timeout(10)
 def test_training_plan_holder_train(mocker, base_holder):
     original_train_one_repeat = base_holder.train_one_repeat
-    
+
     train_one_repeat_mock = mocker.patch.object(base_holder, 'train_one_repeat')
     repeat_counter = 0
     def train_one_repeat_side_effect(*args, **kwargs):
@@ -490,4 +499,3 @@ def test_training_plan_holder_train_error(mocker, base_holder):
     assert base_holder.is_finished() is False
     assert base_holder.get_training_status() == "test"
     train_one_repeat_mock.assert_called()
-    

@@ -1,10 +1,12 @@
 #!/usr/bin/env python
-import setuptools
 from os import path
 
+import setuptools
+
+
 def parse_requires():
-    requirements = list()
-    with open('requirements.txt', "r") as fh:
+    requirements = []
+    with open('requirements.txt') as fh:
         for line in fh:
             req = line.strip()
             if req.startswith("#"):
@@ -25,14 +27,14 @@ URL = "https://github.com/CECNL/XBrainLab"
 KEYWORDS = "neuroscience deep-learning brain-state-decoding EEG"
 if __name__ == "__main__":
 
-    with open(path.join("README.md"), "r", encoding="utf-8") as fh:
+    with open(path.join("README.md"), encoding="utf-8") as fh:
         long_description = fh.read()
 
     install_requires = parse_requires()
 
     setuptools.setup(
         name=NAME,
-        author=AUTHOR, 
+        author=AUTHOR,
         author_email=AUTHOR_EMAIL,
         description=DESCRIPTION,
         long_description=long_description,

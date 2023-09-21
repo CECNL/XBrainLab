@@ -1,0 +1,23 @@
+[tool.ruff]
+ignore = [
+    "PLR09",
+    "PLR2004",
+]
+
+select = [
+    "F",
+    "W",
+    "E",
+    "I",
+    "A",
+    "B",
+    "C4",
+    "SIM",
+    "UP",
+    "PERF",
+    "PGH",
+    "PIE",
+    "PL",
+    "RUF",
+    "TRY3",
+]

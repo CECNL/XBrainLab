@@ -1,30 +1,35 @@
-from XBrainLab.dataset import (
-    DataSplittingConfig, SplitUnit, SplitByType, 
-    TrainingType, ValSplitByType, DataSplitter
-)
-
 import pytest
 
+from XBrainLab.dataset import (
+    DataSplitter,
+    DataSplittingConfig,
+    SplitByType,
+    SplitUnit,
+    TrainingType,
+    ValSplitByType,
+)
+
+
 @pytest.mark.parametrize(
-    'split_type', [i for i in SplitByType] + [i for i in ValSplitByType]
+    'split_type', list(SplitByType) + list(ValSplitByType)
 )
 @pytest.mark.parametrize('parsed_value, value_var, value_target_unit', [
-    (0, '0', (SplitUnit.RATIO, SplitUnit.NUMBER, SplitUnit.MANUAL)), 
-    (0.0, '0.0', (SplitUnit.RATIO,)), 
+    (0, '0', (SplitUnit.RATIO, SplitUnit.NUMBER, SplitUnit.MANUAL)),
+    (0.0, '0.0', (SplitUnit.RATIO,)),
     (0.3, '0.3', (SplitUnit.RATIO,)),
-    (1, '1', (SplitUnit.RATIO, SplitUnit.NUMBER, SplitUnit.KFOLD, SplitUnit.MANUAL)), 
-    (1.0, '1.0', (SplitUnit.RATIO,)), 
-    (None, '1.5', ()), 
-    (2, '2', (SplitUnit.NUMBER, SplitUnit.KFOLD, SplitUnit.MANUAL)), 
-    (None, '2.0', ()), 
-    (None, '2.0 ', ()), 
-    ([2], '2 ', (SplitUnit.MANUAL,)), 
-    (None, '-1', ()), 
-    (None, '-1 ', ()), 
-    (None, '-1.0', ()), 
-    (None, '-1.0 ', ()), 
-    (None, '-1.5', ()), 
-    (None, '-1.5 ', ()), 
+    (1, '1', (SplitUnit.RATIO, SplitUnit.NUMBER, SplitUnit.KFOLD, SplitUnit.MANUAL)),
+    (1.0, '1.0', (SplitUnit.RATIO,)),
+    (None, '1.5', ()),
+    (2, '2', (SplitUnit.NUMBER, SplitUnit.KFOLD, SplitUnit.MANUAL)),
+    (None, '2.0', ()),
+    (None, '2.0 ', ()),
+    ([2], '2 ', (SplitUnit.MANUAL,)),
+    (None, '-1', ()),
+    (None, '-1 ', ()),
+    (None, '-1.0', ()),
+    (None, '-1.0 ', ()),
+    (None, '-1.5', ()),
+    (None, '-1.5 ', ()),
     ([1, 2, 3], '1 2 3', (SplitUnit.MANUAL,)),
     (None, '1 2 -3', ()),
     (None, '1 2 0.3', ()),
@@ -33,11 +38,11 @@ import pytest
     (None, '1 e', ()),
     (None, None, ()),
 ])
-@pytest.mark.parametrize('split_unit', [i for i in SplitUnit] + [None])
+@pytest.mark.parametrize('split_unit', [*list(SplitUnit), None])
 def test_splitter(split_type, parsed_value, value_var, value_target_unit, split_unit):
     is_option = True
     splitter = DataSplitter(split_type, value_var, split_unit, is_option)
-    
+
     assert splitter.is_option == is_option
     assert splitter.split_type == split_type
     assert splitter.text == split_type.value
@@ -61,7 +66,7 @@ def test_splitter(split_type, parsed_value, value_var, value_target_unit, split_
         assert splitter.get_value() == checker
         assert splitter.get_raw_value() == value_var
 
-@pytest.mark.parametrize('split_unit', [i for i in SplitUnit] + ["test"])
+@pytest.mark.parametrize('split_unit', [*list(SplitUnit), 'test'])
 def test_splitter_not_implemented(split_unit):
     split_type = SplitByType.SESSION
     value_var = '1'
@@ -80,7 +85,7 @@ def test_splitter_getter():
     value_var = '1'
     is_option = True
     splitter = DataSplitter(split_type, value_var, split_unit, is_option)
-    
+
     assert splitter.get_split_unit() == split_unit
     assert splitter.get_split_type_repr() == 'SplitByType.SESSION'
     assert splitter.get_split_unit_repr() == 'SplitUnit.KFOLD'
@@ -95,7 +100,7 @@ def test_config():
     config = DataSplittingConfig(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
-    
+
     assert config.train_type == train_type
     assert config.is_cross_validation == is_cross_validation
     assert config.val_splitter_list == val_splitter_list

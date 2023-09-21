@@ -1,10 +1,14 @@
+import contextlib
 import tkinter as tk
 import tkinter.messagebox
-from ..widget import EditableTreeView, PlotFigureWindow
-from ..base import TopWindow, InitWindowValidateException, ValidateException
-from ..script import Script
+
 from XBrainLab.training import Trainer
 from XBrainLab.visualization import PlotType
+
+from ..base import InitWindowValidateException, TopWindow, ValidateException
+from ..script import Script
+from ..widget import EditableTreeView, PlotFigureWindow
+
 
 ##
 class TrainingManagerWindow(TopWindow):
@@ -38,7 +42,7 @@ class TrainingManagerWindow(TopWindow):
 
         self.config_menu()
         self.update_table()
-        
+
         if trainer.is_running():
             self.start_training()
 
@@ -72,7 +76,7 @@ class TrainingManagerWindow(TopWindow):
     def plot_acc(self):
         module = PlotFigureWindow(self, self.training_plan_holders, PlotType.ACCURACY)
         self.script_history += module.get_script_history()
-    
+
     def plot_auc(self):
         module = PlotFigureWindow(self, self.training_plan_holders, PlotType.AUC)
         self.script_history += module.get_script_history()
@@ -88,16 +92,15 @@ class TrainingManagerWindow(TopWindow):
         if not self.trainer.is_running():
             self.trainer.run(interact=True)
             self.script_history.add_cmd("study.train(interact=True)")
-            
+
         self.training_loop()
 
     def stop_training(self):
         if not self.trainer.is_running():
             raise ValidateException(window=self, message='No training is in progress')
-        try:
+        with contextlib.suppress(Exception):
             not self.trainer.set_interrupt()
-        except Exception:
-            pass
+
 
     def finish_training(self):
         self.start_btn.config(state=tk.NORMAL)
@@ -120,13 +123,13 @@ class TrainingManagerWindow(TopWindow):
         plan_tree = self.plan_tree
         def get_table_values(plan):
             return (
-                plan.get_name(), plan.get_training_status(), 
+                plan.get_name(), plan.get_training_status(),
                 plan.get_training_epoch(), *plan.get_training_evaluation()
             )
         if len(plan_tree.get_children()) == 0:
             # for initialization
             for training_trainer in self.training_plan_holders:
-                plan_tree.insert("", index='end', 
+                plan_tree.insert("", index='end',
                                  values=get_table_values(training_trainer))
         else:
             # for updating

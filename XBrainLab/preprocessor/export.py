@@ -1,6 +1,9 @@
-from .base import PreprocessBase
-import scipy.io
 import os
+
+import scipy.io
+
+from .base import PreprocessBase
+
 
 class Export(PreprocessBase):
     """Preprocessing class for exporting data.
@@ -29,10 +32,10 @@ class Export(PreprocessBase):
             if history:
                 output['history'] = history
             # prepare filename
-            filename = 'Sub-' + preprocessed_data.get_subject_name() # subject 
+            filename = 'Sub-' + preprocessed_data.get_subject_name() # subject
             filename += '_'
             filename += 'Sess-' + preprocessed_data.get_session_name() # session
             filename += '.mat'
             scipy.io.savemat(os.path.join(filepath, filename), output)
-            
+
         return self.preprocessed_data_list

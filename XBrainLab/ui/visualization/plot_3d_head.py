@@ -1,7 +1,8 @@
-import numpy as np
-from scipy.spatial import ConvexHull
-import pyvista as pv
 import matplotlib.pyplot as plt
+import numpy as np
+import pyvista as pv
+from scipy.spatial import ConvexHull
+
 
 class Saliency3D:
     def __init__(self, eval_record, epoch_data, selected_event_name):
@@ -41,7 +42,7 @@ class Saliency3D:
         self.pos_on_3d = np.asarray(pos_on_3d)
 
         self.chs = [
-            pv.Sphere(radius=0.005, center=self.pos_on_3d[i, :]) 
+            pv.Sphere(radius=0.005, center=self.pos_on_3d[i, :])
             for i in range(self.saliency.shape[0])
         ]
 
@@ -75,7 +76,7 @@ class Saliency3D:
         for i in range(self.head1.n_points):
             dist = [np.linalg.norm(self.head1.points[i] - ch) for ch in self.pos_on_3d]
             dist_idx = np.argsort(dist)[:self.neighbor] # id of #neighbor cloest points
-            dist = np.array([dist[id] for id in dist_idx])
+            dist = np.array([dist[idx] for idx in dist_idx])
             self.scalar[i] = InverseDistWeightedSum(
                 dist, self.saliency[dist_idx, self.param['timestamp'] - 1]
             )
@@ -89,10 +90,10 @@ class Saliency3D:
             for actor in self.channelActor:
                 actor.SetVisibility(self.channelBox.ctrl)
         if save:
-            self.plotter.save_graphic((
+            self.plotter.save_graphic(
                 f"event-{self.selected_event_name}_"
                 f"time-{self.param['timestamp']}_saliency3d.svg"
-            ))
+            )
 
         if self.headBox.ctrl:
             if self.headActor is None:
@@ -154,7 +155,7 @@ class Saliency3D:
 
         self.channelActor = [self.plotter.add_mesh(ch, color='w') for ch in self.chs]
         self.plotter.add_mesh(
-            self.head1, opacity=0.7, 
+            self.head1, opacity=0.7,
             scalars=self.scalar, cmap=self.cmap, show_scalar_bar=False
         )
         self.plotter.add_scalar_bar('', interactive=False, vertical=False)
@@ -164,10 +165,10 @@ class Saliency3D:
         self.plotter.show_bounds()
 
         if self.param['save']:
-            self.plotter.save_graphic((
+            self.plotter.save_graphic(
                 f"event-{self.selected_event_name}_"
                 f"time-{self.param['timestamp']}_saliency3d.svg"
-            ))
+            )
 
         return self.plotter
 
@@ -189,7 +190,7 @@ def ChannelConvexHull(ch_pos):
     # https://gist.github.com/flutefreak7/bd621a9a836c8224e92305980ed829b9
     hull = ConvexHull(ch_pos)
     faces = np.hstack(
-        (np.ones((len(hull.simplices),1))*3, hull.simplices)
+        (np.ones((len(hull.simplices), 1))*3, hull.simplices)
     ).astype(np.int32)
     poly = pv.PolyData(hull.points, faces.ravel())
     return poly

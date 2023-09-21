@@ -1,7 +1,9 @@
 import tkinter as tk
 import tkinter.filedialog
-from ..base import TopWindow
 from enum import Enum
+
+from ..base import TopWindow
+
 
 class ScriptType(Enum):
     CLI = 'cli'
@@ -12,7 +14,7 @@ class ScriptPreview(TopWindow):
     def __init__(self, parent, script, script_type):
         super().__init__(parent, 'Script Preview')
         txt_edit = tk.Text(self)
-        
+
         if script_type == ScriptType.CLI:
             self.content = script.get_str()
         elif script_type == ScriptType.UI:
@@ -21,7 +23,7 @@ class ScriptPreview(TopWindow):
             self.content = script.get_all_str()
         else:
             raise NotImplementedError
-            
+
         txt_edit.insert(tk.END, self.content)
         txt_edit.pack(expand=True, fill=tk.BOTH)
 
@@ -29,10 +31,12 @@ class ScriptPreview(TopWindow):
         menu.add_command(label='Export', command=self.export)
         self.config(menu=menu)
         self.txt_edit = txt_edit
-    
+
     def export(self):
         filepath = tk.filedialog.asksaveasfilename(
-            parent=self, initialfile="script.py", filetypes = (("python files","*.py"),)
+            parent=self,
+            initialfile="script.py",
+            filetypes = (("python files", "*.py"),)
         )
         if filepath:
             content = self.txt_edit.get("1.0", tk.END)

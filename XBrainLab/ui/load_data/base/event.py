@@ -1,11 +1,13 @@
-import numpy as np
 import tkinter as tk
 from tkinter import filedialog
+
+import numpy as np
+
+from XBrainLab.load_data import EventLoader
 
 from ...base import TopWindow, ValidateException
 from ...script import Script
 
-from XBrainLab.load_data import EventLoader
 
 class LoadEvent(TopWindow):
     def __init__(self, parent, raw):
@@ -39,7 +41,7 @@ class LoadEvent(TopWindow):
         tk.Button(self, text="Confirm", command=self._confirm).grid(
             row=3, column=0, columnspan=2, padx=5
         )
-    
+
     def _load_event_file(self):
         selected_file = filedialog.askopenfilename(
             parent = self,
@@ -55,12 +57,12 @@ class LoadEvent(TopWindow):
             if '.txt' in selected_file:
                 label_list = self.event_loader.read_txt(selected_file)
                 self.load_script_history.set_cmd(
-                    f"event_loader.read_txt({repr(selected_file)})"
+                    f"event_loader.read_txt({selected_file!r})"
                 )
             elif '.mat' in selected_file:
                 label_list = self.event_loader.read_mat(selected_file)
                 self.load_script_history.set_cmd(
-                    f"event_loader.read_mat({repr(selected_file)})"
+                    f"event_loader.read_mat({selected_file!r})"
                 )
             else:
                 tk.messagebox.showwarning(
@@ -68,7 +70,7 @@ class LoadEvent(TopWindow):
                     title="Warning",
                     message="Event file format not supported."
                 )
-            
+
             self.event_num.set(len(label_list))
             self.new_event_name = {
                 k: tk.StringVar(self) for k in np.unique(label_list)
@@ -80,18 +82,18 @@ class LoadEvent(TopWindow):
                 tk.Label(self.eventidframe, text=e, width=10).grid(
                     row=i, column=0
                 )
-        
+
     def _confirm(self, *args):
-        new_event_name = {e:self.new_event_name[e].get() for e in self.new_event_name}
+        new_event_name = {e: self.new_event_name[e].get() for e in self.new_event_name}
         try:
             self.event_loader.create_event(new_event_name)
             self.script_history.add_script(self.load_script_history)
             self.script_history.add_cmd(
-                f"event_loader.create_event(event_name_map={repr(new_event_name)})"
+                f"event_loader.create_event(event_name_map={new_event_name!r})"
             )
         except Exception as e:
-            raise ValidateException(self, str(e))
-        
+            raise ValidateException(self, str(e)) from e
+
         self.ret_script_history = self.script_history
         self.destroy()
 

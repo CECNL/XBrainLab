@@ -1,12 +1,14 @@
-from .base import PanelBase
 import tkinter as tk
+
+from .base import PanelBase
+
 
 class PreprocessPanel(PanelBase):
     def __init__(self, parent, **args):
         super().__init__(parent, text='Preprocess history', **args)
         self.history_list = tk.Listbox(self)
         self.history_list.pack(fill=tk.BOTH, expand=True)
-            
+
     def update_panel(self, preprocessed_data_list):
         while self.history_list.size() > 0:
             self.history_list.delete(0)

@@ -4,6 +4,7 @@ from .array import LoadArray
 from .dict_setter import DictInfoSetter
 from .info import DictInfo
 
+
 class LoadDict(LoadArray):
     def __init__(self, parent, title):
         super().__init__(parent, title)
@@ -25,8 +26,8 @@ class LoadDict(LoadArray):
     def handle_dict(self, filepath, selected_data):
         if not self.dict_info.is_info_complete(selected_data):
             dict_info_module = DictInfoSetter(
-                self, 
-                filepath, selected_data, self.dict_info, 
+                self,
+                filepath, selected_data, self.dict_info,
                 type_ctrl=self.type_ctrl.get()
             )
             dict_info = dict_info_module.get_result()
@@ -35,7 +36,7 @@ class LoadDict(LoadArray):
                 return False
             self.dict_info = dict_info
             self.clear_btn.config(state='active')
-        
+
         mne_data, generation_script = self.dict_info.generate_mne(
             filepath, selected_data, self.type_ctrl.get()
         )

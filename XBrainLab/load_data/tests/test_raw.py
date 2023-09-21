@@ -1,9 +1,10 @@
-from XBrainLab.load_data import Raw
-
-import pytest
 import traceback
+
 import mne
 import numpy as np
+import pytest
+
+from XBrainLab.load_data import Raw
 
 base_fs = 50
 base_duration = 1
@@ -27,7 +28,7 @@ def mne_raw_2():
 
 @pytest.fixture
 def raw(mne_raw):
-    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'    
+    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'
     return Raw(path, mne_raw)
 
 # common
@@ -42,7 +43,7 @@ def test_parse_filename(raw, mocker):
 
     mock_print_exc = mocker.patch.object(traceback, "print_exc")
     raw.parse_filename('sub-(?P<subject>[^_]*_ses-(?P<session>[^_]*)_.*')
-    mock_print_exc.assert_called_once()    
+    mock_print_exc.assert_called_once()
 
 # set event
 def _set_event(raw):
@@ -68,7 +69,7 @@ def test_set_event_error(raw):
 
     with pytest.raises(AssertionError):
         raw.set_event(np.array([[1, 0]]), event_id)
-    
+
     with pytest.raises(TypeError):
         raw.set_event(events, [1, 2, 3])
 
@@ -90,7 +91,7 @@ def test_mne_raw_info(mne_raw, raw):
     assert raw.is_raw()
 
     assert (
-        raw.get_row_info() == 
+        raw.get_row_info() ==
         ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 4, base_fs, 1, 'no')
     )
 
@@ -106,7 +107,7 @@ def test_mne_raw_2_info(mne_raw_2, raw):
     assert raw.is_raw()
 
     assert (
-        raw.get_row_info() == 
+        raw.get_row_info() ==
         ('sub-01_ses-01_task-rest_eeg.fif', '0', '0', 2, 50, 1, 'no')
     )
 
@@ -139,14 +140,14 @@ def mne_raw_stim():
                             sfreq=fs,
                             ch_types=['eeg', 'eeg', 'stim'])
     data = np.random.RandomState(0).randn(3, fs)
-    stim = [0,1,0,2,0,0,3,0,0,0]
+    stim = [0, 1, 0, 2, 0, 0, 3, 0, 0, 0]
     data[2] = stim
     mne_raw = mne.io.RawArray(data, info)
     return mne_raw
 
 @pytest.fixture
 def stim_raw(mne_raw_stim):
-    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'    
+    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'
     return Raw(path, mne_raw_stim)
 
 def test_raw_stim_event(stim_raw):
@@ -181,7 +182,7 @@ def mne_raw_annot():
 
 @pytest.fixture
 def annot_raw(mne_raw_annot):
-    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'    
+    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'
     return Raw(path, mne_raw_annot)
 
 def test_raw_annotation_event(annot_raw):
@@ -214,7 +215,7 @@ def mne_epoch():
 
 @pytest.fixture
 def epoch(mne_epoch):
-    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'    
+    path = 'tests/test_data/sub-01_ses-01_task-rest_eeg.fif'
     return Raw(path, mne_epoch)
 
 def test_mne_epoch_info(mne_epoch, epoch):
@@ -271,7 +272,7 @@ def test_set_mne_after_set_event_1(mne_raw_2, target, request):
     events, event_id = target.get_event_list()
     assert len(events) == 4
     assert len(event_id) == 4
-    
+
 
 
 @pytest.mark.parametrize('target', ['raw', 'epoch'])
@@ -279,7 +280,7 @@ def test_set_mne_after_set_event_2(mne_epoch, target, request):
     target = request.getfixturevalue(target)
     test_set_event(target)
     target.set_mne(mne_epoch)
-    
+
     assert target.has_event_str() == 'yes'
     assert target.get_event_name_list_str() == 'a,b,c,d'
     events, event_id = target.get_event_list()

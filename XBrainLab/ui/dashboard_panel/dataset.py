@@ -1,12 +1,14 @@
-from .base import PanelBase
-from ..load_data import DataType
 import tkinter as tk
+
+from ..load_data import DataType
+from .base import PanelBase
+
 
 class DatasetPanel(PanelBase):
     def __init__(self, parent, **args):
         super().__init__(parent, text='Dataset', **args)
         frame = tk.Frame(self)
-        
+
         tk.Label(frame, text='Type').grid(row=0, column=0, sticky='e', padx=10)
         tk.Label(frame, text='Subject').grid(row=1, column=0, sticky='e', padx=10)
         tk.Label(frame, text='Session').grid(row=2, column=0, sticky='e', padx=10)
@@ -63,7 +65,7 @@ class DatasetPanel(PanelBase):
         self.reset()
         if not preprocessed_data_list:
             return
-        
+
         subject_set = set()
         session_set = set()
         classes_set = set()
@@ -80,8 +82,8 @@ class DatasetPanel(PanelBase):
         if not preprocessed_data.is_raw():
             tmin = preprocessed_data.get_tmin()
             duration = int(
-                preprocessed_data.get_epoch_duration() * 
-                100 / 
+                preprocessed_data.get_epoch_duration() *
+                100 /
                 preprocessed_data.get_sfreq()
             ) / 100
         highpass, lowpass = preprocessed_data.get_filter_range()

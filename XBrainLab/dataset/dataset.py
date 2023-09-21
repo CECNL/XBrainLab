@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import numpy as np
-from .epochs import Epochs
-from .data_splitter import DataSplittingConfig
+
 from ..utils import validate_type
+from .data_splitter import DataSplittingConfig
+from .epochs import Epochs
+
 
 class Dataset:
     """Class for storing splitted dataset.
@@ -31,8 +34,8 @@ class Dataset:
     """
     SEQ = 0
     def __init__(self, epoch_data: Epochs, config: DataSplittingConfig):
-        validate_type(epoch_data, Epochs ,"epoch_data")
-        validate_type(config, DataSplittingConfig ,"config")
+        validate_type(epoch_data, Epochs, "epoch_data")
+        validate_type(config, DataSplittingConfig, "config")
         self.name = ''
         self.epoch_data = epoch_data
         self.config = config
@@ -46,7 +49,7 @@ class Dataset:
         self.val_mask = np.zeros(data_length, dtype=bool)
         self.test_mask = np.zeros(data_length, dtype=bool)
         self.is_selected = True
-    
+
     # data splitting
     ## getter
     ### info
@@ -64,7 +67,7 @@ class Dataset:
 
     def get_all_trial_numbers(self) -> tuple:
         """Get each number of trials in train, validation and test set.
-        
+
         Returns:
             (train_number, val_number, test_number)
         """
@@ -72,15 +75,15 @@ class Dataset:
         val_number = sum(self.val_mask)
         test_number = sum(self.test_mask)
         return train_number, val_number, test_number
-    
+
     def get_treeview_row_info(self) -> tuple:
         """Return the information of the dataset for displaying in UI treeview.
-        
+
         Returns:
-            (selected: str, 
-             name: str, 
-             train_number: int, 
-             val_number: int, 
+            (selected: str,
+             name: str,
+             train_number: int,
+             val_number: int,
              test_number: int
             )
         """
@@ -97,7 +100,7 @@ class Dataset:
     def set_name(self, name: str):
         """Set the dataset name."""
         self.name = name
-    
+
     def has_set_empty(self) -> bool:
         """Return whether the dataset is empty."""
         train_number, val_number, test_number = self.get_all_trial_numbers()
@@ -122,7 +125,7 @@ class Dataset:
         """Set the mask for test set and update the remaining mask."""
         self.test_mask = mask & self.remaining_mask
         self.remaining_mask &= np.logical_not(mask)
-    
+
     def set_val(self, mask: np.ndarray) -> None:
         """Set the mask for validation set and update the remaining mask."""
         self.val_mask = mask & self.remaining_mask
@@ -135,8 +138,8 @@ class Dataset:
 
     ## filter
     def intersection_with_subject_by_idx(
-        self, 
-        mask: np.ndarray, 
+        self,
+        mask: np.ndarray,
         idx: int
     ) -> np.ndarray:
         """Return the intersection of the mask and the mask of target subject."""
@@ -145,12 +148,12 @@ class Dataset:
     # train
     def get_training_data(self) -> tuple[np.ndarray, np.ndarray]:
         """Return the training data and label.
-        
+
         Returns:
             (X, y)
         """
         X = self.epoch_data.get_data()[self.train_mask]
-        y = self.epoch_data.get_label_list()[self.train_mask]   
+        y = self.epoch_data.get_label_list()[self.train_mask]
         return X, y
 
     def get_val_data(self) -> tuple:
@@ -165,14 +168,14 @@ class Dataset:
 
     def get_test_data(self) -> tuple:
         """Return the test data and label.
-        
+
         Returns:
             (X, y)
         """
         X = self.epoch_data.get_data()[self.test_mask]
         y = self.epoch_data.get_label_list()[self.test_mask]
         return X, y
-    
+
     # get data len
     def get_train_len(self) -> int:
         """Return the number of trials in training set."""
@@ -185,4 +188,3 @@ class Dataset:
     def get_test_len(self) -> int:
         """Return number of trials in test set."""
         return sum(self.test_mask)
-    

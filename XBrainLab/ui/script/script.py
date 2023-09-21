@@ -1,5 +1,6 @@
 import time
 
+
 def get_id():
     return time.time()
 
@@ -16,7 +17,7 @@ class Script:
         if newline:
             self.newline()
         self.command_list.append((get_id(), data))
-    
+
     def add_ui_cmd(self, data, newline=False):
         if newline:
             self.ui_newline()
@@ -35,10 +36,10 @@ class Script:
 
     def clear_cmd(self):
         self.command_list.clear()
-    
+
     def newline(self):
         self.command_list.append((get_id(), ""))
-    
+
     def ui_newline(self):
         self.ui_command_list.append((get_id(), ""))
 
@@ -49,7 +50,7 @@ class Script:
         if not lhs:
             return self
         self.import_list.update(lhs.import_list)
-        
+
         if lhs.command_list:
             self.newline()
         self.command_list += lhs.command_list
@@ -61,7 +62,7 @@ class Script:
         # self.command_list.sort(key=lambda x: x[0])
         command_str = '\n'.join([x[1] for x in self.command_list])
         return import_str + '\n\n' + command_str
-    
+
     def get_ui_str(self):
         import_str = '\n'.join(self.import_list)
         self.ui_command_list.sort(key=lambda x: x[0])
@@ -71,7 +72,7 @@ class Script:
     def get_all_str(self):
         all_list = self.ui_command_list + self.command_list
         all_list.sort(key=lambda x: x[0])
-        
+
         import_str = '\n'.join(self.import_list)
         all_list_str = '\n'.join([x[1] for x in all_list])
         return import_str + '\n\n' + all_list_str

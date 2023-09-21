@@ -3,14 +3,14 @@ import os
 import tkinter as tk
 import tkinter.filedialog
 
+from XBrainLab import model_base
+from XBrainLab.training import ModelHolder
+
 from ..base import TopWindow
 from ..script import Script
 from ..widget import EditableTreeView
 
-from XBrainLab import model_base
-from XBrainLab.training import ModelHolder
-
-ARG_DICT_SKIP_SET = set(['self', 'n_classes', 'channels', 'samples', 'sfreq'])
+ARG_DICT_SKIP_SET = {'self', 'n_classes', 'channels', 'samples', 'sfreq'}
 
 class ModelSelectionWindow(TopWindow):
     def __init__(self, parent):
@@ -29,7 +29,7 @@ class ModelSelectionWindow(TopWindow):
         selected_model_name = tk.StringVar(self)
         selected_model_name.trace('w', self.on_model_select) # callback
         model_opt = tk.OptionMenu(self, selected_model_name, *model_list)
-        
+
         ## model params
         params_frame = tk.LabelFrame(self, text='model parameters')
         columns = ('param', 'value')
@@ -44,7 +44,7 @@ class ModelSelectionWindow(TopWindow):
         pretrained_weight_btn = tk.Button(
             self, text='load', command=self.load_pretrained_weight
         )
-        
+
         model_opt_label.grid(row=1, column=0)
         model_opt.grid(row=1, column=1)
         params_frame.grid(row=2, column=0, columnspan=3, sticky='NEWS')
@@ -52,7 +52,7 @@ class ModelSelectionWindow(TopWindow):
         pretrained_weight_disp_label.grid(row=3, column=1)
         pretrained_weight_btn.grid(row=3, column=2)
         tk.Button(self, text='Confirm', command=self.confirm).grid(row=4, column=2)
-        self.columnconfigure([0,1,2], weight=1)
+        self.columnconfigure([0, 1, 2], weight=1)
         self.rowconfigure([2], weight=1)
 
         self.model_map = model_map
@@ -85,7 +85,7 @@ class ModelSelectionWindow(TopWindow):
             self.params_frame.grid()
         else:
             self.params_frame.grid_remove()
-    
+
     def load_pretrained_weight(self):
         if self.pretrained_weight_path:
             # perform clear if already set
@@ -94,7 +94,7 @@ class ModelSelectionWindow(TopWindow):
             self.pretrained_weight_disp_label.config(text='')
             self.pretrained_weight_btn.config(text='load')
             return
-        
+
         filepath = tk.filedialog.askopenfilename(
             parent=self, filetypes=(("model/weights", "*"),)
         )
@@ -106,13 +106,13 @@ class ModelSelectionWindow(TopWindow):
 
     def confirm(self):
         self.params_tree.submitEntry() # close editing tables
-        
+
         target_model = self.model_map[self.selected_model_name.get()]
         model_params_map = {}
         for item in self.params_tree.get_children():
             param, value = self.params_tree.item(item)['values']
             model_params_map[param] = value
-        
+
         self.model_holder = ModelHolder(
             target_model, model_params_map, self.pretrained_weight_path
         )
@@ -120,12 +120,12 @@ class ModelSelectionWindow(TopWindow):
         self.script_history.add_import("from XBrainLab.training import ModelHolder")
         self.script_history.add_import("from XBrainLab import model_base")
 
-        self.script_history.add_cmd((
+        self.script_history.add_cmd(
             "model_holder = ModelHolder("
             f"target_model=model_base.{target_model.__name__}, "
-            f"model_params_map={repr(model_params_map)}, "
-            f"pretrained_weight_path={repr(self.pretrained_weight_path)})"
-        ))
+            f"model_params_map={model_params_map!r}, "
+            f"pretrained_weight_path={self.pretrained_weight_path!r})"
+        )
         self.destroy()
 
     def _get_result(self):

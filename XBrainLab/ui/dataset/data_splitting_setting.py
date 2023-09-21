@@ -1,12 +1,13 @@
-import numpy as np
-from enum import Enum
 import tkinter as tk
+from enum import Enum
 
-from ..base import TopWindow, InitWindowValidateException
-from .data_splitting import DataSplittingWindow, DataSplittingConfigHolder
+import numpy as np
 
-from XBrainLab.dataset import Epochs
-from XBrainLab.dataset import TrainingType, SplitByType, ValSplitByType
+from XBrainLab.dataset import Epochs, SplitByType, TrainingType, ValSplitByType
+
+from ..base import InitWindowValidateException, TopWindow
+from .data_splitting import DataSplittingConfigHolder, DataSplittingWindow
+
 
 class DataSplittingSettingWindow(TopWindow):
     def __init__(self, parent, epoch_data):
@@ -30,7 +31,7 @@ class DataSplittingSettingWindow(TopWindow):
         validation_var_list = []
         validation_option_list = []
         self.init_option_list(
-            VAL_SPLIT_OPTION_NUM, val_split_by_list, 
+            VAL_SPLIT_OPTION_NUM, val_split_by_list,
             validation_var_list, validation_option_list
         )
         ## test type
@@ -40,7 +41,7 @@ class DataSplittingSettingWindow(TopWindow):
         testing_var_list = []
         testing_option_list = []
         self.init_option_list(
-            TEST_SPLIT_OPTION_NUM, test_split_by_list, 
+            TEST_SPLIT_OPTION_NUM, test_split_by_list,
             testing_var_list, testing_option_list
         )
         ## cross validation
@@ -52,9 +53,9 @@ class DataSplittingSettingWindow(TopWindow):
         ## register callback
         training_type_var.trace_add('write', self.option_menu_callback)
         for validation_var in validation_var_list:
-            validation_var.trace_add('write', self.option_menu_callback) 
+            validation_var.trace_add('write', self.option_menu_callback)
         for testing_var in testing_var_list:
-                testing_var.trace_add('write', self.option_menu_callback) 
+                testing_var.trace_add('write', self.option_menu_callback)
 
         # Preview canvas
         canvas_frame = tk.Frame(self)
@@ -75,13 +76,13 @@ class DataSplittingSettingWindow(TopWindow):
         tk.Label(legend_frame, text='Testing').pack(side='left')
         canvas.pack()
         legend_frame.pack()
-        
+
         # btn
         confirm_btn = tk.Button(self, text='Confirm', command=self.confirm)
 
         # pack
         training_type_label.grid(column=1, row=0, padx=10, pady=(10, 0))
-        training_type_option.grid(column=1, row=1, padx=10)        
+        training_type_option.grid(column=1, row=1, padx=10)
         inc = 0
         ## test options
         testing_label.grid(column=1, row=2+inc, pady=(10, 0))
@@ -102,27 +103,27 @@ class DataSplittingSettingWindow(TopWindow):
             inc += 1
         confirm_btn.grid(column=0, row=5+inc, columnspan=2, pady=(20, 15))
         canvas_frame.grid(column=0, row=0, rowspan=5+inc, pady=(10, 0))
-        
+
         # init member
         self.subject_num = 5
         self.session_num = 5
-        ## var
+        # var
         self.training_type_var = training_type_var
         self.testing_var_list = testing_var_list
         self.validation_var_list = validation_var_list
         self.cross_validation_var = cross_validation_var
-        ## option
+        # option
         self.testing_option_list = testing_option_list
         self.validation_option_list = validation_option_list
-        ## region info
+        # region info
         self.train_region = DrawRegion(self.session_num, self.subject_num)
         self.val_region = DrawRegion(self.session_num, self.subject_num)
         self.test_region = DrawRegion(self.session_num, self.subject_num)
-        ## canvas
+        # canvas
         self.canvas = canvas
-        ## step 2
+        # step 2
         self.step2_window = None
-        
+
         # init func
         self.option_menu_callback()
         self.draw_preview()
@@ -132,7 +133,7 @@ class DataSplittingSettingWindow(TopWindow):
             raise InitWindowValidateException(self, 'No valid epoch data is generated')
 
     def init_option_list(self, opt_num, split_by_list, var_list, option_list):
-        for i in range(opt_num):
+        for _i in range(opt_num):
             var = tk.StringVar(self)
             var.set(split_by_list[0])
             option = tk.OptionMenu(self, var, *split_by_list)
@@ -146,28 +147,27 @@ class DataSplittingSettingWindow(TopWindow):
             # disable next level
                 if i + 1 < opt_num and option_list[i + 1].winfo_ismapped():
                     self.after(
-                        100, 
-                        lambda win=self, idx=i+1,v=var_list: v[idx].set(
-                            SplitByType.DISABLE.value
-                        )
-                    )
-                    self.after(
-                        100, 
-                        lambda win=self, idx=i+1, v=option_list: v[idx].grid_remove()
-                    )
-                    return True
-            else:
-            # enable next level
-                if i + 1 < opt_num and not option_list[i + 1].winfo_ismapped():
-                    self.after(
-                        100, 
+                        100,
                         lambda win=self, idx=i+1, v=var_list: v[idx].set(
                             SplitByType.DISABLE.value
                         )
                     )
                     self.after(
-                        100, lambda win=self, idx=i+1, v=option_list: v[idx].grid())
+                        100,
+                        lambda win=self, idx=i+1, v=option_list: v[idx].grid_remove()
+                    )
                     return True
+            elif i + 1 < opt_num and not option_list[i + 1].winfo_ismapped():
+            # enable next level
+                self.after(
+                    100,
+                    lambda win=self, idx=i+1, v=var_list: v[idx].set(
+                        SplitByType.DISABLE.value
+                    )
+                )
+                self.after(
+                    100, lambda win=self, idx=i+1, v=option_list: v[idx].grid())
+                return True
         return False
 
     def option_menu_callback(self, *args):
@@ -203,10 +203,10 @@ class DataSplittingSettingWindow(TopWindow):
         #
         self.handle_testing()
         self.train_region.mask(self.test_region)
-        
+
         self.handle_validation()
         self.train_region.mask(self.val_region)
-    
+
     def handle_testing(self):
         for idx, testing_var in enumerate(self.testing_var_list):
             # reference region
@@ -217,7 +217,7 @@ class DataSplittingSettingWindow(TopWindow):
                 ref.copy(self.test_region)
             # session
             if (
-                testing_var.get() == SplitByType.SESSION.value 
+                testing_var.get() == SplitByType.SESSION.value
                 or testing_var.get() == SplitByType.SESSION_IND.value
             ):
                 # independent, remove last target
@@ -232,7 +232,7 @@ class DataSplittingSettingWindow(TopWindow):
                     self.train_region.mask(tmp)
             # label
             elif (
-                testing_var.get() == SplitByType.TRIAL.value 
+                testing_var.get() == SplitByType.TRIAL.value
                 or testing_var.get() == SplitByType.TRIAL_IND.value
             ):
                 # independent, remove last target
@@ -263,7 +263,7 @@ class DataSplittingSettingWindow(TopWindow):
                 # avoid being used by validation
 
     def handle_validation(self):
-        for idx, validation_var in enumerate(self.validation_var_list):
+        for _idx, validation_var in enumerate(self.validation_var_list):
             if validation_var.get() == ValSplitByType.SESSION.value:
                 self.val_region.copy(self.train_region)
                 self.val_region.set_from(
@@ -294,7 +294,7 @@ class DataSplittingSettingWindow(TopWindow):
         h = 120
         canvas_width = w + left + right
         canvas_height = h + top + bottom
-        
+
         subject = self.subject_num
         session = self.session_num
         delta_x = w / session
@@ -304,7 +304,7 @@ class DataSplittingSettingWindow(TopWindow):
         canvas.delete("all")
         # draw area
         for var, color in zip(
-            [self.train_region, self.val_region, self.test_region], 
+            [self.train_region, self.val_region, self.test_region],
             [DrawColor.TRAIN, DrawColor.VAL, DrawColor.TEST]
         ):
             for i in range(var.from_x, var.to_x):
@@ -315,7 +315,7 @@ class DataSplittingSettingWindow(TopWindow):
                         left + delta_x * (i + var.from_canvas[i, j]),
                         top + delta_y * j,
                         left + delta_x * (i + var.to_canvas[i, j]),
-                        top + delta_y * (j + 1), 
+                        top + delta_y * (j + 1),
                         fill=color.value, width=0
                     )
         # draw box
@@ -339,7 +339,7 @@ class DataSplittingSettingWindow(TopWindow):
                         if i == ByType.DISABLE and len(arr) > 0:
                             break
                         arr.append(i)
-    
+
     def confirm(self):
         # get training type
         for i in TrainingType:
@@ -351,7 +351,7 @@ class DataSplittingSettingWindow(TopWindow):
         self.retreive_result(self.validation_var_list, ValSplitByType, val_type_list)
         self.retreive_result(self.testing_var_list, SplitByType, test_type_list)
         config = DataSplittingConfigHolder(
-            train_type, val_type_list, test_type_list, 
+            train_type, val_type_list, test_type_list,
             is_cross_validation=self.cross_validation_var.get()
         )
 
@@ -379,7 +379,7 @@ class DrawColor(Enum):
     VAL = 'LightBlue'
     TEST = 'green'
 
-class DrawRegion():
+class DrawRegion:
     def __init__(self, w, h):
         self.w = w
         self.h = h
@@ -394,12 +394,12 @@ class DrawRegion():
     def reset(self):
         self.from_canvas *= 0
         self.to_canvas *= 0
-        
+
     def set_from(self, x, y):
         self.reset()
         self.from_x = x
         self.from_y = y
-    
+
     def set_to_ref(self, x, y, ref):
         self.to_x = x
         self.to_y = y
@@ -407,13 +407,13 @@ class DrawRegion():
             ref.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
         self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = \
             ref.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
-    
+
     def set_to(self, x, y, from_w, to_w):
         self.to_x = x
         self.to_y = y
         self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = from_w
         self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = to_w
-    
+
     def change_to(self, x, y):
         self.to_x = x
         self.to_y = y
@@ -421,51 +421,51 @@ class DrawRegion():
     def mask(self, rhs):
         # clear masking region
         idx = (
-            rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] != 
+            rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] !=
             rhs.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]
         )
         filter_idx = (
-            idx & 
+            idx &
             (
-                self.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] <= 
+                self.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] <=
                 rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]
-            ) & 
+            ) &
             (
-                rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] <= 
+                rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] <=
                 self.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]
             )
         )
-        
+
         self.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] *= \
             np.logical_not(filter_idx)
         self.to_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y] += \
             filter_idx * rhs.from_canvas[rhs.from_x:rhs.to_x, rhs.from_y:rhs.to_y]
         if (
-            (self.to_canvas[ self.to_x - 1 , self.from_y:self.to_y ] == 
-             self.from_canvas[ self.to_x - 1 , self.from_y:self.to_y ]).all()
+            (self.to_canvas[self.to_x - 1, self.from_y:self.to_y] ==
+             self.from_canvas[self.to_x - 1, self.from_y:self.to_y]).all()
         ):
             self.to_x -= 1
         if (
-            (self.to_canvas[ self.from_x:self.to_x, self.to_y - 1 ] == 
-             self.from_canvas[ self.from_x:self.to_x, self.to_y - 1]).all()
+            (self.to_canvas[self.from_x:self.to_x, self.to_y - 1] ==
+             self.from_canvas[self.from_x:self.to_x, self.to_y - 1]).all()
         ):
             self.to_y -= 1
-    
+
     def decrease_w_tail(self, w):
         self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = \
             (
-                (self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] - 
-                 self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]) * 
-                 w + 
+                (self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] -
+                 self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]) *
+                 w +
                  self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
             )
 
     def decrease_w_head(self, w):
         self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y] = \
             (
-                (self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] - 
-                 self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]) * 
-                 w + 
+                (self.to_canvas[self.from_x:self.to_x, self.from_y:self.to_y] -
+                 self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]) *
+                 w +
                  self.from_canvas[self.from_x:self.to_x, self.from_y:self.to_y]
             )
 

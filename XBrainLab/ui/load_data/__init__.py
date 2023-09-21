@@ -1,9 +1,10 @@
-from .set import LoadSet
-from .mat import LoadMat
-from .edf import LoadEdf
-from .cnt import LoadCnt
-from .np import LoadNp
 from .base import DataType
+from .cnt import LoadCnt
+from .edf import LoadEdf
+from .mat import LoadMat
+from .np import LoadNp
+from .set import LoadSet
+
 IMPORT_TYPE_MODULE_LIST = [LoadSet, LoadMat, LoadEdf, LoadCnt, LoadNp]
 
 __all__ = [

@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Metric(Enum):
     """Utility class for evaluation metric."""
     ACC = 'Accuracy (%)'

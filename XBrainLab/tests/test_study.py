@@ -2,13 +2,16 @@ import mne
 import pytest
 
 from XBrainLab import Study
-from XBrainLab.load_data import RawDataLoader, Raw
-from XBrainLab.preprocessor import PreprocessBase
 from XBrainLab.dataset import (
-    DataSplittingConfig, Dataset, 
-    DatasetGenerator, TrainingType
+    Dataset,
+    DatasetGenerator,
+    DataSplittingConfig,
+    TrainingType,
 )
-from XBrainLab.training import TrainingOption, TRAINING_EVALUATION, ModelHolder
+from XBrainLab.load_data import Raw, RawDataLoader
+from XBrainLab.preprocessor import PreprocessBase
+from XBrainLab.training import TRAINING_EVALUATION, ModelHolder, TrainingOption
+
 
 def test_study_load_data():
     assert isinstance(Study().get_raw_data_loader(), RawDataLoader)
@@ -36,7 +39,7 @@ def _test_study_set_loaded_data_list_raise(study, loaded_data_list, force_update
 def test_study_set_loaded_data_list(loaded_data_list, force_update):
     study = Study()
     study.set_loaded_data_list(loaded_data_list, force_update)
-    _test_study_set_loaded_data_list_raise(study, loaded_data_list, force_update)    
+    _test_study_set_loaded_data_list_raise(study, loaded_data_list, force_update)
 
 def _test_study_set_preprocessed_data_list_raise(study, loaded_data_list, force_update):
     if force_update or not study.datasets:
@@ -53,10 +56,10 @@ class FakePreprocessBase(PreprocessBase):
         return 'test'
     def _data_preprocess(self, preprocessed_data):
         preprocessed_data.filepath = 'new'
-    
+
 @pytest.mark.parametrize('force_update', [True, False])
 @pytest.mark.parametrize(
-    'loaded_data_list_target, loaded_data_list_is_raw', 
+    'loaded_data_list_target, loaded_data_list_is_raw',
     [
         ("loaded_data_list", True),
         ("loaded_epoch_data_list", False)
@@ -87,7 +90,7 @@ def test_study_set_preprocessed_data_list(
 
 def test_study_get_datasets_generator(loaded_epoch_data_list):
     config = DataSplittingConfig(
-        TrainingType.FULL, is_cross_validation=False, 
+        TrainingType.FULL, is_cross_validation=False,
         val_splitter_list=[], test_splitter_list=[]
     )
     study = Study()
@@ -106,7 +109,7 @@ def _test_study_set_datasets_raise(study, dataset, force_update):
 
 @pytest.mark.parametrize('force_update', [True, False])
 @pytest.mark.parametrize(
-    'loaded_data_list_target', 
+    'loaded_data_list_target',
     ["loaded_data_list", "loaded_epoch_data_list"]
 )
 @pytest.mark.parametrize(
@@ -124,7 +127,7 @@ def test_study_set_datasets(
 ):
     loaded_data_list = request.getfixturevalue(loaded_data_list_target)
     config = DataSplittingConfig(
-        TrainingType.FULL, is_cross_validation=False, 
+        TrainingType.FULL, is_cross_validation=False,
         val_splitter_list=[], test_splitter_list=[]
     )
     study = Study()
@@ -207,7 +210,7 @@ def test_study_generate_plan(mocker, trainer_study, force_update):
     trainer_mock = mocker.patch(
         'XBrainLab.training.Trainer.__init__', return_value=None
     )
-    trainer_study.datasets = [1,2,3]
+    trainer_study.datasets = [1, 2, 3]
     trainer_study.training_option = 2
     trainer_study.model_holder = 3
     if force_update:
@@ -217,7 +220,7 @@ def test_study_generate_plan(mocker, trainer_study, force_update):
             trainer_study.generate_plan(force_update=force_update)
         trainer_study.clean_trainer()
         trainer_study.generate_plan(force_update=force_update)
-    
+
     called_args_list = holder_mock.call_args_list
     assert len(called_args_list) == 3
     for i in range(3):
@@ -238,7 +241,7 @@ def test_study_generate_plan(mocker, trainer_study, force_update):
 )
 def test_study_generate_plan_missing_options(missing_part, complain):
     study = Study()
-    study.datasets = [1,2,3]
+    study.datasets = [1, 2, 3]
     study.training_option = 2
     study.model_holder = 3
     setattr(study, missing_part, None)
@@ -270,7 +273,7 @@ def test_study_export_output_csv(mocker, trainer_study, has_record, has_eval):
     if has_eval:
         return_value = record
     mocker.patch(
-        'XBrainLab.tests.test_study.FakePlan.get_eval_record', 
+        'XBrainLab.tests.test_study.FakePlan.get_eval_record',
         return_value=return_value
     )
     trainer_study.trainer.return_plan = has_record
@@ -284,7 +287,7 @@ def test_study_export_output_csv(mocker, trainer_study, has_record, has_eval):
         return
     trainer_study.export_output_csv('test', '1', '2')
     assert record.filepath == 'test'
-    
+
 
 def test_study_export_output_csv_not_set():
     study = Study()

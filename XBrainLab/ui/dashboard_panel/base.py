@@ -1,4 +1,6 @@
 import tkinter as tk
+
+
 class PanelBase(tk.LabelFrame):
     def __init__(self, parent, text, row, column, rowspan=1, columnspan=1):
         super().__init__(parent, text=text)
@@ -6,7 +8,7 @@ class PanelBase(tk.LabelFrame):
         self.is_setup = False
 
         self.grid(
-            row=row, column=column, rowspan=rowspan, 
+            row=row, column=column, rowspan=rowspan,
             columnspan=columnspan, sticky='wesn', padx=10, pady=10
         )
 

@@ -1,8 +1,11 @@
 import tkinter as tk
-from ..base import TopWindow, InitWindowValidateException, ValidateException
-from ..script import Script
-import numpy as np
+
 import mne
+import numpy as np
+
+from ..base import InitWindowValidateException, TopWindow, ValidateException
+from ..script import Script
+
 
 class PickMontageWindow(TopWindow):
     command_label = 'Set Montage'
@@ -14,7 +17,7 @@ class PickMontageWindow(TopWindow):
         self.positions = None
         # init data
         montage_list = mne.channels.get_builtin_montages()
-        
+
         #+ gui
         ##+ option menu
         selected_montage = tk.StringVar(self)
@@ -37,17 +40,17 @@ class PickMontageWindow(TopWindow):
         tk.Button(self, text='confirm', command=self.confirm).grid(
             row=2, column=0, columnspan=3
         )
-        self.columnconfigure([0,2], weight=1)
+        self.columnconfigure([0, 2], weight=1)
         self.rowconfigure([1], weight=1)
 
-        
+
         self.selected_montage = selected_montage
         self.option_list = option_list
         self.seleced_list = seleced_list
         self.selected_label = selected_label
         self.options = None
         selected_montage.set(montage_list[0])
-    
+
     def check_data(self):
         if not self.channel_names:
             raise InitWindowValidateException(
@@ -69,13 +72,13 @@ class PickMontageWindow(TopWindow):
 
     def get_selected(self):
         return [self.seleced_list.get(i) for i in range(self.seleced_list.size())]
-            
+
     def on_montage_select(self, var_name, *args):
         while self.option_list.size() > 0:
             self.option_list.delete(0)
         while self.seleced_list.size() > 0:
             self.seleced_list.delete(0)
-        
+
         montage = mne.channels.make_standard_montage(self.selected_montage.get())
         options = list(montage.get_positions()['ch_pos'].keys())
         self.options = options
@@ -87,13 +90,13 @@ class PickMontageWindow(TopWindow):
             else:
                 break
         self.selected_label.config(text=f'{self.seleced_list.size()} Selected')
-    
+
     def confirm(self):
         montage = mne.channels.make_standard_montage(self.selected_montage.get())
         chs = self.get_selected()
         if len(chs) != len(self.channel_names):
             raise ValidateException(
-                window=self, 
+                window=self,
                 message=(
                     'Number of channels mismatch '
                     f'({len(chs)} != {len(self.channel_names)})'
@@ -106,19 +109,19 @@ class PickMontageWindow(TopWindow):
         self.script_history = Script()
         self.script_history.add_import("import mne")
         self.script_history.add_import("import numpy as np")
-        
-        self.script_history.add_cmd((
+
+        self.script_history.add_cmd(
             "montage = mne.channels.make_standard_montage("
-            f"{repr(self.selected_montage.get())}"
+            f"{self.selected_montage.get()!r}"
             ")"
-        ))
-        self.script_history.add_cmd(f"chs = {repr(chs)}")
-        self.script_history.add_cmd((
+        )
+        self.script_history.add_cmd(f"chs = {chs!r}")
+        self.script_history.add_cmd(
             "positions = np.array("
             "[montage.get_positions()['ch_pos'][ch] for ch in chs]"
             ")"
-        ))
-    
+        )
+
         self.destroy()
 
     def _get_result(self):

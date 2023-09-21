@@ -1,12 +1,14 @@
-from .base import PanelBase
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
+
+from .base import PanelBase
+
 
 class TrainingStatusPanel(PanelBase):
     def __init__(self, parent, **args):
         super().__init__(parent, text='Training Status', **args)
         columns = (
-            'Plan name', 'training trials', 'validation trials', 
+            'Plan name', 'training trials', 'validation trials',
             'testing trials', 'Progress'
         )
         tree = ttk.Treeview(
@@ -15,7 +17,7 @@ class TrainingStatusPanel(PanelBase):
         for i in columns:
             tree.heading(i, text=i)
             tree.column(i, width=80, anchor=tk.CENTER)
-        
+
         self.tree = tree
 
     def show_instruction(self):
@@ -24,7 +26,7 @@ class TrainingStatusPanel(PanelBase):
 
     def show_panel(self):
         self.clear_panel()
-        self.tree.pack(expand=True,fill=tk.BOTH)
+        self.tree.pack(expand=True, fill=tk.BOTH)
         self.is_setup = True
 
     def update_panel(self, trainer):
@@ -37,12 +39,12 @@ class TrainingStatusPanel(PanelBase):
         for plan_holder in plan_holders:
             dataset = plan_holder.get_dataset()
             self.tree.insert(
-                "", 'end', 
+                "", 'end',
                 values=[
-                    plan_holder.get_name(), 
-                    dataset.get_train_len(), 
-                    dataset.get_val_len(), 
-                    dataset.get_test_len(), 
+                    plan_holder.get_name(),
+                    dataset.get_train_len(),
+                    dataset.get_val_len(),
+                    dataset.get_test_len(),
                     plan_holder.get_epoch_progress_text()
                 ]
             )

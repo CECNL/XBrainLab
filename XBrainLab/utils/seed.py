@@ -1,9 +1,10 @@
 from __future__ import annotations
-import torch
+
 import random
+
 import numpy as np
-from numpy.random import MT19937
-from numpy.random import RandomState, SeedSequence
+import torch
+from numpy.random import MT19937, RandomState, SeedSequence
 
 
 def set_seed(seed: int | None = None) -> int:

@@ -1,11 +1,13 @@
-from .base import PreprocessBase
-from ..load_data import Raw
-import numpy as np
 import mne
+import numpy as np
+
+from ..load_data import Raw
+from .base import PreprocessBase
+
 
 class TimeEpoch(PreprocessBase):
     """Class for epoching data by event markers
-    
+
     Input:
         baseline: Baseline removal time interval
         selected_event_names: List of event names to be kept
@@ -25,20 +27,20 @@ class TimeEpoch(PreprocessBase):
                 )
 
     def get_preprocess_desc(
-        self, 
-        baseline: list, 
-        selected_event_names: list, 
-        tmin: float, 
+        self,
+        baseline: list,
+        selected_event_names: list,
+        tmin: float,
         tmax: float
     ):
         return f"Epoching {tmin} ~ {tmax} by event ({baseline} baseline)"
 
     def _data_preprocess(
-        self, 
-        preprocessed_data: Raw, 
-        baseline: list, 
-        selected_event_names: list, 
-        tmin: float, 
+        self,
+        preprocessed_data: Raw,
+        baseline: list,
+        selected_event_names: list,
+        tmin: float,
         tmax: float
     ):
         raw_events, raw_event_id = preprocessed_data.get_raw_event_list()
@@ -46,13 +48,13 @@ class TimeEpoch(PreprocessBase):
             raw_events, raw_event_id = preprocessed_data.get_event_list()
         selected_event_id = {}
         for event_name in selected_event_names:
-            if event_name in raw_event_id.keys():
+            if event_name in raw_event_id:
                 selected_event_id[event_name] = raw_event_id[event_name]
-        
+
         selection_mask = np.zeros(raw_events.shape[0], dtype=bool)
-        for event_name in selected_event_id.keys():
+        for event_name in selected_event_id:
             selection_mask = np.logical_or(
-                selection_mask, raw_events[:,-1]==selected_event_id[event_name]
+                selection_mask, raw_events[:, -1]==selected_event_id[event_name]
             )
         selected_events = raw_events[selection_mask]
         if(len(selected_events) == 0):
@@ -64,5 +66,5 @@ class TimeEpoch(PreprocessBase):
                                         tmax=tmax,
                                         baseline=baseline,
                                         preload=True)
-        
+
         preprocessed_data.set_mne(data)

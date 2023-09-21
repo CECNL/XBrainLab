@@ -1,5 +1,7 @@
-from .base import PanelBase
 import tkinter as tk
+
+from .base import PanelBase
+
 
 class TrainingSettingPanel(PanelBase):
     def __init__(self, parent, **args):
@@ -45,7 +47,7 @@ class TrainingSettingPanel(PanelBase):
         self.eval_label.grid(row=7, column=1)
         self.repeat_label.grid(row=8, column=1)
         self.model_label.grid(row=9, column=1)
-        
+
         frame.pack(expand=True)
         self.frame = frame
 
@@ -73,10 +75,10 @@ class TrainingSettingPanel(PanelBase):
         self.eval_label.config(text='Not set')
         self.repeat_label.config(text='Not set')
         self.model_label.config(text='Not set')
-        
+
         if model_holder:
             self.model_label.config(text=model_holder.get_model_desc_str())
-        
+
         if training_option:
             self.epoch_label.config(text=training_option.epoch)
             self.bs_label.config(text=training_option.bs)
@@ -87,4 +89,3 @@ class TrainingSettingPanel(PanelBase):
             self.checkpoint_label.config(text=training_option.checkpoint_epoch)
             self.eval_label.config(text=training_option.evaluation_option.value)
             self.repeat_label.config(text=training_option.repeat_num)
-            

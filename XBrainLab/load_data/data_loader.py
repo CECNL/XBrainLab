@@ -1,7 +1,8 @@
-from ..utils import validate_type, validate_list_type
-from . import Raw
+from typing import TYPE_CHECKING, List, Optional
 
-from typing import List, TYPE_CHECKING
+from ..utils import validate_list_type, validate_type
+from .raw import Raw
+
 if TYPE_CHECKING: # pragma: no cover
     from .. import Study
 
@@ -14,7 +15,7 @@ class RawDataLoader(list):
     Parameters:
         raw_data_list: List of loaded raw data.
     """
-    def __init__(self, raw_data_list: List[Raw]=None):
+    def __init__(self, raw_data_list: Optional[List[Raw]]=None):
         if raw_data_list is None:
             raw_data_list = []
         validate_list_type(raw_data_list, Raw, "raw_data_list")
@@ -24,7 +25,7 @@ class RawDataLoader(list):
 
     def get_loaded_raw(self, filepath: str) -> Raw:
         """Return the loaded raw data with the given filepath.
-        
+
         Args:
             filepath: Filepath of the raw data.
         """
@@ -35,7 +36,7 @@ class RawDataLoader(list):
 
     def validate(self) -> None:
         """Validate the loaded raw data consistency.
-        
+
         Raises:
             ValueError: If the loaded raw data is inconsistent or empty.
         """
@@ -51,15 +52,15 @@ class RawDataLoader(list):
             raise ValueError("No dataset has been loaded")
 
     def check_loaded_data_consistency(self, raw: Raw, idx: int = -1):
-        """Validate the loaded raw data consistency with the raw data in the dataset 
+        """Validate the loaded raw data consistency with the raw data in the dataset
            at the given index.
 
         Args:
             raw: Loaded raw data.
             idx: Index of the raw data in the dataset. Default to the last one.
-        
+
         Raises:
-            ValueError: If the loaded raw data is inconsistent with 
+            ValueError: If the loaded raw data is inconsistent with
                         the raw data in the dataset.
         """
         validate_type(raw, Raw, 'raw')
@@ -80,12 +81,14 @@ class RawDataLoader(list):
         if self[idx].is_raw() != raw.is_raw():
             raise ValueError('Dataset type inconsistent.')
         # check epoch trial size
-        if not raw.is_raw():
-            if self[idx].get_epoch_duration() != raw.get_epoch_duration():
-                raise ValueError(
-                    f'Epoch duration inconsistent (got {raw.get_epoch_duration()}).'
-                )
-    
+        if (
+            not raw.is_raw() and
+            (self[idx].get_epoch_duration() != raw.get_epoch_duration())
+        ):
+            raise ValueError(
+                f'Epoch duration inconsistent (got {raw.get_epoch_duration()}).'
+            )
+
     def append(self, raw: Raw) -> None:
         """Append the loaded raw data to the dataset.
 

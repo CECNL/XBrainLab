@@ -1,29 +1,28 @@
-from XBrainLab.visualization import VisualizerType
-from XBrainLab.training.record import EvalRecord
-from XBrainLab.load_data import Raw
-from XBrainLab.dataset import Epochs
-
-import numpy as np
 import mne
+import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
+from XBrainLab.dataset import Epochs
+from XBrainLab.load_data import Raw
+from XBrainLab.training.record import EvalRecord
+from XBrainLab.visualization import VisualizerType
 
 epoch_duration = 3
 n_trial = 3
 fs = 5
 subject_list = ['1', '2', '3']
 session_list = ['1', '2']
-ch_names=['O1', 'O2']
+ch_names = ['O1', 'O2']
 
 def get_preprocessed_data_list(n_class):
     event_id = {'c' + str(i): i for i in range(n_class)}
     events = np.zeros((n_class * n_trial, 3), dtype=int)
     events[:, 0] = np.arange(events.shape[0])
-    events[:, 2] = np.arange(n_class).repeat(n_trial)   
+    events[:, 2] = np.arange(n_class).repeat(n_trial)
 
     ch_types = 'eeg'
-    
+
     result = []
     for subject in subject_list:
         for session in session_list:
@@ -34,7 +33,7 @@ def get_preprocessed_data_list(n_class):
             data = np.zeros((len(events), len(ch_names), epoch_duration * fs))
             for i in range(len(events)):
                 data[i, :, :] = base + events[i, 0]
-            epochs = mne.EpochsArray(data, info, events=events, 
+            epochs = mne.EpochsArray(data, info, events=events,
                                      tmin=0, event_id=event_id)
             raw = Raw(f"test/sub-{subject}_ses-{session}.fif", epochs)
             raw.set_subject_name(subject)
@@ -51,7 +50,7 @@ def get_abs_visualizer():
 def get_remaining_visualizer():
     abs_visualizer = get_abs_visualizer()
     all_visualizer = [
-        i for i in VisualizerType 
+        i for i in VisualizerType
         if i not in abs_visualizer
     ]
     return all_visualizer

@@ -1,6 +1,7 @@
+from XBrainLab.visualization import PlotType
+
 from ..widget import PlotFigureWindow
 
-from XBrainLab.visualization import PlotType
 
 class ConfusionMatrixWindow(PlotFigureWindow):
     command_label = 'Confusion matrix'

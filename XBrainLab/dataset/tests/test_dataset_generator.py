@@ -1,14 +1,27 @@
+import numpy as np
+import pytest
+
 from XBrainLab.dataset import (
-    DatasetGenerator, DataSplittingConfig, DataSplitter, Dataset
-)
-from XBrainLab.dataset import SplitUnit, SplitByType, TrainingType, ValSplitByType
-from .test_epochs import (
-    epochs, preprocessed_data_list, # noqa: F401
-    n_class, n_trial, subject_list, session_list, block_size
+    Dataset,
+    DatasetGenerator,
+    DataSplitter,
+    DataSplittingConfig,
+    SplitByType,
+    SplitUnit,
+    TrainingType,
+    ValSplitByType,
 )
 
-import pytest
-import numpy as np
+from .test_epochs import (
+    block_size,
+    epochs,  # noqa: F401
+    n_class,
+    n_trial,
+    preprocessed_data_list,  # noqa: F401
+    session_list,
+    subject_list,
+)
+
 
 def test_dataset_generator(
     epochs, # noqa: F811
@@ -23,7 +36,7 @@ def test_dataset_generator(
     with pytest.raises(AssertionError):
         DatasetGenerator(epochs, config, ['test'])
     DatasetGenerator(epochs, config)
-    
+
 @pytest.mark.parametrize('split_type, mock_target', [
     (SplitByType.SESSION, 'pick_session'),
     (SplitByType.SESSION_IND, 'pick_session'),
@@ -49,11 +62,11 @@ def test_dataset_generator_split_test(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    
+
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
     test_mask[:3] = True
     expected_next_mask = np.array([False, True, False, True, False])
-    split_func_mock = mocker.patch.object(epochs, mock_target, 
+    split_func_mock = mocker.patch.object(epochs, mock_target,
                                           return_value=(
                                               test_mask,
                                               expected_next_mask
@@ -78,7 +91,7 @@ def test_dataset_generator_split_test(
         expected[:, :] = 1 * 100000 + 1 * 1000 + i
         assert np.array_equal(X[i], expected)
         assert y[i] == np.arange(n_class).repeat(n_trial)[i]
-    
+
     assert (next_mask == expected_next_mask).all()
 
 @pytest.mark.parametrize('split_type, mock_target', [
@@ -107,11 +120,11 @@ def test_dataset_generator_split_test_list(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    
+
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
     test_mask[:3] = True
     expected_next_mask = np.zeros(epochs.get_data_length(), dtype=bool)
-    split_func_mock = mocker.patch.object(epochs, mock_target, 
+    split_func_mock = mocker.patch.object(epochs, mock_target,
                                           return_value=(
                                               test_mask,
                                               expected_next_mask
@@ -158,10 +171,10 @@ def test_dataset_generator_split_test_empty(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    
+
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
     expected_next_mask = np.array([False, True, False, True, False])
-    split_func_mock = mocker.patch.object(epochs, mock_target, 
+    split_func_mock = mocker.patch.object(epochs, mock_target,
                                           return_value=(
                                               test_mask,
                                               expected_next_mask
@@ -178,12 +191,12 @@ def test_dataset_generator_split_test_empty(
     assert call_args['value'] == split_value
     assert call_args['split_unit'] == split_unit
     assert call_args['group_idx'] == group_idx
-    
+
     X, y = dataset.get_test_data()
     assert dataset.get_test_len() == 0
     assert len(X) == 0
     assert len(y) == 0
-    
+
     assert (~next_mask).all()
     assert not generator.preview_failed
 
@@ -213,10 +226,10 @@ def test_dataset_generator_split_test_failed(
     group_idx = 0
     mask = np.zeros(epochs.get_data_length(), dtype=bool)
     clean_mask = np.zeros(epochs.get_data_length(), dtype=bool)
-    
+
     with pytest.raises(ValueError):
         generator.split_test(dataset, group_idx, mask, clean_mask)
-    
+
     assert generator.preview_failed
 
 def test_dataset_generator_split_test_interrupted(
@@ -240,14 +253,14 @@ def test_dataset_generator_split_test_interrupted(
     group_idx = 0
     mask = np.zeros(epochs.get_data_length(), dtype=bool)
     clean_mask = np.zeros(epochs.get_data_length(), dtype=bool)
-    
+
     generator.set_interrupt()
     with pytest.raises(KeyboardInterrupt):
         generator.split_test(dataset, group_idx, mask, clean_mask)
     assert generator.interrupted
     assert generator.preview_failed
-    
-    
+
+
 @pytest.mark.parametrize('target_getter_name, expected_length, test_splitter_list', [
     ('get_subject_list', len(subject_list) - 1, [
         DataSplitter(SplitByType.SUBJECT, 1, SplitUnit.NUMBER),
@@ -269,7 +282,7 @@ def test_dataset_generator_split_test_independent(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    
+
     dataset = Dataset(epochs, config)
     group_idx = 0
     mask = np.ones(epochs.get_data_length(), dtype=bool)
@@ -298,7 +311,7 @@ def test_dataset_generator_split_test_not_implemented(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    
+
     dataset = Dataset(epochs, config)
     group_idx = 0
     mask = np.zeros(epochs.get_data_length(), dtype=bool)
@@ -330,11 +343,11 @@ def test_dataset_generator_split_validation(
     dataset = Dataset(epochs, config)
 
     mask = np.ones(epochs.get_data_length(), dtype=bool)
-    
+
     test_mask = np.zeros(epochs.get_data_length(), dtype=bool)
     test_mask[:3] = True
     expected_next_mask = np.array([False, True, False, True, False])
-    split_func_mock = mocker.patch.object(epochs, mock_target, 
+    split_func_mock = mocker.patch.object(epochs, mock_target,
                                           return_value=(
                                               test_mask,
                                               expected_next_mask
@@ -342,9 +355,9 @@ def test_dataset_generator_split_validation(
 
     group_idx = 0
     generator.split_validate(dataset, group_idx)
-    
+
     call_args = split_func_mock.call_args[1]
-    
+
     assert np.array_equal(call_args['mask'], mask)
     assert np.array_equal(call_args['clean_mask'], None)
     assert call_args['value'] == split_value
@@ -358,7 +371,7 @@ def test_dataset_generator_split_validation(
         expected[:, :] = 1 * 100000 + 1 * 1000 + i
         assert np.array_equal(X[i], expected)
         assert y[i] == np.arange(n_class).repeat(n_trial)[i]
-    
+
 def test_dataset_generator_split_validation_failed(
     epochs, # noqa: F811
 ):
@@ -378,10 +391,10 @@ def test_dataset_generator_split_validation_failed(
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
     group_idx = 0
-    
+
     with pytest.raises(ValueError):
         generator.split_validate(dataset, group_idx)
-    
+
     assert generator.preview_failed
     with pytest.raises(ValueError):
         generator.generate()
@@ -408,7 +421,7 @@ def test_dataset_generator_split_validation_not_implemented(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    
+
     dataset = Dataset(epochs, config)
     group_idx = 0
     with pytest.raises(NotImplementedError):
@@ -433,13 +446,13 @@ def test_dataset_generator_split_validation_interrupt(
     generator = DatasetGenerator(epochs, config)
     dataset = Dataset(epochs, config)
     group_idx = 0
-    
+
     generator.set_interrupt()
     with pytest.raises(KeyboardInterrupt):
         generator.split_validate(dataset, group_idx)
     assert generator.interrupted
     assert generator.preview_failed
-    
+
 def test_dataset_generator_failed(
     epochs, # noqa: F811
 ):
@@ -459,7 +472,7 @@ def test_dataset_generator_failed(
 
     with pytest.raises(ValueError):
         generator.generate()
-    
+
     generator.reset()
     assert generator.is_clean()
 
@@ -514,7 +527,7 @@ def test_dataset_generator_handle_individual(
         assert ((X // 1000 * 1000) == ((i + 1) * 100000 + 2 * 1000)).all()
         X, _ = result[i].get_test_data()
         assert ((X // 1000 * 1000) == ((i + 1) * 100000 + 1 * 1000)).all()
-        
+
 def test_dataset_generator_handle_individual_cross_validation(
     epochs, # noqa: F811
 ):
@@ -540,22 +553,22 @@ def test_dataset_generator_handle_individual_cross_validation(
         for j in range(len(session_list)):
             idx = i * len(session_list) + j
             assert (
-                result[idx].get_name() == 
+                result[idx].get_name() ==
                 str(idx) + '-Subject-' + str(i + 1) + '_' + str(j)
             )
             X, _ = result[idx].get_training_data()
             assert (
-                (X // 1000 * 1000) == 
+                (X // 1000 * 1000) ==
                 ((i + 1) * 100000 + ((j + 1) % len(session_list) + 1) * 1000)
             ).all()
             X, _ = result[idx].get_val_data()
             assert (
-                (X // 1000 * 1000) == 
+                (X // 1000 * 1000) ==
                 ((i + 1) * 100000 + ((j + 1) % len(session_list) + 1) * 1000)
             ).all()
             X, _ = result[idx].get_test_data()
             assert (
-                (X // 1000 * 1000) == 
+                (X // 1000 * 1000) ==
                 ((i + 1) * 100000 + ((j) % len(session_list) + 1) * 1000)
             ).all()
 
@@ -591,11 +604,11 @@ def test_dataset_generator_handle_full(
     X, _ = result.get_test_data()
     assert ((X // 100000 * 100000) == (1 * 100000)).all()
     assert len(X) == block_size * len(session_list)
-        
+
 
 def test_dataset_generator_handle_full_cross_validation(
     epochs, # noqa: F811
-): 
+):
     train_type = TrainingType.FULL
     is_cross_validation = True
     split_value = 1
@@ -615,12 +628,12 @@ def test_dataset_generator_handle_full_cross_validation(
     result = generator.generate()
     assert len(result) == len(subject_list)
     for i in range(len(subject_list)):
-        
+
         assert result[i].get_name() == str(i) + '-Group_' + str(i)
         X, _ = result[i].get_training_data()
         assert ((X // 100000 * 100000) != ((i + 1) * 100000)).all()
         assert (
-            len(X) == 
+            len(X) ==
             block_size * ((len(subject_list) - 1) * (len(session_list) - 1))
         )
         X, _ = result[i].get_val_data()
@@ -635,7 +648,7 @@ def test_dataset_generator_handle_full_cross_validation(
     (TrainingType.FULL, 'handle_FULL')
 ])
 @pytest.mark.parametrize('datasets, has_error', [
-    ([] , True),
+    ([], True),
     ([1], False),
     ([1, 2, 3], False)
 ])
@@ -690,7 +703,7 @@ def test_dataset_generator_generate_exists(
         train_type, is_cross_validation, val_splitter_list, test_splitter_list
     )
     generator = DatasetGenerator(epochs, config)
-    datasets = [1 ,2 ,3]
+    datasets = [1, 2, 3]
     generator.datasets = datasets
     result = generator.generate()
     assert result == datasets

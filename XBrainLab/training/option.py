@@ -1,6 +1,8 @@
 from enum import Enum
+
 import torch
-import torch.nn as nn
+from torch import nn
+
 
 class TRAINING_EVALUATION(Enum):
     """Utility class for model selection option"""
@@ -19,13 +21,13 @@ def parse_device_name(use_cpu: bool, gpu_idx: int) -> str:
 
 def parse_optim_name(optim: type, optim_params: dict) -> str:
     """Return optimizer description string, including optimizer name and parameters"""
-    option_list = [f"{i}={optim_params[i]}" for i in optim_params if optim_params[i] ]
+    option_list = [f"{i}={optim_params[i]}" for i in optim_params if optim_params[i]]
     options = ', '.join(option_list)
     return f"{optim.__name__} ({options})"
 
 class TrainingOption:
     """Utility class for storing training options
-    
+
     Attributes:
         output_dir: Output directory
         optim: Optimizer class of type :class:`torch.optim.Optimizer`
@@ -40,17 +42,17 @@ class TrainingOption:
         repeat_num: Number of repeats
         criterion: Loss function
     """
-    def __init__(self, 
-                 output_dir: str, 
+    def __init__(self,
+                 output_dir: str,
                  optim: type,
-                 optim_params: dict, 
-                 use_cpu: bool, 
-                 gpu_idx: int, 
-                 epoch: int, 
-                 bs: int, 
-                 lr: float, 
-                 checkpoint_epoch: int, 
-                 evaluation_option: TRAINING_EVALUATION, 
+                 optim_params: dict,
+                 use_cpu: bool,
+                 gpu_idx: int,
+                 epoch: int,
+                 bs: int,
+                 lr: float,
+                 checkpoint_epoch: int,
+                 evaluation_option: TRAINING_EVALUATION,
                  repeat_num: int):
         self.output_dir = output_dir
         self.optim = optim
@@ -68,7 +70,7 @@ class TrainingOption:
 
     def validate(self) -> None:
         """Validate training options
-        
+
         Raises:
             ValueError: If any option is invalid or not set
         """
@@ -85,15 +87,17 @@ class TrainingOption:
             reason = 'Evaluation option not set'
 
         def check_num(i):
+            """Return True if i is not a number"""
             try:
                 float(i)
-                return False
             except Exception:
                 return True
+            else:
+                return False
 
-        if self.gpu_idx is not None:
-            if check_num(self.gpu_idx):
-                reason = 'Invalid gpu_idx'
+
+        if self.gpu_idx is not None and check_num(self.gpu_idx):
+            reason = 'Invalid gpu_idx'
         if check_num(self.epoch):
             reason = 'Invalid epoch'
         if check_num(self.bs):
@@ -104,18 +108,18 @@ class TrainingOption:
             reason = 'Invalid checkpoint epoch'
         if check_num(self.repeat_num) or int(self.repeat_num) <= 0:
             reason = 'Invalid repeat number'
-        
+
         if reason:
             raise ValueError(reason)
-        
+
         self.epoch = int(self.epoch)
-        self.bs = int(self.bs) 
-        self.lr = float(self.lr) 
+        self.bs = int(self.bs)
+        self.lr = float(self.lr)
         self.checkpoint_epoch = int(self.checkpoint_epoch)
         self.repeat_num = int(self.repeat_num)
         if self.gpu_idx is not None:
             self.gpu_idx = int(self.gpu_idx)
-    
+
     def get_optim(self, model: torch.nn.Module) -> torch.optim.Optimizer:
         """Return optimizer instance"""
         return self.optim(params=model.parameters(), lr=self.lr, **self.optim_params)
@@ -125,14 +129,14 @@ class TrainingOption:
         return self.optim.__name__
 
     def get_optim_desc_str(self) -> str:
-        """Return optimizer description string, 
+        """Return optimizer description string,
            including optimizer name and parameters"""
         return parse_optim_name(self.optim, self.optim_params)
 
     def get_device_name(self) -> str:
         """Return device description string"""
         return parse_device_name(self.use_cpu, self.gpu_idx)
-    
+
     def get_device(self) -> str:
         """Return device name used by PyTorch"""
         if self.use_cpu:
@@ -162,7 +166,7 @@ class TestOnlyOption(TrainingOption):
     """
     def __init__(self, output_dir: str, use_cpu: bool, gpu_idx: int, bs: int):
         super().__init__(
-            output_dir, None, None, use_cpu, gpu_idx, 0, bs, 0, 0, 
+            output_dir, None, None, use_cpu, gpu_idx, 0, bs, 0, 0,
             TRAINING_EVALUATION.LAST_EPOCH, 1
         )
         self.validate()
@@ -182,27 +186,28 @@ class TestOnlyOption(TrainingOption):
             reason = 'Device not set'
 
         def check_num(i):
+            """Return True if i is not a number"""
             try:
                 float(i)
-                return False
             except Exception:
                 return True
+            else:
+                return False
 
-        if self.gpu_idx is not None:
-            if check_num(self.gpu_idx):
-                reason = 'Invalid gpu_idx'
+        if self.gpu_idx is not None and check_num(self.gpu_idx):
+            reason = 'Invalid gpu_idx'
         if check_num(self.bs):
             reason = 'Invalid batch size'
-        
+
         if reason:
             raise ValueError(reason)
-        
+
         self.epoch = int(self.epoch)
-        self.bs = int(self.bs) 
+        self.bs = int(self.bs)
         self.repeat_num = int(self.repeat_num)
         if self.gpu_idx is not None:
             self.gpu_idx = int(self.gpu_idx)
-    
+
     def get_optim(self, model):
         return None
 
@@ -214,7 +219,7 @@ class TestOnlyOption(TrainingOption):
 
     def get_device_name(self):
         return parse_device_name(self.use_cpu, self.gpu_idx)
-    
+
     def get_device(self):
         if self.use_cpu:
             return 'cpu'

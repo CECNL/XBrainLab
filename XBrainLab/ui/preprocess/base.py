@@ -1,6 +1,7 @@
 from ..base import TopWindow
 from ..script import Script
 
+
 class PreprocessBase(TopWindow):
     def __init__(self, parent, title, preprocessor):
         super().__init__(parent, title)

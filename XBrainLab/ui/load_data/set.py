@@ -1,6 +1,6 @@
 import mne
 
-from .base import LoadBase, DataType
+from .base import DataType, LoadBase
 
 
 class LoadSet(LoadBase):
@@ -15,11 +15,11 @@ class LoadSet(LoadBase):
             try:
                 selected_data = mne.io.read_raw_eeglab(
                     filepath, uint16_codec='latin1', preload=True
-                ) 
-                self.script_history.add_cmd((
+                )
+                self.script_history.add_cmd(
                     "data = mne.io.read_raw_eeglab("
                     "filepath, uint16_codec='latin1', preload=True)"
-                ))
+                )
                 data_type = DataType.RAW.value
             except (TypeError):
                 selected_data = mne.io.read_epochs_eeglab(
@@ -42,10 +42,10 @@ class LoadSet(LoadBase):
                 selected_data = mne.io.read_raw_eeglab(
                     filepath, uint16_codec='latin1', preload=True
                 )
-                self.script_history.add_cmd((
+                self.script_history.add_cmd(
                     "data = mne.io.read_raw_eeglab("
                     "filepath, uint16_codec='latin1', preload=True)"
-                ))
+                )
                 data_type = DataType.RAW.value
         if data_type:
             self.check_data_type(data_type)

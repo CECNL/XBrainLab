@@ -1,10 +1,12 @@
-from .base import PreprocessBase
-from ..load_data import Raw
 import mne
+
+from ..load_data import Raw
+from .base import PreprocessBase
+
 
 class WindowEpoch(PreprocessBase):
     """Class for epoching data by sliding window
-    
+
     Input:
         duration: Window duration in seconds
         overlap: Window overlap in seconds
@@ -21,18 +23,18 @@ class WindowEpoch(PreprocessBase):
                     f"No event markers found for {preprocessed_data.get_filename()}"
                 )
             if len(events) != 1 or len(event_id) != 1:
-                raise ValueError((
+                raise ValueError(
                     "Should only contain single event label, "
                     f"found events={len(events)}, event_id={len(event_id)}"
-                ))
+                )
 
     def get_preprocess_desc(self, duration: float, overlap: float):
         return f"Epoching {duration}s ({overlap}s overlap) by sliding window"
 
     def _data_preprocess(
-        self, 
-        preprocessed_data: Raw, 
-        duration: float, 
+        self,
+        preprocessed_data: Raw,
+        duration: float,
         overlap: float
     ):
         mne_data = preprocessed_data.get_mne()
@@ -43,5 +45,5 @@ class WindowEpoch(PreprocessBase):
             mne_data, duration=duration, overlap=overlap, preload=True, id=FIXED_ID
         )
         _, event_id = preprocessed_data.get_event_list()
-        epoch.event_id = {list(event_id.keys())[0]: FIXED_ID}
+        epoch.event_id = {next(iter(event_id.keys())): FIXED_ID}
         preprocessed_data.set_mne_and_wipe_events(epoch)

@@ -1,17 +1,19 @@
 from __future__ import annotations
-from typing import List
-import mne
+
 import os
 import re
-import numpy as np
-from enum import Enum
 import traceback
+from enum import Enum
+
+import mne
+import numpy as np
 
 from ..utils import validate_type
 
+
 class FilenameGroupKey(Enum):
     """
-    Utility class for parsing filename with regex. 
+    Utility class for parsing filename with regex.
     """
     SUBJECT = 'subject'
     SESSION = 'session'
@@ -19,7 +21,7 @@ class FilenameGroupKey(Enum):
 class Raw:
     """Class for storing raw data.
 
-    Holds data loaded from `mne`, preprocess history and event information. 
+    Holds data loaded from `mne`, preprocess history and event information.
 
     Attributes:
         filepath: str
@@ -28,9 +30,9 @@ class Raw:
             Loaded data from MNE.
         preprocess_history: list[str]
             List of preprocess history.
-        # list of 
+        # list of
         raw_events: list[list[int]] | None
-            Raw events. Same as `mne` format, 
+            Raw events. Same as `mne` format,
             (onset, immediately preceding sample, event_id).
         raw_event_id: dict[str, int] | None
             Raw event id. Same as `mne` format, {event_name: event_id}.
@@ -50,15 +52,15 @@ class Raw:
         self.raw_event_id = None
         self.subject = 0
         self.session = 0
-    
+
     def get_filepath(self) -> str:
         """Return the filepath of the raw data."""
         return self.filepath
-    
+
     def get_filename(self) -> str:
         """Return the filename of the raw data."""
         return os.path.basename(self.filepath)
-    
+
     def get_subject_name(self) -> str:
         """Return the subject name of the raw data."""
         return str(self.subject)
@@ -66,11 +68,11 @@ class Raw:
     def get_session_name(self) -> str:
         """Return the session name of the raw data."""
         return str(self.session)
-    
+
     def get_preprocess_history(self) -> list[str]:
         """Return the preprocess history of the raw data."""
         return self.preprocess_history
-    
+
     def add_preprocess(self, desc: str) -> None:
         """Add preprocess description to the preprocess history."""
         self.preprocess_history.append(desc)
@@ -102,11 +104,11 @@ class Raw:
         """Set the session name of the raw data."""
         self.session = session
 
-    def set_event(self, events: List[List[int]], event_id: dict[str, int]) -> None:
+    def set_event(self, events: list[list[int]], event_id: dict[str, int]) -> None:
         """Set the event of the raw data.
 
         Args:
-            events: Raw events. Same as `mne` format, 
+            events: Raw events. Same as `mne` format,
                     (onset, immediately preceding sample, event_id).
             event_id: Raw event id. Same as `mne` format, {event_name: event_id}.
         """
@@ -126,15 +128,17 @@ class Raw:
         Args:
             data: New mne data.
         """
-        if isinstance(data, mne.epochs.BaseEpochs):
-            # set loaded event to new data
-            if self.raw_event_id:
-                # check event consistency
-                assert len(self.raw_events) == len(data.events)
-                data.events = self.raw_events
-                data.event_id = self.raw_event_id
-                self.raw_events = None
-                self.raw_event_id = None
+        # set loaded event to new data
+        if (
+            isinstance(data, mne.epochs.BaseEpochs) and
+            self.raw_event_id
+        ):
+            # check event consistency
+            assert len(self.raw_events) == len(data.events)
+            data.events = self.raw_events
+            data.event_id = self.raw_event_id
+            self.raw_events = None
+            self.raw_event_id = None
         self.mne_data = data
 
     def set_mne_and_wipe_events(self, data: mne.io.BaseRaw | mne.BaseEpochs) -> None:
@@ -169,13 +173,13 @@ class Raw:
     def get_filter_range(self) -> tuple[float, float]:
         """Return the filter range of :attr:`mne_data`."""
         return self.mne_data.info['highpass'], self.mne_data.info['lowpass']
-        
+
     def get_epochs_length(self) -> int:
         """Return the number of epochs."""
         if self.is_raw():
             return 1
         return len(self.mne_data.events)
-    
+
     def get_epoch_duration(self) -> int:
         """Return the duration of each epoch in samples."""
         return self.mne_data.get_data().shape[-1]
@@ -183,10 +187,10 @@ class Raw:
     def is_raw(self) -> bool:
         """Return whether the data is unsegmented raw data."""
         return isinstance(self.mne_data, mne.io.base.BaseRaw)
-    
+
     # event related functions
     def get_raw_event_list(self) -> tuple[list[list[int]], dict[str, int]]:
-        """Return the event list and event id of the raw data 
+        """Return the event list and event id of the raw data
            directly from the :attr:`mne_data`.
 
         Returns:
@@ -202,15 +206,16 @@ class Raw:
         try:
             events = mne.find_events(self.mne_data)
             event_ids = {
-                str(e):e for e in np.unique(events[:,-1])
+                str(e): e for e in np.unique(events[:, -1])
             }
-            return events, event_ids
         except Exception:
             return mne.events_from_annotations(self.mne_data)
+        else:
+            return events, event_ids
 
     def get_event_list(self) -> tuple[list[list[int]], dict[str, int]]:
         """Return the event list and event id of the raw data.
-        
+
         Returns:
             (events, event_id)
         """
@@ -230,20 +235,20 @@ class Raw:
         if self.has_event():
             return 'yes'
         return 'no'
-    
+
     def get_event_name_list_str(self) -> str:
         """Return the event name list in string format. Separated by comma."""
         if not self.has_event():
             return 'None'
         _, event_id = self.get_event_list()
         return ','.join([str(e) for e in event_id])
-        
+
     # misc
     def get_row_info(self) -> tuple[str, str, str, int, float, int, str]:
         """Return the information of the raw data for displaying in the UI table.
 
         Returns: (
-            Filename, subject name, session name, number of channels, 
+            Filename, subject name, session name, number of channels,
             sample frequency, number of epochs, whether the data has event
         )
         """
@@ -252,9 +257,9 @@ class Raw:
         epochs = self.get_epochs_length()
         has_event = self.has_event_str()
         return (
-            self.get_filename(), 
-            self.get_subject_name(), 
-            self.get_session_name(), 
+            self.get_filename(),
+            self.get_subject_name(),
+            self.get_session_name(),
             channel, sfreq, epochs, has_event
         )
 

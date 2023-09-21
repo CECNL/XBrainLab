@@ -1,9 +1,11 @@
 import tkinter as tk
-import tkinter.ttk as ttk
-from ..base import TopWindow
-from ..base import InitWindowValidateException
-from ..script import Script
+from tkinter import ttk
+
 from XBrainLab.evaluation import Metric
+
+from ..base import InitWindowValidateException, TopWindow
+from ..script import Script
+
 
 class EvaluationTableWindow(TopWindow):
     command_label = 'Performance Table'
@@ -18,10 +20,10 @@ class EvaluationTableWindow(TopWindow):
         ## option menu
         selected_metric = tk.StringVar(self)
         selected_metric.set(metric_list[0])
-        selected_metric.trace('w', lambda *args,win=self: self.update_loop(loop=False))
+        selected_metric.trace('w', lambda *args, win=self: self.update_loop(loop=False))
         metric_opt = tk.OptionMenu(self, selected_metric, *metric_list)
         ## tree
-        
+
         columns = [
             plan.get_name() for plan in self.trainers[0].get_plans()
         ] + ['Average']
@@ -74,9 +76,9 @@ class EvaluationTableWindow(TopWindow):
                 raise NotImplementedError
             values_list = [i for i in values if i is not None]
             if len(values_list) > 0:
-                values = values + [sum(values_list) / len(values_list)]
+                values = [*values, sum(values_list) / len(values_list)]
             else:
-                values = values + [None]
+                values = [*values, None]
             total_values.append(values)
             self.tree.item(trainer.get_name(), values=values)
         # average

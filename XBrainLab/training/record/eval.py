@@ -1,17 +1,19 @@
 import os
+
+import numpy as np
 import torch
 from sklearn.metrics import roc_auc_score
-import numpy as np
+
 
 def calculate_confusion(output: np.ndarray, label: np.ndarray) -> np.ndarray:
     """Calculate confusion matrix.
-    
+
     Args:
         output: Output of model.
         label: Ground truth label.
     """
     classNum = len(np.unique(label))
-    confusion = np.zeros((classNum,classNum), dtype=np.uint32)
+    confusion = np.zeros((classNum, classNum), dtype=np.uint32)
     output = output.argmax(axis=1)
     for ground_truth in range(classNum):
         for predict in range(classNum):
@@ -29,7 +31,7 @@ class EvalRecord:
             Ground truth label.
         output: :class:`numpy.ndarray` of shape (n, classNum).
             Output of model.
-        gradient: dict of :class:`numpy.ndarray` of shape (n, classNum, ...) with 
+        gradient: dict of :class:`numpy.ndarray` of shape (n, classNum, ...) with
                   class index as key.
             Gradient of model by class index.
     """
@@ -37,7 +39,7 @@ class EvalRecord:
         self.label = label
         self.output = output
         self.gradient = gradient
-    
+
     def export(self, target_path: str) -> None:
         """Export evaluation result as torch file.
 
@@ -50,7 +52,7 @@ class EvalRecord:
             'gradient': self.gradient,
         }
         torch.save(record, os.path.join(target_path, 'eval'))
-    
+
     def export_csv(self, target_path: str) -> None:
         """Export evaluation result as csv file.
 
@@ -61,7 +63,7 @@ class EvalRecord:
         index_header_str = ",".join([str(i) for i in range(self.output.shape[1])])
         header = f'{index_header_str},ground_truth,predict'
         np.savetxt(
-            target_path, data, delimiter=',', newline='\n', 
+            target_path, data, delimiter=',', newline='\n',
             header=header, comments='')
     #
     def get_acc(self) -> float:
@@ -74,17 +76,17 @@ class EvalRecord:
             torch.Tensor(self.output), dim=1
         ).numpy().shape[-1] <=2:
             return roc_auc_score(
-                self.label, 
+                self.label,
                 torch.nn.functional.softmax(
                     torch.Tensor(self.output), dim=1
-                ).numpy()[:,-1]
+                ).numpy()[:, -1]
             )
         else:
             return roc_auc_score(
-                self.label, 
+                self.label,
                 torch.nn.functional.softmax(
                     torch.Tensor(self.output), dim=1
-                ).numpy(), 
+                ).numpy(),
                 multi_class='ovr'
             )
 
@@ -94,7 +96,7 @@ class EvalRecord:
         classNum = len(confusion)
         P0 = np.diagonal(confusion).sum() / confusion.sum()
         Pe = (
-            sum([confusion[:,i].sum() * confusion[i].sum() for i in range(classNum)]) / 
+            sum([confusion[:, i].sum() * confusion[i].sum() for i in range(classNum)]) /
             (confusion.sum() * confusion.sum())
         )
         return (P0 - Pe) / (1 - Pe)

@@ -1,12 +1,13 @@
 from enum import Enum
 
+
 class SplitUnit(Enum):
     """Utility class for dataset splitting unit."""
     RATIO = 'Ratio'
     NUMBER = 'Number'
     MANUAL = 'Manual'
     KFOLD = 'K Fold'
-    
+
 class TrainingType(Enum):
     """Utility class for model training type."""
     FULL = 'Full Data'
@@ -28,4 +29,3 @@ class ValSplitByType(Enum):
     SESSION = 'By Session'
     TRIAL = 'By Trial'
     SUBJECT = 'By Subject'
-   

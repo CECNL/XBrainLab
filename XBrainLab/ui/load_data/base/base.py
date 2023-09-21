@@ -1,14 +1,13 @@
 import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter import filedialog
-
 from enum import Enum
+from tkinter import filedialog, ttk
 
-from ...base import TopWindow, ValidateException, InitWindowValidateException
+from XBrainLab.load_data import Raw, RawDataLoader
+
+from ...base import InitWindowValidateException, TopWindow, ValidateException
 from ...script import Script
 from .event import LoadEvent
 
-from XBrainLab.load_data import RawDataLoader, Raw
 
 class DataType(Enum):
     RAW = 'raw'
@@ -66,7 +65,7 @@ class EditRaw(TopWindow): # called when double click on treeview
         tk.Label(self, text=raw.get_epochs_length()).grid(row=6, column=1, sticky='w')
         self.event_label = tk.Label(self, text=raw.get_event_name_list_str())
         self.event_label.grid(row=7, column=1, sticky='w')
-        
+
         tk.Button(self, text="Delete", command=self._delete_row).grid(row=8, column=0)
         tk.Button(self, text="Load Events", command=self._load_events).grid(
             row=8, column=1
@@ -75,15 +74,15 @@ class EditRaw(TopWindow): # called when double click on treeview
 
         self.subject_var.set(raw.get_subject_name())
         self.session_var.set(raw.get_session_name())
-    
+
     def check_data(self):
         if not isinstance(self.raw, Raw):
             raise InitWindowValidateException(self, 'Invalid Raw data.')
-    
+
     def _delete_row(self, *args):
         self.delete_row = True
         self.destroy()
-    
+
     def _load_events(self, *args): # load event from file or view loaded event
         event_module = LoadEvent(self, self.raw)
         events, event_id = event_module.get_result()
@@ -93,7 +92,7 @@ class EditRaw(TopWindow): # called when double click on treeview
             self.events = events
             self.event_id = event_id
             self.event_label.config(text=','.join(str(e) for e in event_id))
-    
+
     def confirm(self, *args):
         if not self.subject_var.get():
             raise ValidateException(self, 'Subject name cannot be empty')
@@ -105,29 +104,29 @@ class EditRaw(TopWindow): # called when double click on treeview
                 self.raw.set_event(self.events, self.event_id)
                 self.script_history.add_script(self.event_script_history)
                 self.script_history.add_cmd("event_loader.apply()")
-            except Exception:
+            except Exception as e:
                 raise ValidateException(
-                    self, 
+                    self,
                     (
                         'Inconsistent number of events '
                         f'with epochs length (got {len(self.events)})'
                     )
-                )
-        
+                ) from e
+
         if self.subject_var.get() != self.raw.get_subject_name():
             self.raw.set_subject_name(self.subject_var.get())
             self.script_history.add_cmd(
-                f"raw_data.set_subject_name({repr(self.subject_var.get())})"
+                f"raw_data.set_subject_name({self.subject_var.get()!r})"
             )
         if self.session_var.get() != self.raw.get_session_name():
             self.raw.set_session_name(self.session_var.get())
             self.script_history.add_cmd(
-                f"raw_data.set_session_name({repr(self.session_var.get())})"
+                f"raw_data.set_session_name({self.session_var.get()!r})"
             )
-        
+
         self.ret_script_history = self.script_history
         self.destroy()
-    
+
     def _get_result(self):
         return self.delete_row
 
@@ -148,34 +147,34 @@ class LoadBase(TopWindow):
         self.rowconfigure([1], weight=1)
 
 
-        # ==== type selection ==== 
+        # ==== type selection ====
         type_frame = ttk.LabelFrame(self, text="Data type")
         self.type_ctrl = tk.StringVar()
         self.type_ctrl.set(DataType.RAW.value)
         self.type_raw = tk.Radiobutton(
-            type_frame, text="Raw", 
+            type_frame, text="Raw",
             value=DataType.RAW.value, variable=self.type_ctrl
         )
         self.type_epoch = tk.Radiobutton(
-            type_frame, text="Epochs", 
+            type_frame, text="Epochs",
             value=DataType.EPOCH.value, variable=self.type_ctrl
         )
-        self.type_raw.grid(row=0, column=0,sticky="w")
-        self.type_epoch.grid(row=0, column=1,sticky="w")
+        self.type_raw.grid(row=0, column=0, sticky="w")
+        self.type_epoch.grid(row=0, column=1, sticky="w")
 
         # ==== attr table ====  (self.data_attr_treeview)
         attr_frame = ttk.LabelFrame(self, text="Data attributes")
         attr_frame.columnconfigure([0], weight=1)
         attr_frame.rowconfigure([0], weight=1)
         attr_header = [
-            "Filename", "Subject", "Session", "Channels", 
+            "Filename", "Subject", "Session", "Channels",
             "Sampling Rate", "Epochs", "Events"
         ]
         self.data_attr_treeview = ttk.Treeview(
             attr_frame, columns=attr_header, show='headings', selectmode="browse"
         ) # filepath not displayed
         self.data_attr_scrollbar = tk.Scrollbar(
-            attr_frame, orient ="vertical",command = self.data_attr_treeview.yview
+            attr_frame, orient ="vertical", command = self.data_attr_treeview.yview
         )
         for h in attr_header:
             self.data_attr_treeview.column(
@@ -187,7 +186,7 @@ class LoadBase(TopWindow):
         self.data_attr_treeview.configure(yscrollcommand=self.data_attr_scrollbar.set)
         self.data_attr_treeview.bind('<Double-Button-1>', self.edit)
 
-        # ==== status table ==== 
+        # ==== status table ====
         # channels, events
         stat_frame = ttk.LabelFrame(self, text="Current Status")
         stat_frame.columnconfigure([1], weight=1)
@@ -220,13 +219,13 @@ class LoadBase(TopWindow):
         confirm_btn = tk.Button(btn_frame, text="Confirm", command=self.confirm)
         add_btn.pack(side=tk.LEFT)
         confirm_btn.pack(side=tk.LEFT)
-        
+
         # ==== pack ====
         type_frame.grid(row=0, column=0, columnspan=2, sticky='w', padx=10, pady=10)
         attr_frame.grid(row=1, column=0, sticky='news')
         stat_frame.grid(row=1, column=1, sticky='ew', padx=10)
         btn_frame.grid(row=2, column=0,  columnspan=2)
-        
+
         self.stat_frame = stat_frame
         self.reset()
 
@@ -256,7 +255,7 @@ class LoadBase(TopWindow):
         raise NotImplementedError
 
     def load(self):
-        selected_files = filedialog.askopenfilenames (
+        selected_files = filedialog.askopenfilenames(
             parent = self,
             filetypes = self.filetypes
         )
@@ -279,14 +278,14 @@ class LoadBase(TopWindow):
             try:
                 self.data_loader.check_loaded_data_consistency(raw_data)
             except Exception as e:
-                raise ValidateException(window=self, message=str(e))
+                raise ValidateException(window=self, message=str(e)) from e
             if self.filename_template_var.get():
                 raw_data.parse_filename(regex=self.filename_template_var.get())
-                self.script_history.add_cmd((
+                self.script_history.add_cmd(
                     "raw_data.parse_filename("
-                    f"regex={repr(self.filename_template_var.get())})"
-                ))
-            
+                    f"regex={self.filename_template_var.get()!r})"
+                )
+
             self.data_attr_treeview.insert(
                 '', iid=filepath, index="end", values=raw_data.get_row_info()
             )
@@ -303,15 +302,15 @@ class LoadBase(TopWindow):
                 )
             if data_type == DataType.RAW.value:
                 tk.messagebox.showwarning(
-                    parent=self, title="Warning", 
+                    parent=self, title="Warning",
                     message="Detected data of dimension 2, switch to raw loading"
                 )
             elif data_type == DataType.EPOCH.value:
                 tk.messagebox.showwarning(
-                    parent=self, title="Warning", 
+                    parent=self, title="Warning",
                     message="Detected data of dimension 3, switch to epochs loading"
                 )
-            self.type_ctrl.set(data_type)    
+            self.type_ctrl.set(data_type)
     #
     def update_panel(self):
         # update dataset length
@@ -333,8 +332,8 @@ class LoadBase(TopWindow):
             self.event_ids_var.set('\n'.join(event_list_str))
         else:
             self.event_ids_var.set('None')
-    
-    def edit(self, event): 
+
+    def edit(self, event):
         # open window for editing subject/session/load data on double click
         selected_row = self.data_attr_treeview.focus()
         raw_data = self.data_loader.get_loaded_raw(selected_row)
@@ -342,7 +341,7 @@ class LoadBase(TopWindow):
             return
         self.script_history.newline()
         self.script_history.add_cmd(
-            f"raw_data = data_loader.get_loaded_raw({repr(selected_row)})"
+            f"raw_data = data_loader.get_loaded_raw({selected_row!r})"
         )
         self.script_history.add_cmd("raw_data.get_event_list()")
         edit_module = EditRaw(self, raw_data)
@@ -365,11 +364,11 @@ class LoadBase(TopWindow):
             self.data_loader.validate()
             self.script_history.add_cmd('data_loader.validate()', newline=True)
         except ValueError as e:
-            raise ValidateException(self, str(e))
+            raise ValidateException(self, str(e)) from e
         self.ret_val = self.data_loader
         self.ret_script_history = self.script_history
         self.destroy()
-    
+
     def _get_result(self):
         return self.ret_val
 

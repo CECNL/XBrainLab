@@ -1,12 +1,15 @@
-from XBrainLab.training.training_plan import (
-    to_holder, _test_model, _eval_model, EvalRecord
-)
-
+import numpy as np
+import pytest
+import torch
 from torch.utils.data import DataLoader
 
-import torch
-import pytest
-import numpy as np
+from XBrainLab.training.training_plan import (
+    EvalRecord,
+    _eval_model,
+    _test_model,
+    to_holder,
+)
+
 
 @pytest.mark.parametrize('shuffle', [True, False])
 def test_to_holder(shuffle):
@@ -22,7 +25,7 @@ def test_to_holder(shuffle):
     assert isinstance(dataloader, DataLoader)
     assert dataloader.batch_size == bs
 
-    sample_x, sample_y = list(dataloader)[0]
+    sample_x, sample_y = next(iter(dataloader))
     assert sample_x.dtype == torch.float32
     assert sample_y.dtype == torch.int64
     sequence = torch.arange(bs, dtype=torch.float32).reshape(-1, 1)
@@ -84,7 +87,7 @@ def dataloader(full_y, y):
     X = np.zeros((TOTAL_NUM, CLASS_NUM))
     for idx, gt in enumerate(full_y):
         X[idx, gt] = 1
-    
+
     device = 'cpu'
     shuffle = False
     return to_holder(X, y, device, BS, shuffle)
@@ -98,11 +101,12 @@ def loss_avg():
     correct_loss = criterion(
         torch.Tensor([[1, 0, 0, 0]]), torch.Tensor([0]).long()
     ).item()
-    loss = np.ones((TOTAL_NUM)) * correct_loss
+    loss = np.ones(TOTAL_NUM) * correct_loss
     loss[:ERROR_NUM] = error_loss
-    loss_avg = []
-    for i in range(0, TOTAL_NUM, BS):
-        loss_avg.append(loss[i:i+BS].mean())
+    loss_avg = [
+        loss[i:i+BS].mean()
+        for i in range(0, TOTAL_NUM, BS)
+    ]
     loss_avg = np.array(loss_avg).mean()
     return loss_avg
 
@@ -130,13 +134,13 @@ def test_eval_model(mocker, dataloader, y, full_y):
     eval_model_mock = mocker.patch.object(model, 'eval')
     result = _eval_model(model, dataloader)
     eval_model_mock.assert_called_once()
-    
+
     assert isinstance(result, EvalRecord)
     called_y, called_output, called_gradient = eval_record_mock.call_args[0]
     assert np.array_equal(called_y, y)
     assert np.array_equal(called_output.argmax(axis=-1), full_y)
     assert len(called_gradient) == CLASS_NUM
-    
+
     expected_list = [
         (REPEAT - ERROR_NUM, CLASS_NUM),
         (REPEAT + ERROR_NUM, CLASS_NUM),

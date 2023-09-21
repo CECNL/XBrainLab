@@ -1,19 +1,30 @@
-from XBrainLab.training.record import TrainRecord, TrainRecordKey, RecordKey, EvalRecord
-from XBrainLab.utils import set_seed
-
-from ...tests.test_training_plan import (
-    export_mocker, model_holder, dataset, training_option, # noqa: F401
-    epochs, preprocessed_data_list, y, # noqa: F401
-    FakeModel, CLASS_NUM
-)
-
-import pytest
-import numpy as np
 import os
+
+import numpy as np
+import pytest
 import torch
 from matplotlib import pyplot as plt
 
-def test_train_record(mocker, dataset, training_option, model_holder): # noqa: F811
+from XBrainLab.training.record import EvalRecord, RecordKey, TrainRecord, TrainRecordKey
+from XBrainLab.utils import set_seed
+
+from ...tests.test_training_plan import (
+    CLASS_NUM,
+    FakeModel,
+    dataset,  # noqa: F401
+    epochs,  # noqa: F401
+    export_mocker,  # noqa: F401
+    model_holder,  # noqa: F401
+    preprocessed_data_list,  # noqa: F401
+    training_option,  # noqa: F401
+    y,  # noqa: F401
+)
+
+
+def test_train_record(
+    mocker,
+    dataset, training_option, model_holder # noqa: F811
+):
     repeat = 0
     seed = set_seed(0)
     model = model_holder.get_model({})
@@ -30,8 +41,8 @@ def test_train_record_getter(
     record = TrainRecord(repeat, dataset, model, training_option, seed)
     assert record.get_name() == "Repeat-0"
     assert record.get_epoch() == 0
-    
-    with pytest.raises(Exception):
+
+    with pytest.raises(RuntimeError):
         record.get_training_model('error')
     assert isinstance(record.get_training_model('cpu'), FakeModel)
     assert record.is_finished() is False
@@ -43,7 +54,7 @@ def test_train_record_getter(
     assert record.is_finished() is False
     record.set_eval_record("test")
     assert record.is_finished()
-      
+
 @pytest.fixture()
 def cleanup():
     yield
@@ -52,7 +63,8 @@ def cleanup():
         shutil.rmtree('ok')
 
 def test_train_record_create_dir(
-    cleanup, mocker, dataset, training_option, model_holder # noqa: F811
+    cleanup, mocker,
+    dataset, training_option, model_holder # noqa: F811
 ):
     repeat = 0
     seed = set_seed(0)
@@ -64,7 +76,8 @@ def test_train_record_create_dir(
     assert os.path.exists(expected)
 
 def test_train_record_backup_dir(
-    cleanup, mocker, dataset, training_option, model_holder # noqa: F811
+    cleanup, mocker,
+    dataset, training_option, model_holder # noqa: F811
 ):
     mkdir = os.makedirs
     move_mock = mocker.patch('shutil.move')
@@ -73,13 +86,13 @@ def test_train_record_backup_dir(
     seed = set_seed(0)
     model = model_holder.get_model({})
     record = TrainRecord(repeat, dataset, model, training_option, seed)
-    
+
     record_name = record.dataset.get_name()
     repeat_name = record.get_name()
     output_root = record.option.get_output_dir()
     expected = os.path.join(output_root, record_name, repeat_name)
     expected_backup_root = os.path.join(output_root, record_name, 'backup')
-    
+
     make_dir_mock.assert_called_once_with(expected)
 
     os.makedirs = mkdir
@@ -164,7 +177,7 @@ def test_train_record_update_smaller(
         assert getattr(train_record, update_type)[test_result_key][-1] == v
         assert train_record.best_record[expected_key] == v
         assert train_record.best_record[expected_key + '_epoch'] == i
-    
+
     expected_value = v
     for i in range(10):
         v = i + 1
@@ -194,7 +207,7 @@ def test_train_record_update_larger(
         assert getattr(train_record, update_type)[test_result_key][-1] == v
         assert train_record.best_record[expected_key] == v
         assert train_record.best_record[expected_key + '_epoch'] == i
-    
+
     expected_value = v
     for i in range(10):
         v = 0.1 / (i + 1)
@@ -303,14 +316,12 @@ def test_train_record_eval_record_getter(train_record, eval_record, func_name):
     assert getattr(train_record, func_name)() is not None
 
 @pytest.mark.parametrize("best_type", ['val', 'test'])
-@pytest.mark.parametrize("key", [i for i in RecordKey()])
+@pytest.mark.parametrize("key", list(RecordKey()))
 def test_export(train_record, best_type, key):
     train_record.export_checkpoint()
-    
+
     args_list = torch.save.call_args_list
-    files = []
-    for args in args_list:
-        files.append(os.path.basename(args[0][1]))
+    files = [os.path.basename(args[0][1]) for args in args_list]
     assert 'Epoch-0-model' in files
     assert 'record' in files
 
@@ -319,7 +330,8 @@ def test_export(train_record, best_type, key):
     train_record.export_checkpoint()
 
     args_list = torch.save.call_args_list
-    arg = []
-    for args in args_list:
-        arg.append(args[0][0])
+    arg = [
+        args[0][0]
+        for args in args_list
+    ]
     assert 'test' in arg

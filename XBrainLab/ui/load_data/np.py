@@ -1,5 +1,7 @@
 import numpy as np
+
 from .base import LoadDict
+
 
 class LoadNp(LoadDict):
     # npy: single array

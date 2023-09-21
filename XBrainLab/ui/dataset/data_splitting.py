@@ -1,17 +1,24 @@
-import numpy as np
-import time
 import threading
-
+import time
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
 
-from .split_chooser import ManualSplitChooser
-from ..base import TopWindow, ValidateException, InitWindowValidateException
+import numpy as np
+
+from XBrainLab.dataset import (
+    Dataset,
+    DatasetGenerator,
+    DataSplitter,
+    DataSplittingConfig,
+    Epochs,
+    SplitByType,
+    SplitUnit,
+    ValSplitByType,
+)
+
+from ..base import InitWindowValidateException, TopWindow, ValidateException
 from ..script import Script
-
-from XBrainLab.dataset import SplitByType, ValSplitByType, SplitUnit
-from XBrainLab.dataset import DataSplitter, DataSplittingConfig, DatasetGenerator
-from XBrainLab.dataset import Epochs, Dataset
+from .split_chooser import ManualSplitChooser
 
 DEFAULT_SPLIT_ENTRY_VALUE = 0.2
 LOADING_TREE_ROW_IID = '-'
@@ -50,7 +57,7 @@ class DataSplittingWindow(TopWindow):
 
         tree.pack(fill=tk.BOTH, expand=True)
         tk.Button(tree_frame, text='Show info', command=self.show_info).pack(padx=20)
-        
+
         # dataset frame
         dataset_frame = tk.LabelFrame(self, text ='Dataset Info')
         tk.Label(dataset_frame, text='Subject: ').grid(
@@ -91,11 +98,11 @@ class DataSplittingWindow(TopWindow):
                 idx += 1
                 ## init variables
                 val_splitter.set_split_unit_var(
-                    var=tk.StringVar(self), val=split_unit_list[0], 
+                    var=tk.StringVar(self), val=split_unit_list[0],
                     callback=self.preview
                 )
                 val_splitter.set_entry_var(
-                    var=tk.StringVar(self), 
+                    var=tk.StringVar(self),
                     val=DEFAULT_SPLIT_ENTRY_VALUE, callback=self.preview
                 )
                 ## init widget
@@ -103,14 +110,16 @@ class DataSplittingWindow(TopWindow):
                 tmp_split_unit_list = split_unit_list
                 if config.is_cross_validation:
                     if idx == 1:
-                        tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
+                        tmp_split_unit_list = [*split_unit_list, SplitUnit.KFOLD.value]
                 else:
-                    tmp_split_unit_list = split_unit_list + [SplitUnit.MANUAL.value]
+                    tmp_split_unit_list = [*split_unit_list, SplitUnit.MANUAL.value]
                 val_split_type_option = tk.OptionMenu(
                     validation_frame, val_splitter.split_var, *tmp_split_unit_list
                 )
                 val_splitter.split_var.trace(
-                    "w", lambda *args: self.handle_split_type_option(val_splitter)
+                    "w", lambda *args, val_splitter=val_splitter: (
+                        self.handle_split_type_option(val_splitter)
+                    )
                 )
                 val_split_entry = tk.Entry(
                     validation_frame, textvariable=val_splitter.entry_var
@@ -140,11 +149,11 @@ class DataSplittingWindow(TopWindow):
                 idx += 1
                 ## init variables
                 test_splitter.set_split_unit_var(
-                    var=tk.StringVar(self), val=split_unit_list[0], 
+                    var=tk.StringVar(self), val=split_unit_list[0],
                     callback=self.preview
                 )
                 test_splitter.set_entry_var(
-                    var=tk.StringVar(self), val=DEFAULT_SPLIT_ENTRY_VALUE, 
+                    var=tk.StringVar(self), val=DEFAULT_SPLIT_ENTRY_VALUE,
                     callback=self.preview
                 )
                 ## init widget
@@ -152,15 +161,17 @@ class DataSplittingWindow(TopWindow):
                 tmp_split_unit_list = split_unit_list
                 if config.is_cross_validation:
                     if idx == 1:
-                        tmp_split_unit_list = split_unit_list + [SplitUnit.KFOLD.value]
+                        tmp_split_unit_list = [*split_unit_list, SplitUnit.KFOLD.value]
                 else:
-                    tmp_split_unit_list = split_unit_list + [SplitUnit.MANUAL.value]
+                    tmp_split_unit_list = [*split_unit_list, SplitUnit.MANUAL.value]
                 test_split_type_option = tk.OptionMenu(
                     testing_frame, test_splitter.split_var, *tmp_split_unit_list
                 )
                 test_splitter.split_var.trace(
-                    "w", 
-                    lambda *args: self.handle_split_type_option(test_splitter)
+                    "w",
+                    lambda *args, test_splitter=test_splitter: (
+                        self.handle_split_type_option(test_splitter)
+                    )
                 )
                 test_split_entry = tk.Entry(
                     testing_frame, textvariable=test_splitter.entry_var
@@ -189,11 +200,11 @@ class DataSplittingWindow(TopWindow):
         validation_frame.pack(side=tk.TOP, padx=20, fill=tk.X, expand=True)
         confirm_btn.pack(side=tk.TOP, padx=20, pady=20)
 
-        # init 
+        # init
         self.val_splitter_list = val_splitter_list
         self.test_splitter_list = test_splitter_list
         self.tree = tree
-        
+
         ## init func
         self.preview()
         self.update_table()
@@ -215,7 +226,7 @@ class DataSplittingWindow(TopWindow):
         by_session = [SplitByType.SESSION,
             SplitByType.SESSION_IND,
             ValSplitByType.SESSION]
-        
+
         by_trial = [SplitByType.TRIAL,
             SplitByType.TRIAL_IND,
             ValSplitByType.TRIAL]
@@ -224,12 +235,12 @@ class DataSplittingWindow(TopWindow):
             SplitByType.SUBJECT_IND,
             ValSplitByType.SUBJECT]
 
-        
+
         if splitter.split_type in by_session:
             choice = list(self.epoch_data.get_session_map().items())
         elif splitter.split_type in by_trial:
             choice = list(range(self.epoch_data.get_data_length()))
-            choice = [(c,c) for c in choice]
+            choice = [(c, c) for c in choice]
         elif splitter.split_type in by_subject:
             choice = list(self.epoch_data.get_subject_map().items())
         result = ManualSplitChooser(self, choice).get_result()
@@ -243,55 +254,55 @@ class DataSplittingWindow(TopWindow):
         self.datasets = []
         self.tree.delete(*self.tree.get_children())
         self.tree.insert(
-            "", 'end', 
-            iid=LOADING_TREE_ROW_IID, 
+            "", 'end',
+            iid=LOADING_TREE_ROW_IID,
             values=['...'] + ['calculating'] + ['...'] * 3
         )
         # convert variable to constant
         for splitter in self.test_splitter_list:
             splitter.to_thread()
         for splitter in self.val_splitter_list:
-            splitter.to_thread()        
+            splitter.to_thread()
         # start worker
         if self.dataset_generator:
             self.dataset_generator.set_interrupt()
-        
+
         self.script_history = Script()
         self.script_history.add_import(
             "from XBrainLab.dataset import DataSplitter, DataSplittingConfig"
         )
-        self.script_history.add_import((
+        self.script_history.add_import(
             "from XBrainLab.dataset import "
             "SplitUnit, TrainingType, SplitByType, ValSplitByType"
-        ))
+        )
 
         self.script_history.add_cmd("test_splitter_list = [")
         for test_splitter in self.test_splitter_list:
             if test_splitter.is_option:
-                self.script_history.add_cmd((
+                self.script_history.add_cmd(
                     f"DataSplitter(split_type={test_splitter.get_split_type_repr()}, "
-                    f"value_var={repr(test_splitter.get_raw_value())}, "
+                    f"value_var={test_splitter.get_raw_value()!r}, "
                     f"split_unit={test_splitter.get_split_unit_repr()}),"
-                ))
+                )
         self.script_history.add_cmd("]")
 
         self.script_history.add_cmd("val_splitter_list = [")
         for val_splitter in self.val_splitter_list:
             if val_splitter.is_option:
-                self.script_history.add_cmd((
+                self.script_history.add_cmd(
                     f"DataSplitter(split_type={val_splitter.get_split_type_repr()}, "
-                    f"value_var={repr(val_splitter.get_raw_value())}, "
+                    f"value_var={val_splitter.get_raw_value()!r}, "
                     f"split_unit={val_splitter.get_split_unit_repr()}),"
-                ))
+                )
         self.script_history.add_cmd("]")
 
-        self.script_history.add_cmd((
+        self.script_history.add_cmd(
             f"datasets_config = "
             f"DataSplittingConfig(train_type={self.config.get_train_type_repr()}, "
-            f"is_cross_validation={repr(self.config.is_cross_validation)}, "
+            f"is_cross_validation={self.config.is_cross_validation!r}, "
             "val_splitter_list=val_splitter_list, "
             "test_splitter_list=test_splitter_list)"
-        ))
+        )
 
         self.script_history.add_cmd(
             "datasets_generator = study.get_datasets_generator(config=datasets_config)"
@@ -301,12 +312,12 @@ class DataSplittingWindow(TopWindow):
         )
         self.preview_worker = threading.Thread(target=self.dataset_generator.generate)
         self.preview_worker.start()
-    
+
     def is_preview_failed(self):
         if self.dataset_generator:
             return self.dataset_generator.preview_failed
         return False
-    
+
     def _failed_preview(self):
         self.datasets = []
         self.tree.delete(*self.tree.get_children())
@@ -319,8 +330,9 @@ class DataSplittingWindow(TopWindow):
             if LOADING_TREE_ROW_IID in self.tree.get_children():
                 self.tree.delete(LOADING_TREE_ROW_IID)
             counter = 0
+            MAX_UPDATE_PER_SECOND = 50
             while len(self.tree.get_children()) < len(self.datasets):
-                if counter > 50:
+                if counter > MAX_UPDATE_PER_SECOND:
                     break
                 counter += 1
                 idx = len(self.tree.get_children())
@@ -332,8 +344,8 @@ class DataSplittingWindow(TopWindow):
 
     def show_info(self):
         if (
-            len(self.datasets) == 0 or 
-            self.tree.focus() == '' or 
+            len(self.datasets) == 0 or
+            self.tree.focus() == '' or
             not self.tree.focus().isdigit()
         ):
             raise ValidateException(window=self, message='No valid item is selected')
@@ -343,11 +355,11 @@ class DataSplittingWindow(TopWindow):
         show_info_script = window.get_script_history()
         if show_info_script:
             self.script_history.add_cmd(
-                f"dataset = dataset[{repr(idx)}]", 
+                f"dataset = dataset[{idx!r}]",
                 newline=True
             )
             self.script_history.add_script(show_info_script)
-        
+
         # update tree
         if len(self.datasets) > idx:
             target = self.datasets[idx]
@@ -359,7 +371,7 @@ class DataSplittingWindow(TopWindow):
         for dataset in self.datasets:
             if dataset.has_set_empty():
                 if tk.messagebox.askokcancel(
-                    parent=self, title='Warning', 
+                    parent=self, title='Warning',
                     message=(
                         'There are some datasets without '
                         'training/testing/validation data.\n'
@@ -371,7 +383,7 @@ class DataSplittingWindow(TopWindow):
                     return
         if self.preview_worker.is_alive():
             tk.messagebox.showinfo(
-                parent=self, title='Warning', 
+                parent=self, title='Warning',
                 message='Generating dataset, please try again later.'
             )
             return
@@ -379,15 +391,15 @@ class DataSplittingWindow(TopWindow):
         try:
             self.dataset_generator.prepare_reuslt()
         except Exception as e:
-            raise ValidateException(window=self, message=str(e))
-        
+            raise ValidateException(window=self, message=str(e)) from e
+
         self.return_datasets = self.dataset_generator
         self.ret_script_history = self.script_history
         self.destroy()
 
     def _get_result(self):
         return self.return_datasets
-    
+
     def _get_script_history(self):
         return self.ret_script_history
 
@@ -403,7 +415,7 @@ class DataSplittingInfoWindow(TopWindow):
         self.check_data()
         self.script_history = Script()
         self.ret_script_history = None
-        
+
         name_var = tk.StringVar(self)
         select_var = tk.BooleanVar(self)
         # init value
@@ -422,7 +434,7 @@ class DataSplittingInfoWindow(TopWindow):
         train_tree = ttk.Treeview(train_frame)
         val_tree = ttk.Treeview(val_frame)
         test_tree = ttk.Treeview(test_frame)
-        
+
         train_tree.pack(fill=tk.BOTH, expand=True)
         val_tree.pack(fill=tk.BOTH, expand=True)
         test_tree.pack(fill=tk.BOTH, expand=True)
@@ -433,7 +445,7 @@ class DataSplittingInfoWindow(TopWindow):
         train_frame.grid(row=2, column=0, sticky='news')
         val_frame.grid(row=2, column=1, sticky='news')
         test_frame.grid(row=2, column=2, sticky='news')
-        self.columnconfigure([0,1,2], weight=1)
+        self.columnconfigure([0, 1, 2], weight=1)
         self.rowconfigure([2], weight=1)
 
 
@@ -447,14 +459,14 @@ class DataSplittingInfoWindow(TopWindow):
     def check_data(self):
         if type(self.dataset) != Dataset:
             raise InitWindowValidateException(self, 'No a valid dataset')
-        
+
     def show_info(self, tree, mask):
         epoch_data = self.dataset.get_epoch_data()
         # traverse subject
-        for subject_idx in np.unique( epoch_data.get_subject_list_by_mask(mask) ):
+        for subject_idx in np.unique(epoch_data.get_subject_list_by_mask(mask)):
             subject_mask = (epoch_data.get_subject_list() == subject_idx) & mask
             subject_root = tree.insert(
-                "", 'end', 
+                "", 'end',
                 text=(f"Subject {epoch_data.get_subject_name(subject_idx)} "
                       f"({sum(subject_mask)})")
             )
@@ -465,18 +477,18 @@ class DataSplittingInfoWindow(TopWindow):
                 session_mask = \
                     (epoch_data.get_session_list() == session_idx) & subject_mask
                 session_root = tree.insert(
-                    subject_root, 'end', 
+                    subject_root, 'end',
                     text=(f"Session {epoch_data.get_session_name(session_idx)} "
                           f"({sum(session_mask)})")
                 )
                 # traverse label
                 for label_idx in np.unique(
-                    epoch_data.get_label_list_by_mask(session_mask) 
+                    epoch_data.get_label_list_by_mask(session_mask)
                 ):
                     label_mask = \
                         (epoch_data.get_label_list() == label_idx) & session_mask
                     label_root = tree.insert(
-                        session_root, 'end', 
+                        session_root, 'end',
                         text=(f"Label {epoch_data.get_label_name(label_idx)} "
                               f"({sum(label_mask)})")
                     )
@@ -492,12 +504,12 @@ class DataSplittingInfoWindow(TopWindow):
                         if last_idx + 1 != i:
                             if start_idx == last_idx:
                                 tree.insert(
-                                    label_root, 'end', 
+                                    label_root, 'end',
                                     text=f"Trial {int(start_idx)}"
                                 )
                             else:
                                 tree.insert(
-                                    label_root, 'end', 
+                                    label_root, 'end',
                                     text=f"Trial {int(start_idx)}~{int(last_idx)}"
                                 )
                             start_idx = i
@@ -509,29 +521,29 @@ class DataSplittingInfoWindow(TopWindow):
                             )
                         else:
                             tree.insert(
-                                label_root, 'end', 
+                                label_root, 'end',
                                 text=f"Trial {int(start_idx)}~{int(idx_list[-1])}"
                             )
-    
+
     def confirm(self):
         self.script_history = Script()
         if self.dataset.get_ori_name() != self.name_var.get():
             self.dataset.set_name(self.name_var.get())
             self.script_history.add_cmd(
-                f"dataset.set_name({repr(self.name_var.get())})"
+                f"dataset.set_name({self.name_var.get()!r})"
             )
 
-        
+
         if self.dataset.is_selected != self.select_var.get():
             self.dataset.set_selection(self.select_var.get())
             self.script_history.add_cmd(
-                f"dataset.set_selection({repr(self.select_var.get())})"
+                f"dataset.set_selection({self.select_var.get()!r})"
             )
 
-        
+
         self.ret_script_history = self.script_history
         self.destroy()
-    
+
     def _get_script_history(self):
         return self.ret_script_history
 
@@ -547,7 +559,7 @@ class DataSplitterHolder(DataSplitter):
         self.entry_var = None
 
         self.is_valid_var = False
-    
+
     # initialize variable
     def set_split_unit_var(self, var, val, callback):
         self.split_var = var
@@ -571,20 +583,17 @@ class DataSplitterHolder(DataSplitter):
                 if 0 <= val <= 1:
                     return True
             except ValueError:
-                return False   
+                return False
         elif self.split_var.get() == SplitUnit.NUMBER.value:
             return self.entry_var.get().isdigit()
         elif self.split_var.get() == SplitUnit.KFOLD.value:
             val = self.entry_var.get()
             if val.isdigit():
-                return 0 < int(val)
+                return int(val) > 0
         elif self.split_unit == SplitUnit.MANUAL:
             val = str(self.value_var)
             vals = val.split(' ')
-            for val in vals:
-                if len(val.strip()) > 0 and not val.isdigit():
-                    return False
-            return True
+            return all(not (len(val.strip()) > 0 and not val.isdigit()) for val in vals)
         return False
 
     def _get_value(self):
@@ -598,7 +607,7 @@ class DataSplitterHolder(DataSplitter):
         for i in SplitUnit:
             if i.value == self.split_var.get():
                 return i
-        
+
     def to_thread(self):
         self.is_valid_var = self._is_valid()
         self.value_var = self._get_value()
@@ -610,22 +619,22 @@ class DataSplitterHolder(DataSplitter):
 class DataSplittingConfigHolder(DataSplittingConfig):
     def __init__(self, train_type, val_type_list, test_type_list, is_cross_validation):
         super().__init__(
-            train_type, is_cross_validation, 
+            train_type, is_cross_validation,
             val_splitter_list=[], test_splitter_list=[]
         )
         self.train_type = train_type # TrainingType
         self.val_type_list = val_type_list # [SplitByType ...]
         self.test_type_list = test_type_list # [ValSplitByType ...]
-    
+
     def generate_splitter_option(self):
         if not self.val_splitter_list:
             val_splitter_list = []
             for val_type in self.val_type_list:
-                is_option = not (val_type == ValSplitByType.DISABLE)
+                is_option = val_type != ValSplitByType.DISABLE
                 val_splitter_list.append(DataSplitterHolder(is_option, val_type))
             test_splitter_list = []
             for test_type in self.test_type_list:
-                is_option = not (test_type == SplitByType.DISABLE)
+                is_option = test_type != SplitByType.DISABLE
                 test_splitter_list.append(DataSplitterHolder(is_option, test_type))
             self.val_splitter_list = val_splitter_list
             self.test_splitter_list = test_splitter_list

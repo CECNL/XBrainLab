@@ -1,11 +1,12 @@
-from XBrainLab.load_data import Raw, RawDataLoader
+import mne
+import numpy as np
+import pytest
+
 from XBrainLab import Study
+from XBrainLab.load_data import Raw, RawDataLoader
 
 from .test_raw import _generate_mne, _set_event
 
-import mne
-import pytest
-import numpy as np
 
 def test_raw_data_loader():
     raw = Raw('tests/0.fif', _generate_mne(500, ['Fp1', 'Fp2', 'F3', 'F4'], 'eeg'))
@@ -29,11 +30,11 @@ def _generate_epoch(name, raw_mne, duration):
     return Raw(
         f'tests/{name}.fif',
         mne.Epochs(
-            raw_mne, events, event_id, 
+            raw_mne, events, event_id,
             tmin=0, tmax=duration, baseline=None, preload=True
         )
     )
-    
+
 def test_raw_data_loader_append():
     raw_mne = _generate_mne(500, ['Fp1', 'Fp2', 'F3', 'F4'], 'eeg')
     raw_1 = _generate_epoch('1', raw_mne, 0.1)
@@ -59,20 +60,20 @@ def test_raw_data_loader_append():
 def test_raw_data_loader_append_error():
     raw_mne = _generate_mne(500, ['Fp1', 'Fp2', 'F3', 'F4'], 'eeg')
     raw_1 = _generate_epoch('1', raw_mne, 0.1)
-    
+
     _set_event(raw_1)
 
     raw_miss_channel = _generate_epoch(
-        'mc', 
+        'mc',
         _generate_mne(500, ['Fp1', 'Fp2', 'F3'], 'eeg'), 0.1
     )
     raw_miss_sf = _generate_epoch(
-        'ms', 
+        'ms',
         _generate_mne(5, ['Fp1', 'Fp2', 'F3', 'F4'], 'eeg'), 0.1
     )
     raw_miss_duration = _generate_epoch('ms', raw_mne, 0.2)
     raw_miss_type = Raw('test/mt.fif', raw_mne)
-  
+
     raw_data_loader = RawDataLoader()
     raw_data_loader.append(raw_1)
 
@@ -80,13 +81,13 @@ def test_raw_data_loader_append_error():
 
     with pytest.raises(ValueError, match=r".*channel numbers inconsistent.*"):
         raw_data_loader.append(raw_miss_channel)
-    
+
     with pytest.raises(ValueError, match=r".*sample frequency inconsistent.*"):
         raw_data_loader.append(raw_miss_sf)
 
     with pytest.raises(ValueError, match=r".*type inconsistent.*"):
         raw_data_loader.append(raw_miss_type)
-    
+
     with pytest.raises(ValueError, match=r".*duration inconsistent.*"):
         raw_data_loader.append(raw_miss_duration)
 
@@ -94,6 +95,6 @@ def test_apply():
     raw_mne = _generate_mne(500, ['Fp1', 'Fp2', 'F3', 'F4'], 'eeg')
     raw = Raw('test/mt.fif', raw_mne)
     _set_event(raw)
-    
+
     lab = Study()
     RawDataLoader([raw]).apply(lab)

@@ -1,18 +1,21 @@
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import ttk
+
 
 class EditableTreeView(ttk.Treeview):
     def __init__(
-        self, 
-        parent, 
-        editableCols=[], 
-        datas=None, 
-        deletable=False, 
-        delete_callback=None, 
-        column_width=100, 
-        height=5, 
+        self,
+        parent,
+        editableCols=None,
+        datas=None,
+        deletable=False,
+        delete_callback=None,
+        column_width=100,
+        height=5,
         **key
     ) -> None:
+        if editableCols is None:
+            editableCols = []
         super().__init__(parent, height=height, **key)
         self.editableCols = editableCols
         self.datas = datas
@@ -34,13 +37,13 @@ class EditableTreeView(ttk.Treeview):
     def clear_deletable(self):
         self.deletable = False
         self.column("#0", width=0, stretch=tk.NO)
-    
+
     def clear_editable(self):
         self.editableCols = []
 
     def clear_rows(self):
         self.delete(*self.get_children())
-        
+
     def __editTable(self, event):
         self.submitEntry(None)
         item = self.identify_row(event.y)
@@ -48,7 +51,7 @@ class EditableTreeView(ttk.Treeview):
         if self.identify_region(event.x, event.y) == 'cell':
             if col not in self.editableCols:
                 return
-            x, y, width, height = self.bbox(item, col) 
+            x, y, width, height = self.bbox(item, col)
             value = self.set(item, col)
 
             self.editingEntry = ttk.Entry(self, justify='center') # edition entry
@@ -62,8 +65,8 @@ class EditableTreeView(ttk.Treeview):
             self.editingEntry.bind('<Return>', self.submitEntry)
             self.editingEntry.focus_set()
         elif (
-            self.identify_region(event.x, event.y) == 'tree' 
-            and self.deletable 
+            self.identify_region(event.x, event.y) == 'tree'
+            and self.deletable
             and self.item(item)['text'] != ''
         ):
             idx = self.find_child_pos(item)
@@ -72,7 +75,7 @@ class EditableTreeView(ttk.Treeview):
                 del self.datas[idx]
             if self.delete_callback is not None:
                 self.delete_callback()
-    
+
     def set_datas(self, datas):
         self.datas = datas
 
@@ -83,7 +86,7 @@ class EditableTreeView(ttk.Treeview):
 
     def find_child_pos(self, iid):
         return self.get_children().index(iid)
-    
+
     def submitEntry(self, event=None):
         """Change item value."""
         if self.editingEntry is not None:

@@ -1,5 +1,6 @@
 from XBrainLab.training import ModelHolder
 
+
 class FakeModel:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -18,7 +19,7 @@ def test_model_holder(mocker):
     holder = ModelHolder(target_model, model_params_map, pretrained_weight_path)
     mocker.patch('torch.load', return_value='state_dict')
     model = holder.get_model({'c': 3})
-    
+
     assert holder.get_model_desc_str() == 'FakeModel (a=1, b=2)'
     assert model.kwargs == {'a': 1, 'b': 2, 'c': 3}
     assert model.state_dict == 'state_dict'
