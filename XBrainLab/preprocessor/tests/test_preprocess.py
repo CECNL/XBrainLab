@@ -60,11 +60,19 @@ def test_edit_event_name_epoch(epoch):
     with pytest.raises(ValueError, match="Duplicate event name: d"):
         processor.data_preprocess({'a': 'a', 'b': 'b', 'c': 'd', 'd': 'd'})
     
+    # all match
     processor.data_preprocess({'a': 'a', 'b': 'b', 'c': 'c', 'd': 'e'})
     result = processor.get_preprocessed_data_list()[0]
     assert epoch.get_event_name_list_str() == 'a,b,c,d'
     assert result.get_event_name_list_str() == 'a,b,c,e'
     assert result.get_preprocess_history()[0] == 'Update 1 event names'
+
+    # miss at new event
+    processor.data_preprocess({'a': 'a', 'b': 'b', 'e': 'f'})
+    result = processor.get_preprocessed_data_list()[0]
+    assert epoch.get_event_name_list_str() == 'a,b,c,d'
+    assert result.get_event_name_list_str() == 'a,b,c,f'
+    assert result.get_preprocess_history()[1] == 'Update 1 event names'
 
 # export
 @pytest.mark.parametrize('target_str', ['raw', 'epoch'])

@@ -144,7 +144,7 @@ class FakePlan:
     def __init__(self, name, real_name):
         self.name = name
         self.real_name = real_name
-    def get_eval_record(self):
+    def get_eval_record(self): # pragma: no cover
         pass
 
 class FakeTrainer:
@@ -290,6 +290,17 @@ def test_study_export_output_csv_not_set():
     study = Study()
     with pytest.raises(ValueError):
         study.export_output_csv('test', 'test', 'test')
+
+def test_study_set_channels():
+    class FakeEpochData:
+        def set_channels(self, channels, channel_types):
+            self.channels = channels
+            self.channel_types = channel_types
+    study = Study()
+    study.epoch_data = FakeEpochData()
+    study.set_channels([1], [2])
+    assert study.epoch_data.channels == [1]
+    assert study.epoch_data.channel_types == [2]
 
 def test_study_set_channels_not_set():
     study = Study()

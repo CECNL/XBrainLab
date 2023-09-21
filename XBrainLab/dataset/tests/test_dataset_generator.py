@@ -674,7 +674,6 @@ def test_dataset_generator_generate_not_implemented(
     generator = DatasetGenerator(epochs, config)
     with pytest.raises(NotImplementedError):
         generator.generate()
-        assert not generator.is_clean()
 
 
 @pytest.mark.parametrize('train_type', [

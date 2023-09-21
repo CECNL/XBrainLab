@@ -6,7 +6,7 @@ from .dataset import Dataset
 from . import DataSplittingConfig, Epochs
 
 from ..utils import validate_type
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     from .. import Study
 
 class DatasetGenerator:

@@ -63,6 +63,25 @@ def test_mat_1d(raw, mock_mat): # noqa: F811
     event_loader.read_mat('tests/0.mat')
     _create_event(event_loader, raw)
 
+@pytest.mark.parametrize(
+    'data', 
+    [
+        np.array([[1, 2, 3, 4]]),
+        np.array([[1], [2], [3], [4]]),
+    ]
+)
+def test_mat_2d_to_1d(
+    raw, # noqa: F811
+    mock_mat, data
+): 
+    event_loader = EventLoader(raw)
+
+    mock_mat({
+        'label': data,
+    })
+    event_loader.read_mat('tests/0.mat')
+    _create_event(event_loader, raw)
+
 def test_mat_3d(raw, mock_mat): # noqa: F811
     event_loader = EventLoader(raw)
     mock_mat({

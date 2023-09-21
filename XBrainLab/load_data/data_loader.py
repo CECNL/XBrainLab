@@ -2,7 +2,7 @@ from ..utils import validate_type, validate_list_type
 from . import Raw
 
 from typing import List, TYPE_CHECKING
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     from .. import Study
 
 

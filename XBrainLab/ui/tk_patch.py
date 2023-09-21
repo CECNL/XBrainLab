@@ -21,7 +21,7 @@ class Catcher:
 
     def __call__(self, *args):
         try:
-            if self.subst:
+            if self.subst: # pragma: no cover
                 args = self.subst(*args)
             return self.func(*args)
         except CustomException as e:
@@ -34,7 +34,7 @@ class Catcher:
                     parent = self.win
             except AttributeError:
                 pass
-            tk.messagebox.showerror(parent=parent, title='Error', message=e)
+            tk.messagebox.showerror(parent=parent, title='Error', message=str(e))
 
 def patch():
     tk.CallWrapper = Catcher
