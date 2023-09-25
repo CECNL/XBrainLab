@@ -25,7 +25,7 @@ jobs:
           pip install -r requirements-test.txt
       - name: Lint with ruff
         run: |
-          ruff --exclude=docs --format=github .
+          ruff --format=github .
       - name: Test with pytest
         if: always()
         run: |
