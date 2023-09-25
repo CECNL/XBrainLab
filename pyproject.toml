@@ -21,3 +21,6 @@ select = [
     "RUF",
     "TRY3",
 ]
+
+[tool.ruff.per-file-ignores]
+"docs/source/conf.py" = ["A001"]
