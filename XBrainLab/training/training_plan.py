@@ -450,7 +450,7 @@ class TrainingPlanHolder:
         if len(record.train[TrainRecordKey.AUC]) > 0:
             train_auc = record.train[TrainRecordKey.AUC][-1]
         if len(record.train[TrainRecordKey.ACC]) > 0:
-            train_acc = record.train[TrainRecordKey.AUC][-1]
+            train_acc = record.train[TrainRecordKey.ACC][-1]
         if len(record.val[RecordKey.LOSS]) > 0:
             val_loss = record.val[RecordKey.LOSS][-1]
         if len(record.val[RecordKey.ACC]) > 0:

@@ -222,7 +222,7 @@ class DashBoard(tk.Tk):
         try:
             self.study.reset_preprocess()
             tk.messagebox.showinfo(parent=self, title='Success', message='OK')
-            self.study.script_history.add_cmd('study.reset_preprocess()')
+            self.script_history.add_cmd('study.reset_preprocess()')
         except Exception as e:
             raise ValidateException(window=self, message=str(e)) from e
         self.update_dashboard()
@@ -370,7 +370,7 @@ class DashBoard(tk.Tk):
         else:
             self.script_history.add_cmd('study = Study()')
 
-        self.script_history.add_ui_cmd('# study = Study()')
+        self.script_history.add_ui_cmd('study = Study()')
         self.script_history.add_ui_cmd('lab = XBrainLab(study)')
 
     def get_script(self):

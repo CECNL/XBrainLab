@@ -352,13 +352,13 @@ class DataSplittingWindow(TopWindow):
         idx = int(self.tree.focus())
         target = self.datasets[idx]
         window = DataSplittingInfoWindow(self, target)
-        show_info_script = window.get_script_history()
-        if show_info_script:
-            self.script_history.add_cmd(
-                f"dataset = dataset[{idx!r}]",
-                newline=True
-            )
-            self.script_history.add_script(show_info_script)
+        # show_info_script = window.get_script_history()
+        # if show_info_script:
+        #     self.script_history.add_cmd(
+        #         f"dataset = dataset[{idx!r}]",
+        #         newline=True
+        #     )
+        #     self.script_history.add_script(show_info_script)
 
         # update tree
         if len(self.datasets) > idx:
