@@ -7,7 +7,7 @@ class Normalize(PreprocessBase):
     """Preprocessing class for normalizing data.
 
     Input:
-        norm: Normalization method. Can be "zero mean" or "minmax".
+        norm: Normalization method. Can be "z score" or "minmax".
 
     """
     def get_preprocess_desc(self, norm: str):
@@ -15,20 +15,21 @@ class Normalize(PreprocessBase):
 
     def _data_preprocess(self, preprocessed_data, norm: str):
         preprocessed_data.get_mne().load_data()
-        if norm == "zero mean":
+        if norm == "z score":
             if preprocessed_data.is_raw():
-                arrdata =  preprocessed_data.get_mne()._data.copy()
-                preprocessed_data.get_mne()._data = arrdata - np.multiply(
+                arrdata =  preprocessed_data.get_mne()._data.copy() 
+                preprocessed_data.get_mne()._data = (arrdata - np.multiply(
                     arrdata.mean(axis=-1)[:, None], np.ones_like(arrdata)
+                )) / np.multiply(
+                    arrdata.std(axis=-1)[:, None], np.ones_like(arrdata)
                 )
             else:
                 arrdata =  preprocessed_data.get_mne()._data.copy()
                 for ep in range(preprocessed_data.get_epochs_length()):
-                    arrdata[ep, :, :] =  arrdata[ep, :, :] - np.multiply(
-                        arrdata[ep, :, :].mean(axis=-1)[:, None], np.ones_like(
-                            arrdata[ep, :, :]
-                        )
-                    )
+                    trial_mean, trial_std = arrdata[ep, :, :].mean(axis=-1), arrdata[ep, :, :].std(axis=-1)
+                    arrdata[ep, :, :] =  (
+                        arrdata[ep, :, :] - np.multiply(trial_mean[:, None], np.ones_like(arrdata[ep, :, :]))) \
+                                          / np.multiply( trial_std[:, None], np.ones_like(arrdata[ep, :, :]))
                 preprocessed_data.get_mne()._data = arrdata
         elif norm== "minmax":
             if preprocessed_data.is_raw():

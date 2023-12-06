@@ -9,7 +9,7 @@ from .base import PreprocessBase
 
 
 class NormType(Enum):
-    zeromean = 'zero mean'
+    zscore = "z score"
     minmax = 'minmax'
 
 class Normalize(PreprocessBase):
@@ -19,10 +19,10 @@ class Normalize(PreprocessBase):
         super().__init__(parent, "Normalize", preprocessor)
         norm_frame = ttk.LabelFrame(self, text="Normalize method")
         self.norm_ctrl = tk.StringVar()
-        self.norm_ctrl.set(NormType.zeromean.value)
-        self.norm_zeromean = tk.Radiobutton(
-            norm_frame, text="Zero mean",
-            value=NormType.zeromean.value, variable=self.norm_ctrl
+        self.norm_ctrl.set(NormType.zscore.value)
+        self.norm_zscore = tk.Radiobutton(
+            norm_frame, text="Z score",
+            value=NormType.zscore.value, variable=self.norm_ctrl
         )
         self.norm_minmax = tk.Radiobutton(
             norm_frame, text="Min-max",
@@ -30,7 +30,7 @@ class Normalize(PreprocessBase):
         )
 
         norm_frame.grid(row=0, column=0, columnspan=2, sticky='w', padx=10, pady=10)
-        self.norm_zeromean.grid(row=0, column=0, sticky="w")
+        self.norm_zscore.grid(row=0, column=0, sticky="w")
         self.norm_minmax.grid(row=0, column=1, sticky="w")
         tk.Button(
             self, text="Confirm",
