@@ -19,8 +19,8 @@ class TrainingManagerWindow(TopWindow):
         self.training_plan_holders = trainer.get_training_plan_holders()
         self.script_history = Script()
 
-        columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc',
-                   'auc', 'val_loss', 'val_acc', 'val_auc')
+        columns = ('Plan name', 'Status', 'Epoch', 'lr', 'loss', 'acc (%)',
+                   'auc', 'val_loss', 'val_acc (%)', 'val_auc')
         plan_tree = EditableTreeView(self, columns=columns, show='headings')
 
         status_bar = tk.Label(self, text='IDLE')

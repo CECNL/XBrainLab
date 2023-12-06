@@ -328,7 +328,7 @@ class TrainRecord:
             plt.plot(test_acc_list, 'r', label='testing accuracy')
         plt.title('Training Accuracy')
         plt.xlabel('Epochs')
-        plt.ylabel('Accuracy')
+        plt.ylabel('Accuracy (%)')
         _ = plt.legend(loc='upper left')
 
         return fig

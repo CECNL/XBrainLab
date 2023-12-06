@@ -1,6 +1,6 @@
 # XBrainLab
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub license](https://img.shields.io/github/license/CECNL/XBrainLab)](https://github.com/CECNL/XBrainLab/blob/main/LICENSE)
 
 
 XBrainLab is a EEG decoding toolbox with deep learning dedicated to neuroscience discoveries.

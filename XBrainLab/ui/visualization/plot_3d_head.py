@@ -1,8 +1,24 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
+#from pyvista.plotting import _vtk
 from scipy.spatial import ConvexHull
 
+
+bgcolor = 'lightslategray'
+mesh_scale_scalar = 0.8
+
+checkboxKwargs = {
+    'size' : 20, 
+    'border_size' : 3,
+    'color_on' : '#82E0AA',
+    'color_off' : bgcolor,
+}
+checkboxTextKwargs = {
+    'color' : 'white',
+    'shadow' : True,
+    'font_size' : 8
+}
 
 class Saliency3D:
     def __init__(self, eval_record, epoch_data, selected_event_name):
@@ -11,16 +27,15 @@ class Saliency3D:
         self.save = False
         self.showChannel = True
         self.showHead = True
-        self.cmap = plt.cm.get_cmap("coolwarm")
+        self.cmap = plt.cm.get_cmap("jet")
         self.neighbor = 3
 
         # load 3d model
-        mesh = pv.read('./XBrainLab/visualization/3Dmodel/head.ply')
-        mesh2 = pv.read('./XBrainLab/visualization/3Dmodel/brain.ply')
+        mesh_head = pv.read('./XBrainLab/visualization/3Dmodel/head.ply')
+        mesh_brain = pv.read('./XBrainLab/visualization/3Dmodel/brain.ply')
 
         # get saliency
         labelIndex = epoch_data.event_id[self.selected_event_name]
-        # [eval_record.label == labelIndex]
         self.saliency = eval_record.gradient[labelIndex]
         self.saliency = self.saliency.mean(axis=0)
         self.scalar_bar_range = [self.saliency.min(), self.saliency.max()]
@@ -33,7 +48,7 @@ class Saliency3D:
 
         # get electrode pos in 3d
         pos_on_3d = []
-        trans = [-0.0004, 0.00917, mesh.bounds[5] - 0.10024]  # trans Cz to [0, 0, 0]
+        trans = [-0.0004, 0.00917, mesh_head.bounds[5] - 0.10024]  # trans Cz to [0, 0, 0]
         for ele in electrode:
             center = ch_pos[electrode.index(ele)] + trans
             if center[1] > 0:
@@ -42,29 +57,35 @@ class Saliency3D:
         self.pos_on_3d = np.asarray(pos_on_3d)
 
         self.chs = [
-            pv.Sphere(radius=0.005, center=self.pos_on_3d[i, :])
+            pv.Sphere(radius=0.003, center=self.pos_on_3d[i, :] * mesh_scale_scalar)
             for i in range(self.saliency.shape[0])
         ]
 
         # set plotter
         self.plotter = pv.Plotter(window_size=[750, 750])
-        self.plotter.background_color = "lightslategray"
-        self.head = mesh
-        self.brain = mesh2.scale((0.001, 0.001, 0.001), inplace=False).triangulate()
-        # self.head1 = self.head.clip_closed_surface(
-        #     'z', origin=[0, 0, self.pos_on_3d[:, 2].min()]
-        # ) # upper half head
-        self.head1 = ChannelConvexHull(self.pos_on_3d)
-        self.scalar = np.zeros(self.head1.n_points)
+        self.plotter.background_color = bgcolor
+
+        scaling = np.ones(3) * mesh_scale_scalar 
+        self.head = mesh_head.scale(scaling, inplace=True)
+        self.brain = mesh_brain.scale(scaling * 0.001, inplace=True).triangulate()
+        self.saliency_cap = ChannelConvexHull(self.pos_on_3d).scale(scaling, inplace=True)
+
+        self.scalar = np.zeros(self.saliency_cap.n_points)
         self.channelActor = []
         self.headActor = None
         self.param = {
             'timestamp': 1,
             'save': self.save,
         }
+        # checkbox instances & widget containers
         self.saveBox = CheckboxObj(self.param['save'])
         self.channelBox = CheckboxObj(self.showChannel)
         self.headBox = CheckboxObj(self.showHead)
+        # Todo/ "save" mechanism improvement notes:
+        #     from https://github.com/pyvista/pyvista/blob/release/0.42/pyvista/plotting/widgets.py#L2351-L2461
+        #     add_checkbox_button_widget returns _vtk.vtkButtonWidget()
+        #     utilize vtkButtonWidget_instance.GetRepresentation().set_state()
+
         self.update(save=0)
 
     def __call__(self, key, value):
@@ -73,15 +94,15 @@ class Saliency3D:
 
     def update(self, save=0):
         self.param['save'] = save
-        for i in range(self.head1.n_points):
-            dist = [np.linalg.norm(self.head1.points[i] - ch) for ch in self.pos_on_3d]
+        for i in range(self.saliency_cap.n_points):
+            dist = [np.linalg.norm(self.saliency_cap.points[i] - ch) for ch in self.pos_on_3d]
             dist_idx = np.argsort(dist)[:self.neighbor] # id of #neighbor cloest points
             dist = np.array([dist[idx] for idx in dist_idx])
             self.scalar[i] = InverseDistWeightedSum(
                 dist, self.saliency[dist_idx, self.param['timestamp'] - 1]
             )
         try:
-            self.plotter.update_scalars(self.scalar, self.head1)
+            self.plotter.update_scalars(self.scalar, self.saliency_cap)
             self.plotter.update_scalar_bar_range(self.scalar_bar_range, '')
         except Exception:
             pass
@@ -90,10 +111,7 @@ class Saliency3D:
             for actor in self.channelActor:
                 actor.SetVisibility(self.channelBox.ctrl)
         if save:
-            self.plotter.save_graphic(
-                f"event-{self.selected_event_name}_"
-                f"time-{self.param['timestamp']}_saliency3d.svg"
-            )
+            self.save_svg()
 
         if self.headBox.ctrl:
             if self.headActor is None:
@@ -105,49 +123,46 @@ class Saliency3D:
             self.headActor = None
 
     def get3dHeadPlot(self):
+        self.plotter.add_camera_orientation_widget()
+        
         self.plotter.add_slider_widget(
             callback=lambda val: self('timestamp', int(val)),
             rng=[1, self.max_time], value=1,
             title="Timestamp",
             pointa=(0.025, 0.08),  # left bottom
             pointb=(0.31, 0.08),  # right bottom
-            style='modern'
+            style='modern',
+            interaction_event = 'always'
         )
 
         self.plotter.add_checkbox_button_widget(
             self.saveBox,
             value=self.save,
             position=(25, 150),
-            size=20, border_size=2,
-            color_on='white',
-            color_off='grey',
+            **checkboxKwargs
         )
         self.plotter.add_text(
-            'Save', position=(60, 147), color='white', shadow=True, font_size=8
+            'Save', position=(60, 147), **checkboxTextKwargs
         )
 
         self.plotter.add_checkbox_button_widget(
             self.channelBox,
             value=self.showChannel,
             position=(25, 200),
-            size=20, border_size=2,
-            color_on='white',
-            color_off='grey',
+            **checkboxKwargs
         )
         self.plotter.add_text(
-            'Show channel', position=(60, 197), color='white', shadow=True, font_size=8
+            'Show channel', position=(60, 197), **checkboxTextKwargs
         )
 
         self.plotter.add_checkbox_button_widget(
             self.headBox,
             value=self.showHead,
             position=(25, 250),
-            size=20, border_size=2,
-            color_on='white',
-            color_off='grey',
+            **checkboxKwargs
         )
         self.plotter.add_text(
-            'Show head', position=(60, 247), color='white', shadow=True, font_size=8
+            'Show head', position=(60, 247), **checkboxTextKwargs
         )
 
         self.plotter.camera_position = 'xy'
@@ -155,23 +170,25 @@ class Saliency3D:
 
         self.channelActor = [self.plotter.add_mesh(ch, color='w') for ch in self.chs]
         self.plotter.add_mesh(
-            self.head1, opacity=0.7,
+            self.saliency_cap, opacity=0.8,
             scalars=self.scalar, cmap=self.cmap, show_scalar_bar=False
         )
         self.plotter.add_scalar_bar('', interactive=False, vertical=False)
         self.plotter.update_scalar_bar_range(self.scalar_bar_range, '')
-        self.plotter.add_mesh(self.brain, color='w')
+        self.plotter.add_mesh(self.brain, color='#FDEBD0')
 
         self.plotter.show_bounds()
 
         if self.param['save']:
-            self.plotter.save_graphic(
+            self.save_svg()
+
+        return self.plotter
+    
+    def save_svg(self):
+        self.plotter.save_graphic(
                 f"event-{self.selected_event_name}_"
                 f"time-{self.param['timestamp']}_saliency3d.svg"
             )
-
-        return self.plotter
-
 
 class CheckboxObj:
     def __init__(self, init_val):
