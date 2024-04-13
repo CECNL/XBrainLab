@@ -3,19 +3,21 @@ import numpy as np
 import pyvista as pv
 #from pyvista.plotting import _vtk
 from scipy.spatial import ConvexHull
+import os
+import requests
 
 
-bgcolor = 'lightslategray'
+bgcolor = 'white'#'#F8F5F1'#lightslategray'
 mesh_scale_scalar = 0.8
 
 checkboxKwargs = {
     'size' : 20, 
-    'border_size' : 3,
-    'color_on' : '#82E0AA',
+    'border_size' : 5,
+    'color_on' : '#456071',
     'color_off' : bgcolor,
 }
 checkboxTextKwargs = {
-    'color' : 'white',
+    'color' : 'black',
     'shadow' : True,
     'font_size' : 8
 }
@@ -31,6 +33,19 @@ class Saliency3D:
         self.neighbor = 3
 
         # load 3d model
+
+        if not os.path.isdir('./XBrainLab/visualization/3Dmodel'):
+            os.makedirs('./XBrainLab/visualization/3Dmodel')
+            fn_ply = ['brain.ply','head.ply']
+            gitrepo_loc = 'https://raw.githubusercontent.com/CECNL/XBrainLab/main/XBrainLab/visualization/3Dmodel/'
+            for fn in fn_ply:
+                req = requests.get(gitrepo_loc+fn)
+                with open('./XBrainLab/visualization/3Dmodel/'+ fn, 'wb') as handle:
+                    handle.write(req.content)
+
+            # XBrainLab/visualization/3Dmodel/brain.ply
+
+
         mesh_head = pv.read('./XBrainLab/visualization/3Dmodel/head.ply')
         mesh_brain = pv.read('./XBrainLab/visualization/3Dmodel/brain.ply')
 
