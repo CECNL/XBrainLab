@@ -38,6 +38,7 @@ def _test_model(
     total_count = 0
     auc_score = 0
     correct = 0
+    y_true, y_pred = None, None
     with torch.no_grad():
         for inputs, labels in dataLoader:
             outputs = model(inputs)
@@ -45,26 +46,31 @@ def _test_model(
             running_loss += loss.item()
 
             correct += (outputs.argmax(axis=1) == labels).float().sum().item()
-            try:
-                if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
-                    auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(),
-                    torch.nn.functional.softmax(
-                        outputs, dim=1
-                    ).clone().detach().cpu().numpy()[:, -1])
-                else:
-                    auc_score += roc_auc_score(labels.clone().detach().cpu().numpy(),
-                    torch.nn.functional.softmax(
-                        outputs, dim=1
-                    ).clone().detach().cpu().numpy(), multi_class='ovr')
-            except Exception:
-                # first few epochs in binary classification
-                # might not be able to compute score
-                pass
             total_count += len(labels)
+
+            if y_true is None or y_pred is None:
+                y_true = labels
+                y_pred = outputs
+            else:
+                y_true = torch.cat((y_true, labels))
+                y_pred = torch.cat((y_pred, outputs))
+
+        try:
+            if y_pred.size()[-1] <=2:
+                auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
+                torch.nn.functional.softmax(
+                    y_pred, dim=1
+                ).clone().detach().cpu().numpy())
+            else:
+                auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
+                torch.nn.functional.softmax(
+                    y_pred, dim=1
+                ).clone().detach().cpu().numpy(), multi_class='ovr')
+        except Exception:
+            pass
 
     running_loss /= len(dataLoader)
     acc = correct / total_count * 100
-    auc = auc_score / len(dataLoader)
     return {
         RecordKey.ACC: acc,
         RecordKey.AUC: auc,
@@ -331,8 +337,8 @@ class TrainingPlanHolder:
         running_loss = 0.0
         model.train()
         correct = 0
-        auc_score = 0
         total_count = 0
+        y_true, y_pred = None, None
         # train one mini batch
         for inputs, labels in trainLoader:
             if self.interrupt:
@@ -344,28 +350,34 @@ class TrainingPlanHolder:
             optimizer.step()
 
             correct += (outputs.argmax(axis=1) == labels).float().sum().item()
-            try:
-                if torch.nn.functional.softmax(outputs, dim=1).size()[-1] <=2:
-                    auc_score += roc_auc_score(
-                        labels.clone().detach().cpu().numpy(),
-                        torch.nn.functional.softmax(
-                            outputs, dim=1
-                        ).clone().detach().cpu().numpy()[:, -1]
-                    )
-                else:
-                    auc_score += roc_auc_score(
-                        labels.clone().detach().cpu().numpy(),
-                        torch.nn.functional.softmax(
-                            outputs, dim=1
-                        ).clone().detach().cpu().numpy(), multi_class='ovr')
-            except Exception:
-                pass
+            if y_true is None or y_pred is None:
+                y_true = labels
+                y_pred = outputs
+            else:
+                y_true = torch.cat((y_true, labels))
+                y_pred = torch.cat((y_pred, outputs))
             total_count += len(labels)
             running_loss += loss.item()
 
+        try:
+            if y_pred.size()[-1] <=2:
+                train_auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
+                torch.nn.functional.softmax(
+                    y_pred, dim=1
+                ).clone().detach().cpu().numpy())
+            else:
+                train_auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
+                torch.nn.functional.softmax(
+                    y_pred, dim=1
+                ).clone().detach().cpu().numpy(), multi_class='ovr')
+        except Exception:
+            # first few epochs in binary classification
+            # might not be able to compute score
+            pass
+
+
         running_loss /= len(trainLoader)
         train_acc = correct / total_count * 100
-        train_auc = auc_score/len(trainLoader)
         train_record.update_train({
             RecordKey.LOSS: running_loss,
             RecordKey.ACC: train_acc,
