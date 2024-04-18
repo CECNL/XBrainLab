@@ -36,7 +36,7 @@ def _test_model(
 
     running_loss = 0.0
     total_count = 0
-    auc_score = 0
+    auc = 0
     correct = 0
     y_true, y_pred = None, None
     with torch.no_grad():
@@ -60,7 +60,7 @@ def _test_model(
                 auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
                 torch.nn.functional.softmax(
                     y_pred, dim=1
-                ).clone().detach().cpu().numpy())
+                ).clone().detach().cpu().numpy()[:, 1])
             else:
                 auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
                 torch.nn.functional.softmax(
@@ -338,6 +338,7 @@ class TrainingPlanHolder:
         model.train()
         correct = 0
         total_count = 0
+        train_auc = 0
         y_true, y_pred = None, None
         # train one mini batch
         for inputs, labels in trainLoader:
@@ -364,7 +365,7 @@ class TrainingPlanHolder:
                 train_auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
                 torch.nn.functional.softmax(
                     y_pred, dim=1
-                ).clone().detach().cpu().numpy())
+                ).clone().detach().cpu().numpy()[:, 1])
             else:
                 train_auc = roc_auc_score(y_true.clone().detach().cpu().numpy(),
                 torch.nn.functional.softmax(
