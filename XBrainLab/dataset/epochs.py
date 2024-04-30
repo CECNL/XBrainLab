@@ -101,10 +101,11 @@ class Epochs:
             event_id = old_event_id.copy()
             old_labels = old_events[:, 2].copy()
 
-            for old_event_name, old_event_label in old_event_id.items():
-                events[:, 2][old_labels == old_event_label] = \
-                    fixed_event_id[old_event_name]
-                event_id[old_event_name] = fixed_event_id[old_event_name]
+            if sorted(list(old_event_id.values())) != list(range(len(old_event_id))):
+                for old_event_name, old_event_label in old_event_id.items():
+                    events[:, 2][old_labels == old_event_label] = \
+                        fixed_event_id[old_event_name]
+                    event_id[old_event_name] = fixed_event_id[old_event_name]
             preprocessed_data.set_event(events, event_id)
 
         # label map

@@ -20,10 +20,8 @@ class EditEventName(PreprocessBase):
                 raise ValueError("Event name can only be edited for epoched data")
 
     def get_preprocess_desc(self, new_event_name: dict[str, str]):
-        diff = set(new_event_name.keys()).difference(
-            set(new_event_name.values())
-        )
-        return f"Update {len(diff)} event names"
+        diff = np.sum(np.array(list(new_event_name.values())) != np.array(list(new_event_name.keys())))
+        return f"Update {diff} event names"
 
     def _data_preprocess(self, preprocessed_data: Raw, new_event_name: dict[str, str]):
         # update parent event name to event id dict
@@ -58,10 +56,8 @@ class EditEventId(PreprocessBase):
                 raise ValueError("Event id can only be edited for epoched data")
 
     def get_preprocess_desc(self, new_event_ids: dict[str, int]):
-        diff = set(new_event_ids.keys()).difference(
-            set(new_event_ids.values())
-        )
-        return f"Update {len(diff)} event ids"
+        diff = np.sum(np.array(list(new_event_ids.values())) != np.array(list(new_event_ids.keys())))
+        return f"Update {diff} event ids"
 
     def _data_preprocess(self, preprocessed_data: Raw, new_event_ids: dict[str, int]):
         # update parent event data

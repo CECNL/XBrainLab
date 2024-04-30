@@ -79,11 +79,12 @@ class EditEventIds(PreprocessBase):
         self.columnconfigure([0, 1], weight=1)
 
         eventidframe = tk.LabelFrame(self, text="Event Ids:")
-        for i, e in enumerate(self.old_event_id.values()):
-            self.new_event_id[e].set(e)
-            tk.Label(eventidframe, text=e, width=10).grid(row=i, column=0)
-            tk.Entry(eventidframe, textvariable=self.new_event_id[e], width=10).grid(
-                row=i, column=1
+        for i, e in enumerate(self.old_event_id):
+            self.new_event_id[self.old_event_id[e]].set(self.old_event_id[e])
+            tk.Label(eventidframe, text=str(e) + ' : ').grid(row=i, column=0)
+            tk.Label(eventidframe, text=str(self.old_event_id[e]), width=5).grid(row=i, column=1)
+            tk.Entry(eventidframe, textvariable=self.new_event_id[self.old_event_id[e]], width=10).grid(
+                row=i, column=2
             )
         if i:
             eventidframe.rowconfigure(list(range(i+1)), weight=1)

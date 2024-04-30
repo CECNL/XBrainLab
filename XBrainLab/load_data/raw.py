@@ -134,7 +134,11 @@ class Raw:
             self.raw_event_id
         ):
             # check event consistency
-            assert len(self.raw_events) == len(data.events)
+                        if len(self.raw_events) != len(data.events):
+                print(
+                    'UserWarning: Number of events from loaded label file and selected events for epoching are inconsistent.'
+                    'Please proceed with caution.'
+                )
             data.events = self.raw_events
             data.event_id = self.raw_event_id
             self.raw_events = None

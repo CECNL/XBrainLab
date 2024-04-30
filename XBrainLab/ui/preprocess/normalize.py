@@ -42,7 +42,7 @@ class Normalize(PreprocessBase):
             self.return_data = self.preprocessor.data_preprocess(norm_method)
         except Exception as e:
             raise ValidateException(window=self, message=str(e)) from e
-        self.script_history.add_cmd(f'norm_method={norm_method}')
+        self.script_history.add_cmd(f'norm_method="{norm_method}"')
         self.script_history.add_cmd(
             'study.preprocess(preprocessor=preprocessor.Normalize, norm=norm_method)'
         )
