@@ -26,12 +26,12 @@ class LoadEvent(TopWindow):
 
         self.event_num = tk.StringVar()
         self.new_event_name = {}
-        self.eventidframe = tk.LabelFrame(self, text="Event ids:")
+        self.eventidframe = tk.LabelFrame(self, text="New Event ids:")
 
-        tk.Button(self, text="Load file", command=self._load_event_file).grid(
+        tk.Button(self, text="Select file", command=self._load_event_file).grid(
             row=0, column=0, columnspan=2
         )
-        tk.Label(self, text="Event numbers: ").grid(
+        tk.Label(self, text="New Event numbers: ").grid(
             row=1, column=0, sticky='w', padx=5, pady=5
         )
         tk.Label(self, textvariable=self.event_num).grid(
@@ -60,10 +60,17 @@ class LoadEvent(TopWindow):
                     f"event_loader.read_txt({selected_file!r})"
                 )
             elif '.mat' in selected_file:
-                label_list = self.event_loader.read_mat(selected_file)
-                self.load_script_history.set_cmd(
-                    f"event_loader.read_mat({selected_file!r})"
-                )
+                loaded_mat = self.event_loader.read_mat(selected_file)
+                key_opt_val = [k for k in loaded_mat if not k.startswith('_')]
+                if len(key_opt_val)<=1:
+                    label_key = key_opt_val[0]
+                else:
+                    label_key = EventDictInfoSetter(self, loaded_mat, key_opt_val).get_result()
+                label_list = self.event_loader.from_mat(loaded_mat[label_key])
+
+                self.load_script_history.add_cmd("event_data = scipy.io.loadmat(filepath)")
+                self.load_script_history.add_cmd(f"event_data = event_data[{label_key!r}]")
+                self.load_script_history.set_cmd(f"event_loader.from_mat(event_data)")
             else:
                 tk.messagebox.showwarning(
                     parent=self,
@@ -102,3 +109,48 @@ class LoadEvent(TopWindow):
 
     def _get_script_history(self):
         return self.ret_script_history
+    
+class EventDictInfoSetter(TopWindow):
+    def __init__(self, parent, loaded_mat, key_opt_val):
+        # ==== inits
+        super().__init__(parent, "Select Field")
+        self.loaded_mat = loaded_mat
+        self.selected_key = None
+
+        # generate options
+        # key_opt_val = [k for k in loaded_mat if not k.startswith('_')]
+
+        # generate vars
+        self.event_key_trace = tk.StringVar(self)
+        self.event_shape_view = tk.StringVar(self)
+        self.event_key_trace.set('None')
+        self.event_shape_view.set('None')
+        self.event_key_trace.trace_add('write', self._shape_view_update)
+
+        # ======== event key
+        tk.Label(self, text="Event key: ").grid(row=0, column=0, sticky='w')
+        tk.OptionMenu(
+            self, self.event_key_trace, 'None', *key_opt_val
+        ).grid(row=0, column=1, sticky='w')
+
+        tk.Label(self, text="Value shape: ").grid(
+            row=1, column=0, sticky='w'
+        )
+        tk.Label(self, textvariable=self.event_shape_view).grid(
+            row=1, column=1
+        )
+        tk.Button(self, text="Confirm", command=self._key_confirm).grid(
+            row=2, columnspan=2
+        )
+        self._shape_view_update()
+    def _shape_view_update(self, *args):
+        if self.event_key_trace.get() != 'None':
+            self.event_shape_view.set(
+                str(self.loaded_mat[self.event_key_trace.get()].shape)
+            )
+    def _key_confirm(self):
+        self.selected_key = self.event_key_trace.get()
+        self.destroy()
+    def _get_result(self):
+        # return self.loaded_mat[self.selected_key]
+        return self.selected_key

@@ -7,13 +7,14 @@ from .base import DataType
 from .shape_option import EpochShapeOtion, RawShapeOtion, generate_perm
 
 
-class DictInfoSetter(TopWindow):
+class DataDictInfoSetter(TopWindow):
     def __init__(self, parent, fp, loaded_mat, dict_info, type_ctrl):
         # ==== inits
         super().__init__(parent, "Select Field")
         self.loaded_mat = loaded_mat
         self.dict_info = dict_info
         self.ret_key = None
+        self.type_ctrl = type_ctrl
         OPTION = RawShapeOtion if type_ctrl == DataType.RAW.value else EpochShapeOtion
 
         # generate options
@@ -174,6 +175,11 @@ class DictInfoSetter(TopWindow):
         event = None
         if event_key == 'None':
             event_key = None
+            if self.type_ctrl == DataType.EPOCH.value:
+                tk.messagebox.showinfo(
+                    parent=self, title='Warning',
+                    message='Loading epoched data without specifying event.\n Default event created.'
+                )
         else:
             event = self.loaded_mat[event_key]
             ## check dim

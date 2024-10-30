@@ -1,7 +1,7 @@
 import tkinter as tk
 
 from .array import LoadArray
-from .dict_setter import DictInfoSetter
+from .dict_setter import DataDictInfoSetter
 from .info import DictInfo
 
 
@@ -25,7 +25,7 @@ class LoadDict(LoadArray):
 
     def handle_dict(self, filepath, selected_data):
         if not self.dict_info.is_info_complete(selected_data):
-            dict_info_module = DictInfoSetter(
+            dict_info_module = DataDictInfoSetter(
                 self,
                 filepath, selected_data, self.dict_info,
                 type_ctrl=self.type_ctrl.get()

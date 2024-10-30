@@ -29,7 +29,7 @@ class EventLoader:
         self.event_id = None
 
     def read_txt(self, selected_file: str) -> list:
-        """Read event data from txt file.
+        """Read and set event data from txt file.
 
         The txt file should contain a list of event codes, separated by space.
 
@@ -49,41 +49,40 @@ class EventLoader:
         return label_list
 
     def read_mat(self, selected_file: str) -> list:
-        """Read event data from mat file.
-
-        The mat file should contain exactly one variable,
-        which is a list of event codes.
+        """Read event data from mat file..
 
         Args:
             selected_file: Path to the mat file.
 
         Returns:
-            List of event codes.
+            Loaded mat content.
         """
         mat_content = scipy.io.loadmat(selected_file)
-        mat_key = [k for k in mat_content if not k.startswith('_')]
-        if len(mat_key) > 1:
-            raise ValueError("Mat file should contain exactly one variable.")
-        else:
-            mat_key = mat_key[0]
-        event_content = mat_content[mat_key].astype(np.int32)
+        return mat_content
+    def from_mat(self, label_list) -> list:
+        """Set event data from mat file..
+
+        Args:
+            label_list: content from mat under selected variable
+        """
+        label_list = label_list.astype(np.int32)
         # for (n,1) and (1,n) of labels
-        if len(event_content.shape) == 2:
-            if event_content.shape[0] == 1:
-                event_content = event_content[0]
-            elif event_content.shape[1] == 1:
-                event_content = event_content[:, 0]
+        if len(label_list.shape) == 2:
+            if label_list.shape[0] == 1:
+                self.label_list = label_list[0].tolist()
+            elif label_list.shape[1] == 1:
+                self.label_list = label_list[:, 0].tolist()
         # (n, 3)
-        if len(event_content.shape) == 2:
-            assert event_content.shape[1] == 3, "Event array should have 3 columns."
-            self.label_list = event_content
-            return event_content[:, -1].tolist()
+        # according to https://mne.tools/stable/documentation/glossary.html#term-events
+            else:
+                assert label_list.shape[1] == 3, "Event array should have 3 columns." 
+                self.label_list = label_list[:, -1].tolist()
         # (n,)
-        elif len(event_content.shape) == 1:
-            self.label_list = event_content
-            return event_content.tolist()
+        elif len(label_list.shape) == 1:
+            self.label_list = label_list.tolist()
         else:
             raise ValueError("Either 1d or 2d array is expected.")
+        return self.label_list
 
     def create_event(self, event_name_map: dict[int, str]) -> tuple:
         """Create event array and event id.
