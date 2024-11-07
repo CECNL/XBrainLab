@@ -228,11 +228,12 @@ class TrainingPlanHolder:
         self,
         model_holder: ModelHolder,
         dataset: Dataset,
-        option: TrainingOption
+        option: TrainingOption, 
+        saliency_params: dict,
     ):
         self.model_holder = model_holder
         self.dataset = dataset
-        self.saliency_params = None
+        self.saliency_params = saliency_params
         self.option = option
         self.check_data()
 
@@ -486,11 +487,20 @@ class TrainingPlanHolder:
     def get_saliency_params(self) -> dict:
         """Return the saliency computation parameters"""
         return self.saliency_params
+    
     # setter
     def set_saliency_params(self, saliency_params)-> None:
         """Set the saliency computation parameters"""
         self.saliency_params = saliency_params
-
+        for i in range(self.option.repeat_num):
+            train_record = self.train_record_list[i]
+            trainLoader, valLoader, testLoader = self.get_loader()
+            target, target_loader = self.get_eval_pair(
+                train_record, valLoader, testLoader
+            )
+            if target is not None: # model is trained
+                eval_record = _eval_model(target, target_loader, self.saliency_params)
+                self.train_record_list[i].set_eval_record(eval_record)
 
     # status
     def get_training_status(self) -> str:

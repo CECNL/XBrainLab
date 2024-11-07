@@ -335,10 +335,17 @@ class DashBoard(tk.Tk):
             self.update_dashboard()
     
     def set_saliency(self):
-        if not self.study.trainer:
-            raise ValidateException(
-                window=self, message='No valid training plan is generated'
-            )
+        if self.study.trainer:
+            if self.study.trainer.get_training_plan_holders()[0].get_plans()[0].is_finished() or self.study.get_saliency_params() is not None:
+                if not tk.messagebox.askokcancel(
+                    parent=self, title='Warning',
+                    message=(
+                        'The saliency maps are already computed,\n'
+                        'all saliency maps will be recomputed if you reset this step.\n'
+                        'Do you want to proceed?'
+                    )
+                ):
+                    return
         set_saliency_module = SetSaliencyWindow(self, self.study.get_saliency_params())
         saliency_param_confirm, saliency_params = set_saliency_module.get_result()
         if saliency_param_confirm:

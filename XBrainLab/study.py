@@ -39,6 +39,8 @@ class Study:
         self.model_holder = None
         self.training_option = None
         self.trainer = None
+        # visulaization
+        self.saliency_params = None
 
     # step 1 - load data
     def get_raw_data_loader(self) -> RawDataLoader:
@@ -210,7 +212,7 @@ class Study:
         model_holder = self.model_holder
         datasets = self.datasets
         training_plan_holders = [
-            TrainingPlanHolder(model_holder, dataset, option)
+            TrainingPlanHolder(model_holder, dataset, option, self.saliency_params)
             for dataset in datasets
         ]
         self.trainer = Trainer(training_plan_holders)
@@ -293,9 +295,7 @@ class Study:
         Raises:
             ValueError: If no valid trainer has been generated.
         """
-        if self.trainer:
-            return self.trainer.get_training_plan_holders()[0].saliency_params
-        return None
+        return self.saliency_params
     
     def set_saliency_params(self, saliency_params) -> None:
         """Set saliency parameters for saliency computation.
@@ -303,10 +303,10 @@ class Study:
         Args:
             saliency_params: The saliency parameters. Nest dictionary of {'method', {'param', value}}
         """
-        if not self.trainer:
-            raise ValueError("No valid trainer is generated")
-        for training_plan_holder in self.trainer.get_training_plan_holders():
-            training_plan_holder.set_saliency_params(saliency_params)
+        self.saliency_params = saliency_params
+        if self.trainer:
+            for training_plan_holder in self.trainer.get_training_plan_holders():
+                training_plan_holder.set_saliency_params(saliency_params)
 
     """clean work flow
     ########################################
