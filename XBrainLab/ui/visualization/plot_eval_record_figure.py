@@ -20,5 +20,5 @@ class PlotEvalRecordFigureWindow(PlotFigureWindow):
         plot_visualizer = self.plot_type.value(
             eval_record, epoch_data, **self.get_figure_params()
         )
-        figure = plot_visualizer.get_plt()
+        figure = plot_visualizer.get_plt(method=self.selected_saliency_method_name.get())
         return figure

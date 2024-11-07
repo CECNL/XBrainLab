@@ -13,6 +13,7 @@ from .dashboard_panel import (
     TrainingSchemePanel,
     TrainingSettingPanel,
     TrainingStatusPanel,
+    ExplanationSettingPanel
 )
 from .dataset import DataSplittingSettingWindow
 from .evaluation import EVALUATION_MODULE_LIST
@@ -25,7 +26,7 @@ from .training import (
     TrainingManagerWindow,
     TrainingSettingWindow,
 )
-from .visualization import VISUALIZATION_MODULE_LIST, PickMontageWindow
+from .visualization import VISUALIZATION_MODULE_LIST, PickMontageWindow, SetSaliencyWindow
 
 
 class DashBoard(tk.Tk):
@@ -47,7 +48,8 @@ class DashBoard(tk.Tk):
         self.training_setting_panel = TrainingSettingPanel(
             self, row=1, column=0, columnspan=2
         )
-        self.training_status_panel = TrainingStatusPanel(self, row=1, column=2)
+        self.explanation_setting_panel = ExplanationSettingPanel(self, row=2, column=0, columnspan=2)
+        self.training_status_panel = TrainingStatusPanel(self, row=1, column=2, rowspan=2)
 
         self.study = study
         self.script_history = script_history
@@ -70,6 +72,7 @@ class DashBoard(tk.Tk):
             self.training_setting_panel.update_panel(
                 self.study.model_holder, self.study.training_option
             )
+            self.explanation_setting_panel.update_panel(self.study.get_saliency_params())
             self.update_idletasks()
 
         self.training_status_panel.update_panel(self.study.trainer)
@@ -149,6 +152,7 @@ class DashBoard(tk.Tk):
 
         # visualization
         visualization_menu.add_command(label='Set Montage', command=self.set_montage)
+        visualization_menu.add_command(label='Set Saliency Methods', command=self.set_saliency)
         for visualization_module in VISUALIZATION_MODULE_LIST:
             visualization_menu.add_command(
                 label=visualization_module.command_label,
@@ -329,6 +333,18 @@ class DashBoard(tk.Tk):
             self.script_history += pick_montage_module.get_script_history()
             self.script_history.add_cmd("study.set_channels(chs, positions)")
             self.update_dashboard()
+    
+    def set_saliency(self):
+        if not self.study.trainer:
+            raise ValidateException(
+                window=self, message='No valid training plan is generated'
+            )
+        set_saliency_module = SetSaliencyWindow(self)
+        saliency_params = set_saliency_module.get_result()
+        self.study.set_saliency_params(saliency_params)
+        self.script_history += set_saliency_module.get_script_history()
+        self.script_history.add_cmd("study.set_saliency_params(saliency_params)")
+        self.update_dashboard()
 
     def clean_plot(self):
         # could crash system called in threads

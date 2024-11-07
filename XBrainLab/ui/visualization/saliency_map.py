@@ -11,6 +11,7 @@ class SaliencyMapWindow(PlotABSFigureWindow):
         trainers,
         plan_name=None,
         real_plan_name=None,
+        saliency_name=None,
         absolute=None
     ):
         super().__init__(
@@ -20,5 +21,6 @@ class SaliencyMapWindow(PlotABSFigureWindow):
             title=self.command_label,
             plan_name=plan_name,
             real_plan_name=real_plan_name,
+            saliency_name=saliency_name,
             absolute=absolute
         )

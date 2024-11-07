@@ -21,7 +21,7 @@ class PickMontageWindow(TopWindow):
         #+ gui
         ##+ option menu
         selected_montage = tk.StringVar(self)
-        selected_montage.trace('w', self.on_montage_select) # callback
+        selected_montage.trace_add('write', self.on_montage_select) # callback
         montage_opt = tk.OptionMenu(self, selected_montage, *montage_list)
         ##+ listview
         selected_label = tk.Label(self, text='Selected')

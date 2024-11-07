@@ -7,10 +7,11 @@ from enum import Enum
 import numpy as np
 import torch
 import torch.utils.data as Data
-from captum.attr import Saliency
+from captum.attr import Saliency, NoiseTunnel
 from sklearn.metrics import roc_auc_score
 
 from ..dataset import Dataset
+from ..visualization import supported_saliency_methods
 from ..utils import set_seed, validate_type
 from .model_holder import ModelHolder
 from .option import TRAINING_EVALUATION, TrainingOption
@@ -77,7 +78,7 @@ def _test_model(
         RecordKey.LOSS: running_loss
     }
 
-def _eval_model(model: torch.nn.Module, dataLoader: Data.DataLoader) -> EvalRecord:
+def _eval_model(model: torch.nn.Module, dataLoader: Data.DataLoader, saliency_params:dict) -> EvalRecord:
     """Evaluate model on given data loader
 
     Evaluate model and compute saliency map for each class
@@ -88,16 +89,22 @@ def _eval_model(model: torch.nn.Module, dataLoader: Data.DataLoader) -> EvalReco
     """
     model.eval()
 
+    input_list = []
     output_list = []
     label_list = []
 
     gradient_list = []
+    smoothgrad_list = []
+    smoothgrad_sq_list = []
+    vargrad_list = []
     saliency_inst = Saliency(model)
+    noise_tunnel_inst = NoiseTunnel(saliency_inst)
 
     for inputs, labels in dataLoader:
         inputs.requires_grad = False
         outputs = model(inputs)
 
+        input_list.append(inputs.detach().cpu().numpy())
         output_list.append(outputs.detach().cpu().numpy())
         label_list.append(labels.detach().cpu().numpy())
 
@@ -107,16 +114,54 @@ def _eval_model(model: torch.nn.Module, dataLoader: Data.DataLoader) -> EvalReco
                 inputs, target=labels.detach().cpu().numpy().tolist(), abs=False
             ).detach().cpu().numpy()
         )
+        smoothgrad_list.append(
+            noise_tunnel_inst.attribute(
+                inputs, target=labels.detach().cpu().numpy().tolist(),
+                nt_type='smoothgrad', **saliency_params['SmoothGrad']
+            ).detach().cpu().numpy()
+        )
+        smoothgrad_sq_list.append(
+            noise_tunnel_inst.attribute(
+                inputs, target=labels.detach().cpu().numpy().tolist(),
+                nt_type='smoothgrad_sq', **saliency_params['SmoothGrad Squared']
+            ).detach().cpu().numpy()
+        )
+        vargrad_list.append(
+            noise_tunnel_inst.attribute(
+                inputs, target=labels.detach().cpu().numpy().tolist(), nt_type='vargrad', **saliency_params['VarGrad']
+            ).detach().cpu().numpy()
+        )
 
     label_list = np.concatenate(label_list)
     output_list = np.concatenate(output_list)
 
+    input_list = np.concatenate(input_list)
     gradient_list = np.concatenate(gradient_list)
+    smoothgrad_list = np.concatenate(smoothgrad_list)
+    smoothgrad_sq_list = np.concatenate(smoothgrad_sq_list)
+    vargrad_list = np.concatenate(vargrad_list)
+
+    input_list = {
+        i: input_list[np.where(label_list==i)]
+        for i in range(output_list.shape[-1])
+    }
     gradient_list = {
         i: gradient_list[np.where(label_list==i)]
         for i in range(output_list.shape[-1])
     }
-    return EvalRecord(label_list, output_list, gradient_list)
+    smoothgrad_list = {
+        i: smoothgrad_list[np.where(label_list==i)]
+        for i in range(output_list.shape[-1])
+    }
+    smoothgrad_sq_list = {        
+        i: smoothgrad_sq_list[np.where(label_list==i)]
+        for i in range(output_list.shape[-1])
+    }
+    vargrad_list = {
+        i: vargrad_list[np.where(label_list==i)]
+        for i in range(output_list.shape[-1])
+    }
+    return EvalRecord(input_list, label_list, output_list, gradient_list, smoothgrad_list, smoothgrad_sq_list, vargrad_list)
 
 def to_holder(
     X: np.ndarray,
@@ -187,6 +232,7 @@ class TrainingPlanHolder:
     ):
         self.model_holder = model_holder
         self.dataset = dataset
+        self.saliency_params = None
         self.option = option
         self.check_data()
 
@@ -214,6 +260,15 @@ class TrainingPlanHolder:
             raise ValueError('No valid training setting is generated')
         if not self.model_holder:
             raise ValueError('No valid model is selected')
+        if not self.saliency_params:
+            print('No saliency parameter is set, using default parameters.')
+            params = {
+                'nt_samples': 5,
+                'nt_samples_batch_size': None,
+                'stdevs': 1.0
+            }
+            self.saliency_params = {algo: params for algo in supported_saliency_methods}
+        
         validate_type(self.model_holder, ModelHolder, 'model_holder')
         validate_type(self.dataset, Dataset, 'dataset')
         validate_type(self.option, TrainingOption, 'option')
@@ -319,7 +374,7 @@ class TrainingPlanHolder:
                 train_record, valLoader, testLoader
             )
             if target and target_loader:
-                eval_record = _eval_model(target, target_loader)
+                eval_record = _eval_model(target, target_loader, self.saliency_params)
                 train_record.set_eval_record(eval_record)
 
         train_record.export_checkpoint()
@@ -427,6 +482,15 @@ class TrainingPlanHolder:
     def get_plans(self) -> list[TrainRecord]:
         """Get the training records of the training plan"""
         return self.train_record_list
+
+    def get_saliency_params(self) -> dict:
+        """Return the saliency computation parameters"""
+        return self.saliency_params
+    # setter
+    def set_saliency_params(self, saliency_params)-> None:
+        """Set the saliency computation parameters"""
+        self.saliency_params = saliency_params
+
 
     # status
     def get_training_status(self) -> str:

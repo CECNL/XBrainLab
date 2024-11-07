@@ -35,10 +35,14 @@ class EvalRecord:
                   class index as key.
             Gradient of model by class index.
     """
-    def __init__(self, label: np.ndarray, output: np.ndarray, gradient: dict):
+    def __init__(self, inputs:dict, label: np.ndarray, output: np.ndarray, gradient: dict, smoothgrad: dict, smoothgrad_sq: dict, vargrad:dict) -> None:
+        self.inputs = inputs
         self.label = label
         self.output = output
         self.gradient = gradient
+        self.smoothgrad = smoothgrad
+        self.smoothgrad_sq = smoothgrad_sq
+        self.vargrad = vargrad
 
     def export(self, target_path: str) -> None:
         """Export evaluation result as torch file.
@@ -100,3 +104,19 @@ class EvalRecord:
             (confusion.sum() * confusion.sum())
         )
         return (P0 - Pe) / (1 - Pe)
+    
+    def get_gradient(self, labelIndex: int) -> np.ndarray:
+        """Return gradient of model by class index."""
+        return self.gradient[labelIndex]
+
+    def get_smoothgrad(self, labelIndex: int) -> np.ndarray:
+        """Return smoothgrad of model by class index."""
+        return self.smoothgrad[labelIndex]
+    
+    def get_smoothgrad_sq(self, labelIndex: int) -> np.ndarray: 
+        """Return smoothgrad squared of model by class index."""
+        return self.smoothgrad_sq[labelIndex]
+    
+    def get_vargrad(self, labelIndex: int) -> np.ndarray:
+        """Return vargrad of model by class index."""
+        return self.vargrad[labelIndex]

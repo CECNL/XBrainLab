@@ -3,6 +3,7 @@ from .montage_picker import PickMontageWindow
 from .plot_abs_plot_figure import PlotABSFigureWindow
 from .plot_abs_topo_plot_figure import PlotTopoABSFigureWindow
 from .plot_eval_record_figure import PlotEvalRecordFigureWindow
+from .saliency_setting import SetSaliencyWindow
 from .saliency_3Dplot import Saliency3DPlotWindow
 from .saliency_map import SaliencyMapWindow
 from .saliency_spectrogram import SaliencySpectrogramWindow
@@ -17,6 +18,7 @@ VISUALIZATION_MODULE_LIST = [
 __all__ = [
     'VISUALIZATION_MODULE_LIST',
     'PickMontageWindow',
+    'SetSaliencyWindow',
     'SaliencyMapWindow',
     'SaliencyTopographicMapWindow',
     'SaliencySpectrogramWindow',

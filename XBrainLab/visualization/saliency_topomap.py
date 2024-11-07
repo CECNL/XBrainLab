@@ -11,7 +11,7 @@ class SaliencyTopoMapViz(Visualizer):
     Args:
         absolute: whether to plot absolute value of saliency
     """
-    def _get_plt(self, absolute: bool) -> plt:
+    def _get_plt(self, method, absolute: bool) -> plt:
         positions = self.epoch_data.get_montage_position()
         chs = self.epoch_data.get_channel_names()
         label_number = self.epoch_data.get_label_number()
@@ -22,7 +22,7 @@ class SaliencyTopoMapViz(Visualizer):
         for labelIndex in range(label_number):
             ax = plt.subplot(rows, cols, labelIndex + 1)
 
-            saliency = self.get_gradient(labelIndex)
+            saliency = self.get_saliency(method, labelIndex)
             # no test data for this label
             if len(saliency) == 0:
                 continue

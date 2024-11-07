@@ -287,6 +287,27 @@ class Study:
             raise ValueError("No valid epoch data is generated")
         self.epoch_data.set_channels(chs, positions)
 
+    def get_saliency_params(self) -> dict:
+        """Return saliency parameters for saliiency computation.
+
+        Raises:
+            ValueError: If no valid trainer has been generated.
+        """
+        if self.trainer:
+            return self.trainer.get_training_plan_holders()[0].saliency_params
+        return None
+    
+    def set_saliency_params(self, saliency_params) -> None:
+        """Set saliency parameters for saliency computation.
+
+        Args:
+            saliency_params: The saliency parameters. Nest dictionary of {'method', {'param', value}}
+        """
+        if not self.trainer:
+            raise ValueError("No valid trainer is generated")
+        for training_plan_holder in self.trainer.get_training_plan_holders():
+            training_plan_holder.set_saliency_params(saliency_params)
+
     """clean work flow
     ########################################
     1. raw/preprocessed(epoched) data

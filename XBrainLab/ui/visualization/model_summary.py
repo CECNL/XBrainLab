@@ -35,7 +35,7 @@ class ModelSummaryWindow(TopWindow):
         ###+ plan
         selected_plan_name = tk.StringVar(self)
         selected_plan_name.set(trainer_list[0])
-        selected_plan_name.trace('w', self.on_plan_select) # callback
+        selected_plan_name.trace_add('w', self.on_plan_select) # callback
         plan_opt = tk.OptionMenu(selector_frame, selected_plan_name, *trainer_list)
 
 

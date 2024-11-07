@@ -7,7 +7,7 @@ from .base import Visualizer
 class SaliencyMapViz(Visualizer):
     """Visualizer that generate channel by time saliency map from evaluation record"""
 
-    def _get_plt(self, absolute: bool) -> plt:
+    def _get_plt(self, method, absolute: bool) -> plt:
         """Return saliency map plot
 
         Args:
@@ -21,7 +21,7 @@ class SaliencyMapViz(Visualizer):
         # draw
         for labelIndex in range(label_number):
             plt.subplot(rows, cols, labelIndex + 1)
-            saliency = self.get_gradient(labelIndex)
+            saliency = self.get_saliency(method, labelIndex)
             # no test data for this label
             if len(saliency) == 0:
                 continue

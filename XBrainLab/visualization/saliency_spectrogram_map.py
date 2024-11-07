@@ -9,7 +9,7 @@ class SaliencySpectrogramMapViz(Visualizer):
     """Visualizer that generate frequency by time saliency spectrogram
        from evaluation record"""
 
-    def _get_plt(self) -> plt:
+    def _get_plt(self, method) -> plt:
         """Return saliency spectrogram plot
 
         Args:
@@ -23,7 +23,7 @@ class SaliencySpectrogramMapViz(Visualizer):
         # draw
         for labelIndex in range(label_number):
             plt.subplot(rows, cols, labelIndex + 1)
-            saliency = self.get_gradient(labelIndex)
+            saliency = self.get_saliency(method, labelIndex)
             # no test data for this label
             if len(saliency) == 0:
                 continue

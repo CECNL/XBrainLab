@@ -136,6 +136,7 @@ class XBrainLab:
         plot_type: VisualizerType,
         plan_name: str,
         real_plan_name: str,
+        saliency_name: str,
         absolute: bool,
         trainers: list[TrainingPlanHolder]
     ) -> None:
@@ -150,7 +151,7 @@ class XBrainLab:
         """
         PlotABSFigureWindow(
             parent=self.ui, trainers=trainers,
-            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name,
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name, saliency_name=saliency_name,
             absolute=absolute
         )
 
@@ -160,6 +161,7 @@ class XBrainLab:
         plot_type: VisualizerType,
         plan_name: str,
         real_plan_name: str,
+        saliency_name: str,
         absolute: bool,
         trainers: list[TrainingPlanHolder]
     ) -> None:
@@ -174,7 +176,7 @@ class XBrainLab:
         """
         PlotTopoABSFigureWindow(
             parent=self.ui, trainers=trainers,
-            plot_type=plot_type, plan_name=plan_name,
+            plot_type=plot_type, plan_name=plan_name, saliency_name=saliency_name,
             real_plan_name=real_plan_name, absolute=absolute
         )
 
@@ -184,6 +186,7 @@ class XBrainLab:
         plot_type: VisualizerType,
         plan_name: str,
         real_plan_name: str,
+        saliency_name: str,
         trainers: list[TrainingPlanHolder]
     ) -> None:
         """Show evaluation figure window.
@@ -196,7 +199,7 @@ class XBrainLab:
         """
         PlotEvalRecordFigureWindow(
             parent=self.ui, trainers=trainers,
-            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name
+            plot_type=plot_type, plan_name=plan_name, real_plan_name=real_plan_name, saliency_name=saliency_name
         )
 
 

@@ -39,6 +39,18 @@ class Visualizer:
         return self._get_plt(*args, **kwargs)
 
 
-    def get_gradient(self, labelIndex: int) -> np.ndarray:
+    def get_saliency(self, saliency_name, labelIndex: int) -> np.ndarray:
         """Return gradient of model by class index."""
-        return self.eval_record.gradient[labelIndex]
+        if saliency_name !=None:
+            if saliency_name == "Gradient":
+                return self.eval_record.get_gradient(labelIndex)
+            elif saliency_name == "Gradient * Input":
+                return np.multiply(self.eval_record.get_gradient(labelIndex), self.eval_record.inputs[labelIndex])
+            elif saliency_name == "SmoothGrad":
+                return self.eval_record.get_smoothgrad(labelIndex)
+            elif saliency_name == "SmoothGrad Squared":
+                return self.eval_record.get_smoothgrad_sq(labelIndex)
+            elif saliency_name == "VarGrad":
+                return self.eval_record.get_vargrad(labelIndex)
+            else:
+                raise NotImplementedError

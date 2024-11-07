@@ -13,13 +13,14 @@ class PlotABSFigureWindow(PlotFigureWindow):
         title='Plot',
         plan_name=None,
         real_plan_name=None,
+        saliency_name=None,
         absolute=None
     ):
         super().__init__(
-            parent, trainers, plot_type, figsize, title, plan_name, real_plan_name
+            parent, trainers, plot_type, figsize, title, plan_name, real_plan_name, saliency_name
         )
         self.absolute_var = tk.BooleanVar(self)
-        self.absolute_var.trace('w', self.absolute_callback)
+        self.absolute_var.trace_add('write', self.absolute_callback)
 
         tk.Checkbutton(
             self.selector_frame, text='absolute value',
@@ -37,6 +38,7 @@ class PlotABSFigureWindow(PlotFigureWindow):
             f"{self.plot_type.__class__.__name__}.{self.plot_type.name}, "
             f"plan_name={self.selected_plan_name.get()!r}, "
             f"real_plan_name={self.selected_real_plan_name.get()!r}, "
+            f"saliency_name={self.selected_saliency_method_name.get()!r}, "
             f"absolute={self.absolute_var.get()!r})"
         )
 
@@ -56,5 +58,5 @@ class PlotABSFigureWindow(PlotFigureWindow):
         plot_visualizer = self.plot_type.value(
             eval_record, epoch_data, **self.get_figure_params()
         )
-        figure = plot_visualizer.get_plt(absolute=self.absolute_var.get())
+        figure = plot_visualizer.get_plt(method=self.selected_saliency_method_name.get(), absolute=self.absolute_var.get())
         return figure
