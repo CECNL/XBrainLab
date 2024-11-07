@@ -7,10 +7,10 @@ from ..script import Script
 class SetSaliencyWindow(TopWindow):
     # return nested dict
     command_label = 'Set Saliency Methods'
-    def __init__(self, parent):
+    def __init__(self, parent, saliency_params=None):
         super().__init__(parent, 'Saliency Setting')
 
-        self.saliency_params = None # nested dict of {'method':{'param':value}}
+        self.saliency_params = saliency_params # nested dict of {'method':{'param':value}}
         algo_map ={} # dict of {'method':['param']}
 
         support_saliency_methods = ['SmoothGrad', 'SmoothGrad Squared', 'VarGrad']
@@ -39,14 +39,15 @@ class SetSaliencyWindow(TopWindow):
         )
 
         self.algo_map = algo_map
+        self.confirm_update = False
         
         self.algo_display()
 
     def algo_display(self):
-        for algo, params_dict in self.algo_map.items():
+        for algo, params_list in self.algo_map.items():
             self.params_trees[algo].delete(*self.params_trees[algo].get_children()) # clear table
-            if params_dict:
-                for param in params_dict:
+            if self.saliency_params is None:
+                for param in params_list:
                     if param == 'nt_samples':
                         value = 5
                     elif param == 'nt_samples_batch_size':
@@ -54,7 +55,10 @@ class SetSaliencyWindow(TopWindow):
                     elif param == 'stdevs':
                         value = 1.0
                     self.params_trees[algo].insert('', index='end', values=(param, value))
-
+            else:
+                for param in params_list:
+                    value = self.saliency_params[algo][param]
+                    self.params_trees[algo].insert('', index='end', values=(param, value))
     def confirm(self):
         saliency_params = {}
         reason = None
@@ -92,10 +96,11 @@ class SetSaliencyWindow(TopWindow):
         self.script_history = Script()
         self.script_history.add_cmd(f'saliency_params={self.saliency_params!r}') 
 
+        self.confirm_update = True
         self.destroy()
 
     def _get_result(self):
-        return self.saliency_params
+        return self.confirm_update, self.saliency_params
     
     def _get_script_history(self):
         return self.script_history

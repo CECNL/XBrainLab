@@ -339,12 +339,13 @@ class DashBoard(tk.Tk):
             raise ValidateException(
                 window=self, message='No valid training plan is generated'
             )
-        set_saliency_module = SetSaliencyWindow(self)
-        saliency_params = set_saliency_module.get_result()
-        self.study.set_saliency_params(saliency_params)
-        self.script_history += set_saliency_module.get_script_history()
-        self.script_history.add_cmd("study.set_saliency_params(saliency_params)")
-        self.update_dashboard()
+        set_saliency_module = SetSaliencyWindow(self, self.study.get_saliency_params())
+        saliency_param_confirm, saliency_params = set_saliency_module.get_result()
+        if saliency_param_confirm:
+            self.study.set_saliency_params(saliency_params)
+            self.script_history += set_saliency_module.get_script_history()
+            self.script_history.add_cmd("study.set_saliency_params(saliency_params)")
+            self.update_dashboard()
 
     def clean_plot(self):
         # could crash system called in threads
