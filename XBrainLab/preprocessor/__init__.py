@@ -1,4 +1,5 @@
 "Module for preprocessing loaded data."
+from .base import PreprocessBase
 from .channel_selection import ChannelSelection
 from .edit_event import EditEventId, EditEventName
 from .export import Export
