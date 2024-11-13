@@ -45,7 +45,7 @@ class Visualizer:
             if saliency_name == "Gradient":
                 return self.eval_record.get_gradient(labelIndex)
             elif saliency_name == "Gradient * Input":
-                return np.multiply(self.eval_record.get_gradient(labelIndex), self.eval_record.inputs[labelIndex])
+                return self.eval_record.get_gradient_input(labelIndex)
             elif saliency_name == "SmoothGrad":
                 return self.eval_record.get_smoothgrad(labelIndex)
             elif saliency_name == "SmoothGrad Squared":

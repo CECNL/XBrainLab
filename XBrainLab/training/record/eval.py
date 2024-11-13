@@ -35,11 +35,11 @@ class EvalRecord:
                   class index as key.
             Gradient of model by class index.
     """
-    def __init__(self, inputs:dict, label: np.ndarray, output: np.ndarray, gradient: dict, smoothgrad: dict, smoothgrad_sq: dict, vargrad:dict) -> None:
-        self.inputs = inputs
+    def __init__(self, label: np.ndarray, output: np.ndarray, gradient: dict, gradient_input:dict, smoothgrad: dict, smoothgrad_sq: dict, vargrad:dict) -> None:
         self.label = label
         self.output = output
         self.gradient = gradient
+        self.gradient_input = gradient_input
         self.smoothgrad = smoothgrad
         self.smoothgrad_sq = smoothgrad_sq
         self.vargrad = vargrad
@@ -108,6 +108,10 @@ class EvalRecord:
     def get_gradient(self, labelIndex: int) -> np.ndarray:
         """Return gradient of model by class index."""
         return self.gradient[labelIndex]
+    
+    def get_gradient_input(self, labelIndex: int) -> np.ndarray:
+        """Return gradient times input of model by class index."""
+        return self.gradient_input[labelIndex]
 
     def get_smoothgrad(self, labelIndex: int) -> np.ndarray:
         """Return smoothgrad of model by class index."""

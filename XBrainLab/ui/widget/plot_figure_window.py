@@ -3,7 +3,6 @@ import tkinter as tk
 from ..base import InitWindowValidateException
 from ..script import Script
 from .single_plot_window import SinglePlotWindow
-from ...visualization import supported_saliency_methods
 
 
 class PlotFigureWindow(SinglePlotWindow):
@@ -16,7 +15,6 @@ class PlotFigureWindow(SinglePlotWindow):
         title='Plot',
         plan_name=None,
         real_plan_name=None,
-        saliency_name=None
     ):
         super().__init__(parent, figsize, title=title)
         self.trainers = trainers
@@ -30,14 +28,12 @@ class PlotFigureWindow(SinglePlotWindow):
             "from XBrainLab.visualization import PlotType, VisualizerType"
         )
         self.plot_gap = 0
-        self.saliency_name = saliency_name
 
         # init data
         ## fetch plan list
         trainer_map = {trainer.get_name(): trainer for trainer in trainers}
         trainer_list = ['Select a plan', *list(trainer_map.keys())]
-        real_plan_list = ['Select repeat']
-        saliency_method_list = ['Select saliency method', 'Gradient', 'Gradient * Input', *supported_saliency_methods]
+        real_plan_list = ['Select repeat']        
 
         #+ gui
         ##+ option menu
@@ -57,26 +53,19 @@ class PlotFigureWindow(SinglePlotWindow):
         real_plan_opt = tk.OptionMenu(
             selector_frame, selected_real_plan_name, *real_plan_list
         )
-        ###+ select saliency method
-        saliency_method_name = tk.StringVar(self)
-        saliency_method_name.set(saliency_method_list[0])
-        saliency_method_name.trace_add('write', self.on_saliency_method_select) # callback
-        saliency_opt = tk.OptionMenu(selector_frame, saliency_method_name, *saliency_method_list) 
+        
 
         plan_opt.pack()
         real_plan_opt.pack()
-        saliency_opt.pack()
         selector_frame.grid(row=0, column=0, sticky='news')
 
         self.selector_frame = selector_frame
         self.plan_opt = plan_opt
         self.real_plan_opt = real_plan_opt
-        self.saliency_opt = saliency_opt
         self.trainer_map = trainer_map
         self.real_plan_map = {}
         self.selected_plan_name = selected_plan_name
         self.selected_real_plan_name = selected_real_plan_name
-        self.selected_saliency_method_name = saliency_method_name
 
         self.drawCounter = 0
         self.update_progress = -1
@@ -85,8 +74,6 @@ class PlotFigureWindow(SinglePlotWindow):
             self.selected_plan_name.set(plan_name)
         if real_plan_name:
             self.selected_real_plan_name.set(real_plan_name)
-        if saliency_name:
-            self.selected_saliency_method_name.set(saliency_name)
 
 
     def check_data(self):
@@ -105,7 +92,6 @@ class PlotFigureWindow(SinglePlotWindow):
             f"{self.plot_type.__class__.__name__}.{self.plot_type.name}, "
             f"plan_name={self.selected_plan_name.get()!r}, "
             f"real_plan_name={self.selected_real_plan_name.get()!r})"
-            f"saliency_name={self.selected_saliency_method_name.get()!r}"
         )
 
     def on_plan_select(self, var_name, *args):
@@ -137,13 +123,6 @@ class PlotFigureWindow(SinglePlotWindow):
         self.plan_to_plot = real_plan
         self.add_plot_command()
 
-    def on_saliency_method_select(self, var_name, *args):
-        self.set_selection(False)
-        if self.getvar(var_name) not in supported_saliency_methods and not self.getvar(var_name).startswith('Gradient'):
-            return
-        self.selected_saliency_method_name.set(self.getvar(var_name))
-        self.add_plot_command()
-        self.recreate_fig()
     
     def _create_figure(self):
         target_func = getattr(self.plan_to_plot, self.plot_type.value)
@@ -209,7 +188,6 @@ class PlotFigureWindow(SinglePlotWindow):
         if state:
             self.plan_opt.config(state=state)
             self.real_plan_opt.config(state=state)
-            self.saliency_opt.config(state=state)
 
     def recreate_fig(self, *args, current_plot=True):
         self.update_progress = -1

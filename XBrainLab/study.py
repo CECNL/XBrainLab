@@ -295,6 +295,9 @@ class Study:
         Raises:
             ValueError: If no valid trainer has been generated.
         """
+        if self.saliency_params is None:
+            if self.trainer:
+                self.saliency_params = self.trainer.get_training_plan_holders()[0].get_saliency_params()
         return self.saliency_params
     
     def set_saliency_params(self, saliency_params) -> None:
