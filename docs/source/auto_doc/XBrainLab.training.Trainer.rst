@@ -17,6 +17,7 @@
       ~Trainer.clean
       ~Trainer.clear_interrupt
       ~Trainer.get_progress_text
+      ~Trainer.get_real_training_plan
       ~Trainer.get_training_plan_holders
       ~Trainer.is_running
       ~Trainer.job

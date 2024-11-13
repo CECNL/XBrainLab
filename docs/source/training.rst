@@ -14,7 +14,7 @@ Train/test a model
    ModelHolder
    TrainingOption
    TestOnlyOption
-   parse_device_name
-   parse_optim_name
    TrainingPlanHolder
    Trainer
+   parse_device_name
+   parse_optim_name

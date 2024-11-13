@@ -15,9 +15,10 @@ This is the reference for classes and functions of XBrainLab.
         :no-inherited-members:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     load_data
     preprocessor
     dataset
     training
+    visualization

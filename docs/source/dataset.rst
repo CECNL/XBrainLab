@@ -13,10 +13,10 @@ Holding and splitting preprocessed data.
    
 	Epochs
 	DataSplitter
-    DataSplittingConfig
-    DatasetGenerator
-    Dataset
-    SplitUnit
-    TrainingType
-    SplitByType
-    ValSplitByType
+   DataSplittingConfig
+   DatasetGenerator
+   Dataset
+   SplitUnit
+   TrainingType
+   SplitByType
+   ValSplitByType
