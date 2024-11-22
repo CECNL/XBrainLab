@@ -48,7 +48,7 @@ class Visualizer:
                 return self.eval_record.get_gradient_input(labelIndex)
             elif saliency_name == "SmoothGrad":
                 return self.eval_record.get_smoothgrad(labelIndex)
-            elif saliency_name == "SmoothGrad Squared":
+            elif saliency_name == "SmoothGrad_Squared":
                 return self.eval_record.get_smoothgrad_sq(labelIndex)
             elif saliency_name == "VarGrad":
                 return self.eval_record.get_vargrad(labelIndex)

@@ -8,11 +8,12 @@ from .saliency_3Dplot import Saliency3DPlotWindow
 from .saliency_map import SaliencyMapWindow
 from .saliency_spectrogram import SaliencySpectrogramWindow
 from .saliency_topomap import SaliencyTopographicMapWindow
+from .export_saliency import ExportSaliencyWindow
 
 VISUALIZATION_MODULE_LIST = [
     SaliencyMapWindow, SaliencyTopographicMapWindow,
     SaliencySpectrogramWindow,
-    Saliency3DPlotWindow, ModelSummaryWindow
+    Saliency3DPlotWindow, ModelSummaryWindow, ExportSaliencyWindow
 ]
 
 __all__ = [

@@ -69,6 +69,25 @@ class EvalRecord:
         np.savetxt(
             target_path, data, delimiter=',', newline='\n',
             header=header, comments='')
+        
+
+    def export_saliency(self, method:str, target_path: str) -> None:
+        """ Export saliency map as torch file.
+        Args:
+            method: saliency type to be exported.
+            target_path: Path to save saliency map.
+        """
+        if method == "Gradient":
+            saliency = self.gradient
+        elif method == "Gradient * Input":
+            saliency = self.gradient_input
+        elif method == "SmoothGrad":
+            saliency = self.smoothgrad
+        elif method == "SmoothGrad_Squared":
+            saliency = self.smoothgrad_sq
+        elif method == "VarGrad":
+            saliency = self.vargrad
+        return saliency
     #
     def get_acc(self) -> float:
         """Get accuracy of the model."""

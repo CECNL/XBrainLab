@@ -119,7 +119,7 @@ def _eval_model(model: torch.nn.Module, dataLoader: Data.DataLoader, saliency_pa
         )
         smoothgrad_sq_list.append(
             noise_tunnel_inst.attribute(
-                inputs, target=label_list[-1].tolist(), nt_type='smoothgrad_sq', **saliency_params['SmoothGrad Squared']
+                inputs, target=label_list[-1].tolist(), nt_type='smoothgrad_sq', **saliency_params['SmoothGrad_Squared']
             ).detach().cpu().numpy()
         )
         vargrad_list.append(

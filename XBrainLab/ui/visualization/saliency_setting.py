@@ -13,11 +13,11 @@ class SetSaliencyWindow(TopWindow):
         self.saliency_params = saliency_params # nested dict of {'method':{'param':value}}
         algo_map ={} # dict of {'method':['param']}
 
-        support_saliency_methods = ['SmoothGrad', 'SmoothGrad Squared', 'VarGrad']
+        support_saliency_methods = ['SmoothGrad', 'SmoothGrad_Squared', 'VarGrad']
         for support_saliency_method in support_saliency_methods:
             if support_saliency_method.startswith('Gradient'):
                 algo_map[support_saliency_method] = None
-            elif support_saliency_method in ['SmoothGrad', 'SmoothGrad Squared', 'VarGrad']:
+            elif support_saliency_method in ['SmoothGrad', 'SmoothGrad_Squared', 'VarGrad']:
                 algo_map[support_saliency_method] = ['nt_samples', 'nt_samples_batch_size', 'stdevs']
             else:
                 raise NotImplementedError
