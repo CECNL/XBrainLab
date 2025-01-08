@@ -56,7 +56,7 @@ class LoadEvent(TopWindow):
         if selected_file: # event array length incompatiable not handled
             if '.txt' in selected_file:
                 label_list = self.event_loader.read_txt(selected_file)
-                self.load_script_history.set_cmd(
+                self.load_script_history.add_cmd(
                     f"event_loader.read_txt({selected_file!r})"
                 )
             elif '.mat' in selected_file:
@@ -67,10 +67,11 @@ class LoadEvent(TopWindow):
                 else:
                     label_key = EventDictInfoSetter(self, loaded_mat, key_opt_val).get_result()
                 label_list = self.event_loader.from_mat(loaded_mat[label_key])
-
+                if not self.script_history.check_import("import scipy.io"):
+                    self.load_script_history.add_import("import scipy.io")
                 self.load_script_history.add_cmd("event_data = scipy.io.loadmat(filepath)")
                 self.load_script_history.add_cmd(f"event_data = event_data[{label_key!r}]")
-                self.load_script_history.set_cmd(f"event_loader.from_mat(event_data)")
+                self.load_script_history.add_cmd(f"event_loader.from_mat(event_data)")
             else:
                 tk.messagebox.showwarning(
                     parent=self,

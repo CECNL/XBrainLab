@@ -46,6 +46,10 @@ class Script:
     def add_import(self, data):
         self.import_list.add(data)
 
+    def check_import(self, data):
+        import_list = list(map(lambda cmd: cmd[1], self.import_list))
+        return data in import_list
+
     def __iadd__(self, lhs):
         if not lhs:
             return self
